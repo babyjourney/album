@@ -1,0 +1,342 @@
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/router'
+import { getSession, isAuthenticated, isEditor } from '../lib/pinAuth'
+import HeaderIsland from '../components/HeaderIsland'
+import InstagramFeed from '../components/InstagramFeed'
+import PostModal from '../components/PostModal'
+import UploadForm from '../components/UploadForm'
+import CreatePost from '../components/CreatePost'
+import Header from '../components/Header'
+import ProfilePictureModal from '../components/ProfilePictureModal'
+import ControlBar from '../components/ControlBar'
+import FilterIsland from '../components/FilterIsland'
+import ChildrenFilter from '../components/ChildrenFilter'
+import FloatingFilterButton from '../components/FloatingFilterButton'
+import FloatingSlideshowButton from '../components/FloatingSlideshowButton'
+
+export default function Dashboard() {
+  const [session, setSession] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
+  const [showUploadForm, setShowUploadForm] = useState(false)
+  const [showTextPost, setShowTextPost] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedPost, setSelectedPost] = useState(null)
+  const [allPosts, setAllPosts] = useState([])
+  const [currentPostIndex, setCurrentPostIndex] = useState(0)
+  const [postCount, setPostCount] = useState(0)
+  const [showProfilePicture, setShowProfilePicture] = useState(false)
+  const [showFilters, setShowFilters] = useState(false)
+  const [selectedChildId, setSelectedChildId] = useState(null)
+  const [filters, setFilters] = useState({
+    date: '',
+    category: 'all',
+    hashtag: '',
+    sort: 'newest'
+  })
+  const router = useRouter()
+
+  useEffect(() => {
+    checkAuth()
+  }, [])
+
+  const checkAuth = () => {
+    if (!isAuthenticated()) {
+      router.push('/login')
+      return
+    }
+
+    const userSession = getSession()
+    setSession(userSession)
+    setLoading(false)
+  }
+
+  const handleUploadSuccess = () => {
+    setRefreshTrigger(prev => prev + 1)
+    setShowUploadForm(false)
+  }
+
+  const handlePostSuccess = () => {
+    setRefreshTrigger(prev => prev + 1)
+    setShowTextPost(false)
+  }
+
+
+  const handlePostClick = (post, posts, index) => {
+    setSelectedPost(post)
+    setAllPosts(posts)
+    setCurrentPostIndex(index)
+  }
+
+  const handleModalClose = () => {
+    setSelectedPost(null)
+    setAllPosts([])
+    setCurrentPostIndex(0)
+  }
+
+  const handlePostDelete = (postId) => {
+    setRefreshTrigger(prev => prev + 1)
+    // Remove the deleted post from allPosts
+    const updatedPosts = allPosts.filter(post => post.id !== postId)
+    setAllPosts(updatedPosts)
+  }
+
+  const handleModalNavigate = (post, index) => {
+    setSelectedPost(post)
+    setCurrentPostIndex(index)
+  }
+
+  const handleHashtagClick = (hashtag) => {
+    setSearchQuery(`#${hashtag}`)
+    setSelectedPost(null) // Close modal if open
+  }
+
+  const handleSearchChange = (query) => {
+    setSearchQuery(query)
+    // Reset filters when user starts typing in search
+    if (query.trim()) {
+      setFilters({
+        date: '',
+        category: 'all',
+        hashtag: '',
+        sort: 'newest'
+      })
+      setSelectedChildId(null) // Also reset child filter
+    }
+  }
+
+  const handleChildFilterChange = (childId) => {
+    setSelectedChildId(childId)
+    // Clear search when filtering by child
+    if (childId) {
+      setSearchQuery('')
+    }
+  }
+
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600"></div>
+      </div>
+    )
+  }
+
+  if (!session) {
+    return null
+  }
+
+  const hasEditorAccess = isEditor()
+
+  return (
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-gray)' }}>
+      {/* Navbar */}
+      <Header 
+        familyName={session.familyName} 
+        role={session.role}
+      />
+      
+      {/* Header Island with Create Post */}
+      <HeaderIsland
+        childName={session.familyName}
+        postCount={postCount}
+        onCreatePost={async (postData) => {
+          // Handle text post creation directly from header
+          const response = await fetch('/api/posts/create', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              familyId: session.familyId,
+              type: 'text',
+              title: '',
+              description: postData.text,
+              fileUrl: null,
+              category: postData.category,
+              hashtags: postData.hashtags
+            })
+          })
+          
+          if (!response.ok) {
+            throw new Error('Crearea postării a eșuat')
+          }
+          
+          setRefreshTrigger(prev => prev + 1)
+        }}
+        onPhotoUpload={() => setShowUploadForm(true)}
+        onVideoUpload={() => setShowUploadForm(true)}
+        onProfilePictureClick={() => setShowProfilePicture(true)}
+        hasEditorAccess={hasEditorAccess}
+        searchQuery={searchQuery}
+        onSearchChange={handleSearchChange}
+      />
+
+      {/* Control Bar */}
+      <ControlBar
+        searchQuery={searchQuery}
+        onSearchChange={handleSearchChange}
+        onToggleFilters={() => setShowFilters(!showFilters)}
+        showFilters={showFilters}
+      />
+
+      {/* Filter Island */}
+      <FilterIsland
+        isVisible={showFilters}
+        filters={filters}
+        onFiltersChange={setFilters}
+      />
+
+      {/* Children Filter */}
+      <ChildrenFilter
+        familyId={session?.familyId}
+        isVisible={true} // Always visible if multi-child is enabled
+        selectedChildId={selectedChildId}
+        onChildFilterChange={handleChildFilterChange}
+      />
+
+      {/* Main Feed */}
+      <main style={{ paddingBottom: '32px' }}>
+        <InstagramFeed
+          familyId={session.familyId}
+          searchQuery={searchQuery}
+          refreshTrigger={refreshTrigger}
+          onPostClick={handlePostClick}
+          onPostCountUpdate={(count) => setPostCount(count)}
+          onHashtagClick={handleHashtagClick}
+          filters={filters}
+          selectedChildId={selectedChildId}
+        />
+      </main>
+
+      {/* Modals */}
+      {selectedPost && (
+        <PostModal
+          selectedPost={selectedPost}
+          allPosts={allPosts}
+          currentIndex={currentPostIndex}
+          onClose={handleModalClose}
+          onDelete={handlePostDelete}
+          onNavigate={handleModalNavigate}
+          onHashtagClick={handleHashtagClick}
+          readOnly={!hasEditorAccess}
+        />
+      )}
+
+      {/* Upload Form Modal */}
+      {hasEditorAccess && showUploadForm && (
+        <div className="modal-overlay">
+          <div className="modal-content animate-fade-in" style={{ 
+            maxWidth: '500px', 
+            width: '100%',
+            margin: '0 8px',
+            maxHeight: '90vh',
+            height: 'auto'
+          }}>
+            <button
+              onClick={() => setShowUploadForm(false)}
+              style={{
+                position: 'absolute',
+                top: '16px',
+                right: '16px',
+                zIndex: 10,
+                padding: '8px',
+                backgroundColor: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--text-secondary)',
+                borderRadius: '10px'
+              }}
+              onMouseOver={(e) => {
+                e.target.style.backgroundColor = '#F3F4F6'
+                e.target.style.color = '#DC2626'
+              }}
+              onMouseOut={(e) => {
+                e.target.style.backgroundColor = 'transparent'
+                e.target.style.color = 'var(--text-secondary)'
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="m18 6-12 12"/>
+                <path d="m6 6 12 12"/>
+              </svg>
+            </button>
+            <UploadForm 
+              familyId={session.familyId} 
+              onUploadSuccess={handleUploadSuccess}
+              onClose={() => setShowUploadForm(false)}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Text Post Modal */}
+      {hasEditorAccess && showTextPost && (
+        <div className="modal-overlay">
+          <div className="modal-content animate-fade-in" style={{ maxWidth: '500px', width: '100%' }}>
+            <button
+              onClick={() => setShowTextPost(false)}
+              style={{
+                position: 'absolute',
+                top: '16px',
+                right: '16px',
+                zIndex: 10,
+                padding: '8px',
+                backgroundColor: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--text-secondary)',
+                borderRadius: '10px'
+              }}
+              onMouseOver={(e) => {
+                e.target.style.backgroundColor = '#F3F4F6'
+                e.target.style.color = '#DC2626'
+              }}
+              onMouseOut={(e) => {
+                e.target.style.backgroundColor = 'transparent'
+                e.target.style.color = 'var(--text-secondary)'
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="m18 6-12 12"/>
+                <path d="m6 6 12 12"/>
+              </svg>
+            </button>
+            <CreatePost
+              familyId={session.familyId}
+              onPostSuccess={handlePostSuccess}
+              onPhotoClick={() => {
+                setShowTextPost(false)
+                setShowUploadForm(true)
+              }}
+              onVideoClick={() => {
+                setShowTextPost(false)
+                setShowUploadForm(true)
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Profile Picture Modal */}
+      <ProfilePictureModal
+        isOpen={showProfilePicture}
+        onClose={() => setShowProfilePicture(false)}
+        childName={session?.familyName}
+        childImage="/api/placeholder/80/80"
+      />
+
+      {/* Floating Filter Button */}
+      <FloatingFilterButton
+        filters={filters}
+        onFiltersChange={setFilters}
+      />
+      
+      {/* Floating Slideshow Button */}
+      <FloatingSlideshowButton
+        familyId={session?.familyId}
+      />
+      
+    </div>
+  )
+}

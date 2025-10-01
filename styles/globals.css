@@ -1,0 +1,730 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global Design System - Clean Implementation */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: #ffffff;
+  color: #262626;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+/* Remove tap highlight and improve touch interactions - Comprehensive */
+button,
+[role="button"],
+.btn,
+.btn-primary,
+.category-pill,
+.floating-button,
+a,
+input[type="button"],
+input[type="submit"],
+input[type="reset"],
+input[type="image"],
+label,
+select,
+textarea,
+input,
+[tabindex],
+[onclick],
+.clickable,
+.interactive,
+svg,
+path,
+circle,
+rect,
+polygon,
+ellipse {
+  -webkit-tap-highlight-color: transparent !important;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  outline: none !important;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  -webkit-touch-callout: none;
+  -webkit-focus-ring-color: transparent !important;
+}
+
+/* Remove all focus and active states that create unwanted borders/backgrounds */
+button:focus,
+button:active,
+[role="button"]:focus,
+[role="button"]:active,
+.btn:focus,
+.btn:active,
+.btn-primary:focus,
+.btn-primary:active,
+a:focus,
+a:active,
+input:focus,
+input:active,
+select:focus,
+select:active,
+textarea:focus,
+textarea:active,
+svg:focus,
+svg:active,
+*:focus,
+*:active {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  background: inherit !important;
+}
+
+
+/* Ensure all interactive elements have proper touch targets on mobile */
+@media (max-width: 768px) {
+  button,
+  [role="button"],
+  .btn,
+  .category-pill {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Typography Scale - Apple/Instagram Style */
+.text-page-title {
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: #262626;
+}
+
+.text-section-title {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: #262626;
+}
+
+.text-body {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #262626;
+}
+
+.text-subtle {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: #8e8e8e;
+}
+
+/* Apple/Instagram Color System */
+:root {
+  --bg-primary: #ffffff;
+  --bg-content: #ffffff;
+  --bg-gray: #fafafa;
+  --text-primary: #262626;
+  --text-secondary: #8e8e8e;
+  --accent-blue: #0095f6;
+  --border-light: #dbdbdb;
+  --overlay-dark: rgba(0, 0, 0, 0.65);
+  --shadow-soft: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+}
+
+/* Spacing System - 4px Grid */
+.spacing-4 { padding: 4px; margin: 4px; }
+.spacing-8 { padding: 8px; margin: 8px; }
+.spacing-12 { padding: 12px; margin: 12px; }
+.spacing-16 { padding: 16px; margin: 16px; }
+.spacing-20 { padding: 20px; margin: 20px; }
+.spacing-24 { padding: 24px; margin: 24px; }
+.spacing-28 { padding: 28px; margin: 28px; }
+.spacing-32 { padding: 32px; margin: 32px; }
+
+/* Main Layout - Instagram Style */
+.main-container {
+  max-width: 935px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* Card System */
+.card {
+  background: var(--bg-content);
+  border-radius: 20px;
+  padding: 20px;
+  border: 1px solid var(--border-light);
+  transition: all 0.2s ease-in-out;
+}
+
+.card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Interactive Category Pills */
+.category-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  border: 1px solid var(--border-light);
+}
+
+.category-pill--unselected {
+  background: var(--bg-gray);
+  color: var(--text-primary);
+  border-color: var(--border-light);
+}
+
+.category-pill--unselected:hover {
+  background: #e5e7eb;
+  border-color: #d1d5db;
+}
+
+.category-pill--selected {
+  background: var(--accent-blue);
+  color: white;
+  border-color: var(--accent-blue);
+}
+
+.category-pill--selected:hover {
+  background: #0084e6;
+}
+
+/* Button System */
+.btn-primary {
+  background: var(--accent-blue);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: 16px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-primary:hover {
+  background: #0084e6;
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+}
+
+.btn-primary:disabled {
+  background: #9CA3AF;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Input System */
+.input-field {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--border-light);
+  border-radius: 16px;
+  font-size: 14px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  transition: all 0.2s ease-in-out;
+  background: var(--bg-gray);
+  color: var(--text-primary);
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  background: white;
+}
+
+.input-field:hover {
+  border-color: #a3a3a3;
+}
+
+.input-field::placeholder {
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+/* Modal System */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: var(--overlay-dark);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal-content {
+  background: var(--bg-content);
+  border-radius: 20px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  max-height: 90vh;
+  overflow: hidden;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Floating button responsive */
+@media (max-width: 768px) {
+  .floating-filter-modal {
+    margin: 16px !important;
+    max-width: calc(100vw - 32px) !important;
+  }
+  
+  .floating-filter-content {
+    padding: 16px !important;
+  }
+  
+  .category-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+}
+
+/* Mobile Modal Responsiveness */
+@media (max-width: 768px) {
+  .modal-overlay {
+    padding: 8px !important;
+    align-items: flex-start !important;
+    padding-top: 20px !important;
+  }
+
+  .modal-content {
+    max-height: 95vh !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+    border-radius: 16px !important;
+    min-height: 85vh !important;
+  }
+
+  /* Make sure modal buttons are easily tappable on mobile */
+  .modal-content button {
+    min-height: 44px !important;
+    font-size: 16px !important;
+  }
+
+  /* Ensure upload form uses full available space */
+  .modal-content .input-field,
+  .modal-content .textarea-field {
+    font-size: 16px !important;
+    padding: 12px 16px !important;
+  }
+}
+
+/* Mobile responsiveness for main content */
+@media (max-width: 768px) {
+  .main-container {
+    padding: 0 12px; /* Reduced from 16px to 12px for more content space */
+  }
+  
+  .card {
+    padding: 12px; /* Reduced from 16px to 12px */
+    border-radius: 16px; /* Slightly reduced for subtlety */
+  }
+
+  /* Hide desktop navigation on mobile */
+  .desktop-nav {
+    display: none !important;
+  }
+  
+  /* Instagram-style mobile grid */
+  .instagram-grid {
+    max-width: 100% !important;
+    gap: 12px !important; /* Reduced gap for more content */
+  }
+  
+  /* More subtle shadows and borders on mobile */
+  .card {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important; /* More subtle shadow */
+    border: 1px solid #f0f0f0 !important; /* Lighter border */
+  }
+  
+  /* Reduced spacing for mobile headers */
+  .text-page-title {
+    font-size: 24px !important; /* Smaller on mobile */
+    margin-bottom: 8px !important;
+  }
+  
+  .text-section-title {
+    font-size: 18px !important; /* Smaller on mobile */
+  }
+  
+  /* More compact mobile controls */
+  .modal-content {
+    padding: 16px !important; /* Reduced modal padding */
+  }
+  
+  /* Subtle floating buttons on mobile */
+  .floating-button {
+    width: 48px !important; /* Slightly smaller */
+    height: 48px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12) !important; /* More subtle shadow */
+  }
+
+  /* Skills page mobile responsiveness */
+  .skills-grid {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
+  
+  .skills-card {
+    transform: none !important;
+  }
+  
+  .skills-card:hover {
+    transform: translateY(-4px) !important;
+  }
+  
+  .skills-card {
+    min-width: auto !important;
+    padding: 16px !important;
+  }
+  
+  .category-filter {
+    justify-content: flex-start !important;
+    gap: 8px !important;
+  }
+  
+  .category-pill {
+    font-size: 12px !important;
+    padding: 6px 10px !important;
+  }
+  
+  .skill-controls {
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+  
+  .skill-controls button {
+    width: 100% !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .desktop-nav {
+    display: block !important;
+  }
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { 
+    opacity: 0; 
+    transform: scale(0.9) translateY(20px);
+  }
+  to { 
+    opacity: 1; 
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes slideUpModal {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUpFloat {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes bounce {
+  0%, 20%, 53%, 80%, 100% {
+    animation-timing-function: cubic-bezier(0.215, 0.610, 0.355, 1.000);
+    transform: translate3d(0,0,0);
+  }
+  40%, 43% {
+    animation-timing-function: cubic-bezier(0.755, 0.050, 0.855, 0.060);
+    transform: translate3d(0, -10px, 0);
+  }
+  70% {
+    animation-timing-function: cubic-bezier(0.755, 0.050, 0.855, 0.060);
+    transform: translate3d(0, -5px, 0);
+  }
+  90% {
+    transform: translate3d(0,-2px,0);
+  }
+}
+
+@keyframes wiggle {
+  0%, 7% {
+    transform: rotateZ(0);
+  }
+  15% {
+    transform: rotateZ(-15deg);
+  }
+  20% {
+    transform: rotateZ(10deg);
+  }
+  25% {
+    transform: rotateZ(-10deg);
+  }
+  30% {
+    transform: rotateZ(6deg);
+  }
+  35% {
+    transform: rotateZ(-4deg);
+  }
+  40%, 100% {
+    transform: rotateZ(0);
+  }
+}
+
+@keyframes slideUpFloat {
+  0% {
+    transform: translateY(100px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-bounce {
+  animation: bounce 2s infinite;
+}
+
+.animate-wiggle {
+  animation: wiggle 2s ease-in-out infinite;
+}
+
+/* Fun hover effects for skills cards */
+.skills-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.skills-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.15);
+}
+
+.skills-card:hover .skill-emoji {
+  animation: wiggle 1s ease-in-out;
+}
+
+/* Playful button animations */
+.fun-button {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fun-button:hover {
+  transform: translateY(-2px);
+  animation: wiggle 0.5s ease-in-out;
+}
+
+.fun-button:active {
+  transform: translateY(0) scale(0.95);
+}
+
+.shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Instagram-style Grid */
+.instagram-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  max-width: 470px;
+  margin: 0 auto;
+}
+
+@media (min-width: 768px) {
+  .instagram-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 28px;
+    max-width: 935px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .instagram-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px;
+  }
+}
+
+/* Slideshow responsive positioning */
+@media (max-width: 768px) {
+  .slideshow-button-container {
+    right: 20px !important;
+    bottom: 90px !important; /* Stack above filter button on mobile */
+  }
+  
+  .filter-button-container {
+    right: 20px !important;
+    bottom: 20px !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .slideshow-button-container {
+    right: 90px !important; /* Side by side on desktop */
+    bottom: 20px !important;
+  }
+  
+  .filter-button-container {
+    right: 20px !important;
+    bottom: 20px !important;
+  }
+}
+
+/* Enhanced Smooth Scrolling */
+.smooth-scroll-container {
+  /* Enhanced scroll snap */
+  scroll-snap-type: x mandatory;
+  scroll-snap-stop: always;
+  
+  /* Hardware acceleration */
+  transform: translateZ(0);
+  will-change: scroll-position;
+  
+  /* Better momentum scrolling */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  
+  /* Hide scrollbars */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.smooth-scroll-container::-webkit-scrollbar {
+  display: none;
+}
+
+/* Modern scroll physics */
+@supports (scroll-behavior: smooth) {
+  .smooth-scroll-container {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Enhanced scroll snapping for better UX */
+.smooth-scroll-container > * {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+/* Better touch interactions on mobile */
+@media (max-width: 768px) {
+  .smooth-scroll-container {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    /* Prevent momentum bounce */
+    overscroll-behavior-x: contain;
+    overscroll-behavior-y: none;
+  }
+}
+
+/* Enhanced image performance in carousels */
+.smooth-scroll-container img,
+.smooth-scroll-container video {
+  transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
+  image-rendering: optimizeQuality;
+  transition: opacity 0.3s ease-out;
+}
+
+/* Utility Classes */
+.text-primary { color: var(--text-primary); }
+.text-secondary { color: var(--text-secondary); }
+.bg-primary { background-color: var(--bg-primary); }
+.bg-content { background-color: var(--bg-content); }
+.border-light { border-color: var(--border-light); }

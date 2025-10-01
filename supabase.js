@@ -181,7 +181,7 @@ export async function uploadFileToStorage(file, folder = 'photos') {
 
     } catch (error) {
         console.error('❌ Error uploading file:', error);
-        throw new Error('Failed to upload file: ' + error.message);
+        throw new Error('Încărcarea fișierului a eșuat: ' + error.message);
     }
 }
 
@@ -228,7 +228,7 @@ export async function savePhotoToFirestore(photoData) {
 
     } catch (error) {
         console.error('❌ Error saving photo to database:', error);
-        throw new Error('Failed to save photo: ' + error.message);
+        throw new Error('Salvarea fotografiei a eșuat: ' + error.message);
     }
 }
 
@@ -323,7 +323,7 @@ export async function saveSkillToFirestore(skillData) {
 
     } catch (error) {
         console.error('❌ Error saving custom skill:', error);
-        throw new Error('Failed to save skill: ' + error.message);
+        throw new Error('Salvarea abilității a eșuat: ' + error.message);
     }
 }
 
@@ -444,7 +444,7 @@ export async function updatePredefinedSkillProgress(presetId, newProgress) {
 
     } catch (error) {
         console.error('❌ Error updating predefined skill progress:', error);
-        throw new Error('Failed to update progress: ' + error.message);
+        throw new Error('Actualizarea progresului a eșuat: ' + error.message);
     }
 }
 
@@ -473,7 +473,7 @@ export async function updateSkillProgress(skillId, newProgress) {
 
     } catch (error) {
         console.error('❌ Error updating custom skill progress:', error);
-        throw new Error('Failed to update progress: ' + error.message);
+        throw new Error('Actualizarea progresului a eșuat: ' + error.message);
     }
 }
 

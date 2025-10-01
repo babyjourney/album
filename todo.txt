@@ -1,0 +1,31 @@
++ shuffle mod implementation la slideshow, sa fie optiunea asta de buton
++ filtrare - slideshow de schimbat cu locu si de pus sa vina drept, perpendicular una sub alta 
++ inputuri - sa nu se vada ca parole, titlu, descriere, etichete 
++ buton edit la fiecare postare, descrierea, etichete etichete
++ pune sa poti scoate copii din mai multi copii din dashboard
+
+paddinguri pe telefon, chestii mai subtiri
+slide-ul nu reactioneaza corect intre postari
++ deschide imaginea pe pc - se astupa butoanele, nu merge navigation thru posts
+
+
+mai multe poze odata, posibilitatea de a da slide prin ele ca pe instagram cand postezi mai multe odata
+
+pagina login
+pagina dashboard when 
+pentru user - sa nu arate insula aia de upload, doar bara search
+
+2fa la logout
+
+
+
+
+1. nu se vad punctele la postarea cu mai multe poze. stau sub descrierea pozei. fa si descrierea pozei mai subtire. sa nu astupe poza
+2. scrollul vertical e prea sensitive
+3. fa animatie la scrolul din postarea cu mai multe poze, cel orizontal. el lucreaza cu delay, nu e smooth si nu pot da scroll instant dupa ce deschid postarea
+4. nu se deschide postarea cu mai multe poze cand apas pe poza, se deschide doar cand apas pe descrierea ei, fix this
+
+
+filtrare - hashtagurile nu se separa dupa spatiu
+
+iconurile de pe site primesc un border si bg cand sunt apasate. ma refer la toate, alea de la dropdown, alea de iesire din poza de pe desktop, de editare, de downloadoare, de stergere, toate butoanele de pe pagina
