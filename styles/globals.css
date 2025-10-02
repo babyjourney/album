@@ -60,15 +60,11 @@ ellipse {
   -webkit-focus-ring-color: transparent !important;
 }
 
-/* Remove all focus and active states that create unwanted borders/backgrounds */
+/* Remove only tap highlights, keep original backgrounds */
 button:focus,
 button:active,
 [role="button"]:focus,
 [role="button"]:active,
-.btn:focus,
-.btn:active,
-.btn-primary:focus,
-.btn-primary:active,
 a:focus,
 a:active,
 input:focus,
@@ -78,13 +74,16 @@ select:active,
 textarea:focus,
 textarea:active,
 svg:focus,
-svg:active,
-*:focus,
-*:active {
+svg:active {
   outline: none !important;
-  border: none !important;
-  box-shadow: none !important;
-  background: inherit !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+/* Remove focus borders only for interactive elements that should not have them */
+button:focus:not(:focus-visible),
+[role="button"]:focus:not(:focus-visible),
+a:focus:not(:focus-visible) {
+  outline: none !important;
 }
 
 

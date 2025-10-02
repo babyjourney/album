@@ -274,53 +274,40 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
         ))}
       </div>
 
-      {/* Progress indicators */}
+      {/* Modern minimalistic progress indicators */}
       {images.length > 1 && (
         <div style={{
           position: 'absolute',
-          bottom: '20px',
+          bottom: '16px',
           left: '50%',
           transform: 'translateX(-50%)',
           display: 'flex',
-          gap: '3px',
-          zIndex: 20
+          alignItems: 'center',
+          gap: '6px',
+          zIndex: 20,
+          padding: '8px 12px',
+          background: 'rgba(0, 0, 0, 0.3)',
+          borderRadius: '12px',
+          backdropFilter: 'blur(8px)'
         }}>
           {images.map((_, dotIndex) => (
-            <button
+            <div
               key={dotIndex}
               onClick={(e) => {
                 e.stopPropagation()
                 navigateToIndex(dotIndex)
               }}
               style={{
-                width: '2px',
-                height: '2px',
-                borderRadius: '50%',
-                border: 'none',
-                background: dotIndex === index ? 'white' : 'rgba(255, 255, 255, 0.3)',
+                width: dotIndex === index ? '16px' : '4px',
+                height: '4px',
+                borderRadius: '2px',
+                background: dotIndex === index 
+                  ? 'rgba(255, 255, 255, 0.9)' 
+                  : 'rgba(255, 255, 255, 0.4)',
                 cursor: 'pointer',
-                transition: 'all 0.2s ease-out',
-                transform: dotIndex === index ? 'scale(1.5)' : 'scale(1)',
-                boxShadow: dotIndex === index ? '0 0 4px rgba(255, 255, 255, 0.5)' : 'none',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                 WebkitTapHighlightColor: 'transparent',
-                outline: 'none',
-                minWidth: '12px',
-                minHeight: '12px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-              onMouseOver={(e) => {
-                if (dotIndex !== index) {
-                  e.target.style.background = 'rgba(255, 255, 255, 0.8)'
-                  e.target.style.transform = 'scale(1.1)'
-                }
-              }}
-              onMouseOut={(e) => {
-                if (dotIndex !== index) {
-                  e.target.style.background = 'rgba(255, 255, 255, 0.5)'
-                  e.target.style.transform = 'scale(1)'
-                }
+                outline: 'none'
               }}
             />
           ))}
