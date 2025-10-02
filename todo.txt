@@ -29,3 +29,11 @@ pentru user - sa nu arate insula aia de upload, doar bara search
 filtrare - hashtagurile nu se separa dupa spatiu
 
 iconurile de pe site primesc un border si bg cand sunt apasate. ma refer la toate, alea de la dropdown, alea de iesire din poza de pe desktop, de editare, de downloadoare, de stergere, toate butoanele de pe pagina
+
+1. cand deschid postare cu mai multe poze: nu se da slide normal, logica de slide e fucked, repara, fa smooth, animat\                                            │
+│   2. mereu prima postare are un spatiu negru deasupra cand e deschisa pe telefon, nu inteleg de ce, nu e full screen\                                               │
+│   3. cand sunt deschise pozele, si dau scroll, ele nu se vad in totalitate pentru ca sunt date putin in jos intr-un fel. \                                          │
+│   4. cand sunt deschise postarile pe tel, se vede titlu, descrierea dar vreau sa se vada si hashtagu\                                                               │
+│   5. la search/filtrare, cand dau space dupa hashtag ele nu se separa\                                                                                              │
+│   \                                                                                                                                                                 │
+│   Fixeaza toate astea iar apoi da push pe github  2

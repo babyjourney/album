@@ -39,9 +39,6 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
     }
   }
 
-  const removeHashtag = (tagToRemove) => {
-    setHashtags(hashtags.filter(tag => tag !== tagToRemove))
-  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -172,36 +169,21 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
                     style={{
                       backgroundColor: 'var(--accent-blue)',
                       color: 'white',
-                      padding: '4px 8px',
-                      borderRadius: '16px',
+                      padding: '6px 10px',
+                      borderRadius: '10px',
                       fontSize: '14px',
-                      fontWeight: '500',
-                      display: 'flex',
+                      fontWeight: '400',
+                      display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '4px'
+                      gap: '6px',
+                      lineHeight: '1.2',
+                      height: 'auto',
+                      minHeight: 'unset',
+                      verticalAlign: 'middle',
+                      whiteSpace: 'nowrap'
                     }}
                   >
                     #{tag}
-                    <button
-                      type="button"
-                      onClick={() => removeHashtag(tag)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: 'white',
-                        cursor: 'pointer',
-                        padding: '0',
-                        width: '16px',
-                        height: '16px',
-                        borderRadius: '50%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '12px'
-                      }}
-                    >
-                      ×
-                    </button>
                   </span>
                 ))}
                 

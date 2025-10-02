@@ -320,11 +320,28 @@ export default function FloatingFilterButton({ filters, onFiltersChange }) {
                   <input
                     type="text"
                     value={filters.hashtag || ''}
-                    onChange={(e) => onFiltersChange({
-                      ...filters,
-                      hashtag: e.target.value.replace('#', '')
-                    })}
-                    placeholder="familie, vacanță, etc."
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/#/g, '')
+                      onFiltersChange({
+                        ...filters,
+                        hashtag: value
+                      })
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === ' ' || e.key === 'Enter') {
+                        e.preventDefault()
+                        const value = e.target.value.trim()
+                        if (value) {
+                          // Split by space and filter out empty strings
+                          const hashtags = value.split(/\s+/).filter(tag => tag.length > 0)
+                          onFiltersChange({
+                            ...filters,
+                            hashtag: hashtags.join(' ')
+                          })
+                        }
+                      }
+                    }}
+                    placeholder="familie vacanță plajă (space pentru multiple)"
                     style={{
                       flex: 1,
                       padding: '12px 16px',
@@ -339,46 +356,59 @@ export default function FloatingFilterButton({ filters, onFiltersChange }) {
                 {filters.hashtag && (
                   <div style={{ 
                     marginTop: '8px',
-                    overflow: 'hidden',
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '6px',
                     width: '100%'
                   }}>
-                    <span style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      padding: '6px 12px',
-                      backgroundColor: 'var(--accent-blue)',
-                      color: 'white',
-                      borderRadius: '16px',
-                      fontSize: '12px',
-                      fontWeight: '500',
-                      gap: '6px',
-                      maxWidth: '100%',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      <span style={{
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        maxWidth: 'calc(100% - 30px)'
+                    {filters.hashtag.split(/\s+/).filter(tag => tag.length > 0).map((hashtag, index) => (
+                      <span key={index} style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        padding: '6px 12px',
+                        backgroundColor: 'var(--accent-blue)',
+                        color: 'white',
+                        borderRadius: '16px',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        gap: '6px'
                       }}>
-                        #{filters.hashtag}
+                        <span>#{hashtag}</span>
+                        <button
+                          onClick={() => {
+                            const remainingTags = filters.hashtag.split(/\s+/)
+                              .filter(tag => tag.length > 0 && tag !== hashtag)
+                              .join(' ')
+                            onFiltersChange({...filters, hashtag: remainingTags})
+                          }}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'white',
+                            cursor: 'pointer',
+                            fontSize: '16px',
+                            lineHeight: 1,
+                            flexShrink: 0
+                          }}
+                        >
+                          ×
+                        </button>
                       </span>
-                      <button
-                        onClick={() => onFiltersChange({...filters, hashtag: ''})}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: 'white',
-                          cursor: 'pointer',
-                          fontSize: '16px',
-                          lineHeight: 1,
-                          flexShrink: 0
-                        }}
-                      >
-                        ×
-                      </button>
-                    </span>
+                    ))}
+                    <button
+                      onClick={() => onFiltersChange({...filters, hashtag: ''})}
+                      style={{
+                        padding: '6px 12px',
+                        backgroundColor: 'rgba(220, 38, 38, 0.1)',
+                        color: '#dc2626',
+                        border: '1px solid rgba(220, 38, 38, 0.3)',
+                        borderRadius: '16px',
+                        fontSize: '12px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Curăță toate
+                    </button>
                   </div>
                 )}
               </div>

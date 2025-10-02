@@ -87,7 +87,12 @@ export default function Dashboard() {
   }
 
   const handleHashtagClick = (hashtag) => {
-    setSearchQuery(`#${hashtag}`)
+    // Clear search query and set hashtag filter
+    setSearchQuery('')
+    setFilters(prev => ({
+      ...prev,
+      hashtag: hashtag
+    }))
     setSelectedPost(null) // Close modal if open
   }
 

@@ -84,8 +84,8 @@ function MobileActionMenu({ currentPost, isTextPost, onDownload, onDelete, onEdi
       ref={menuRef}
       style={{
         position: 'fixed',
-        bottom: '30px',
-        right: '20px',
+        bottom: '40px',
+        right: '16px',
         zIndex: 30
       }}
     >
@@ -219,27 +219,27 @@ function MobileActionMenu({ currentPost, isTextPost, onDownload, onDelete, onEdi
       <button
         onClick={() => setShowMenu(!showMenu)}
         style={{
-          padding: '16px',
-          background: 'rgba(255, 255, 255, 0.9)',
+          padding: '8px',
+          background: 'rgba(0, 0, 0, 0.6)',
           backdropFilter: 'blur(10px)',
           border: 'none',
           borderRadius: '50%',
           cursor: 'pointer',
-          color: 'var(--text-primary)',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
-          width: '56px',
-          height: '56px',
+          color: 'white',
+          boxShadow: '0 2px 12px rgba(0, 0, 0, 0.3)',
+          width: '36px',
+          height: '36px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           transform: showMenu ? 'rotate(90deg)' : 'rotate(0deg)',
-          transition: 'transform 0.2s ease'
+          transition: 'all 0.2s ease'
         }}
       >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <circle cx="12" cy="12" r="1"/>
-          <circle cx="12" cy="5" r="1"/>
-          <circle cx="12" cy="19" r="1"/>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <circle cx="12" cy="12" r="1.5"/>
+          <circle cx="12" cy="5" r="1.5"/>
+          <circle cx="12" cy="19" r="1.5"/>
         </svg>
       </button>
     </div>
@@ -654,13 +654,17 @@ export default function PostModal({
         <div 
           className="mobile-modal-scroll"
           style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
             width: '100vw',
             height: '100vh',
             overflowY: 'auto',
             overflowX: 'hidden',
             scrollSnapType: 'y mandatory',
             scrollBehavior: 'smooth',
-            WebkitOverflowScrolling: 'touch'
+            WebkitOverflowScrolling: 'touch',
+            zIndex: 10
           }}
           onScroll={(e) => {
             // Ignore scroll events during initialization to prevent conflicts
@@ -819,25 +823,25 @@ export default function PostModal({
             bottom: '0',
             left: '0',
             right: '0',
-            background: 'linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.4) 50%, transparent 100%)', // Gradient fade
+            background: 'linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.6) 60%, transparent 100%)',
             color: 'white',
-            padding: isDescriptionExpanded ? '20px 20px 60px' : '8px 20px 40px', // Much smaller when collapsed
-            maxHeight: isDescriptionExpanded ? '40vh' : '80px', // Very small when collapsed
+            padding: isDescriptionExpanded ? '18px 16px 85px' : '10px 16px 85px',
+            maxHeight: isDescriptionExpanded ? '45vh' : '120px',
             overflow: 'hidden',
-            transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)', // Modern easing
-            transform: isDescriptionExpanded ? 'translateY(0)' : 'translateY(10px)', // Slide up effect
-            zIndex: 5 // Much lower z-index
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            transform: isDescriptionExpanded ? 'translateY(0)' : 'translateY(0)',
+            zIndex: 15
           }}>
             {currentPost.title && (
               <h3 style={{ 
-                fontSize: '13px', // Even smaller
-                fontWeight: '400', // Much less bold
-                marginBottom: '3px', // Minimal spacing
-                color: 'rgba(255, 255, 255, 0.9)', 
-                lineHeight: '1.2',
+                fontSize: '14px',
+                fontWeight: '600',
+                marginBottom: '4px',
+                color: 'rgba(255, 255, 255, 0.95)', 
+                lineHeight: '1.3',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
-                whiteSpace: isDescriptionExpanded ? 'normal' : 'nowrap' // Single line when collapsed
+                whiteSpace: isDescriptionExpanded ? 'normal' : 'nowrap'
               }}>
                 {currentPost.title}
               </h3>
@@ -846,15 +850,15 @@ export default function PostModal({
             {getCleanDescription(currentPost) && !isTextPost && (() => {
               const { text, needsTruncation } = getTruncatedDescription(getCleanDescription(currentPost), isDescriptionExpanded)
               return (
-                <div style={{ marginBottom: isDescriptionExpanded ? '8px' : '2px' }}>
+                <div style={{ marginBottom: isDescriptionExpanded ? '8px' : '4px' }}>
                   <p style={{
-                    fontSize: '12px', // Even smaller
-                    lineHeight: isDescriptionExpanded ? '1.4' : '1.2',
-                    color: 'rgba(255, 255, 255, 0.8)', // More transparent
-                    marginBottom: needsTruncation ? '2px' : '0',
+                    fontSize: '12px',
+                    lineHeight: isDescriptionExpanded ? '1.4' : '1.3',
+                    color: 'rgba(255, 255, 255, 0.9)',
+                    marginBottom: needsTruncation ? '3px' : '0',
                     overflow: 'hidden',
                     display: isDescriptionExpanded ? 'block' : '-webkit-box',
-                    WebkitLineClamp: isDescriptionExpanded ? 'none' : 1,
+                    WebkitLineClamp: isDescriptionExpanded ? 'none' : 2,
                     WebkitBoxOrient: 'vertical'
                   }}>
                     {text}
@@ -869,13 +873,12 @@ export default function PostModal({
                       style={{
                         background: 'none',
                         border: 'none',
-                        color: 'rgba(255, 255, 255, 0.6)', 
-                        fontSize: '11px', // Even smaller
+                        color: 'rgba(255, 255, 255, 0.7)', 
+                        fontSize: '11px',
                         cursor: 'pointer',
                         padding: '2px 0',
                         textDecoration: 'none',
-                        fontWeight: '300',
-                        opacity: 0.8
+                        fontWeight: '400'
                       }}
                     >
                       {isDescriptionExpanded ? 'see less' : 'see more'}
@@ -885,23 +888,55 @@ export default function PostModal({
               )
             })()}
             
-            {currentPost.hashtags && currentPost.hashtags.length > 0 && isDescriptionExpanded && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '4px' }}>
-                {currentPost.hashtags.slice(0, 3).map((hashtag, index) => ( // Show fewer when not expanded
-                  <span 
+            {currentPost.hashtags && currentPost.hashtags.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '6px' }}>
+                {(isDescriptionExpanded ? currentPost.hashtags : currentPost.hashtags.slice(0, 3)).map((hashtag, index) => (
+                  <button 
                     key={index}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onHashtagClick && onHashtagClick(hashtag)
+                      onClose()
+                    }}
                     style={{
-                      padding: '2px 4px', // Even smaller
-                      backgroundColor: 'rgba(255, 255, 255, 0.1)', 
-                      color: 'rgba(255, 255, 255, 0.7)', 
-                      borderRadius: '6px',
-                      fontSize: '10px', // Very small
-                      fontWeight: '300'
+                      padding: '1px 6px',
+                      backgroundColor: 'rgba(255, 255, 255, 0.2)', 
+                      color: 'rgba(255, 255, 255, 0.9)', 
+                      borderRadius: '10px',
+                      fontSize: '10px',
+                      fontWeight: '400',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      background: 'rgba(255, 255, 255, 0.2)',
+                      lineHeight: '2',
+                      height: 'auto',
+                      minHeight: 'unset',
+                      display: 'inline-block',
+                      verticalAlign: 'baseline'
+                    }}
+                    onTouchStart={(e) => {
+                      e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.4)'
+                      e.target.style.transform = 'scale(0.95)'
+                    }}
+                    onTouchEnd={(e) => {
+                      e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'
+                      e.target.style.transform = 'scale(1)'
                     }}
                   >
                     #{hashtag}
-                  </span>
+                  </button>
                 ))}
+                {!isDescriptionExpanded && currentPost.hashtags.length > 3 && (
+                  <span style={{
+                    padding: '4px 10px',
+                    color: 'rgba(255, 255, 255, 0.6)',
+                    fontSize: '12px',
+                    fontStyle: 'italic'
+                  }}>
+                    +{currentPost.hashtags.length - 3} more
+                  </span>
+                )}
               </div>
             )}
             
@@ -1016,12 +1051,16 @@ export default function PostModal({
                     <span key={index} style={{
                       background: 'var(--accent-blue)',
                       color: 'white',
-                      padding: '4px 8px',
-                      borderRadius: '12px',
-                      fontSize: '12px',
-                      display: 'flex',
+                      padding: '1px 8px',
+                      borderRadius: '10px',
+                      fontSize: '10px',
+                      fontWeight: '400',
+                      display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '4px'
+                      gap: '4px',
+                      lineHeight: '1',
+                      height: 'auto',
+                      minHeight: 'unset'
                     }}>
                       #{tag}
                       <button
@@ -1758,12 +1797,16 @@ export default function PostModal({
                   <span key={index} style={{
                     background: 'var(--accent-blue)',
                     color: 'white',
-                    padding: '4px 8px',
-                    borderRadius: '12px',
-                    fontSize: '12px',
-                    display: 'flex',
+                    padding: '1px 8px',
+                    borderRadius: '10px',
+                    fontSize: '10px',
+                    fontWeight: '400',
+                    display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '4px'
+                    gap: '4px',
+                    lineHeight: '1',
+                    height: 'auto',
+                    minHeight: 'unset'
                   }}>
                     #{tag}
                     <button

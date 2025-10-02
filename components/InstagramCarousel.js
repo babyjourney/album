@@ -12,60 +12,39 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
   const lastTouchTime = useRef(0)
   const lastTouchX = useRef(0)
 
-  // Physics constants for smooth animations
+  // Simple animation constants
   const SNAP_THRESHOLD = 0.3 // 30% of container width
-  const VELOCITY_THRESHOLD = 0.5 // minimum velocity for momentum
-  const FRICTION = 0.85 // deceleration factor
-  const SPRING_DAMPING = 0.8
-  const SPRING_STIFFNESS = 0.3
+  const VELOCITY_THRESHOLD = 0.5 // minimum velocity for quick swipe
 
-  // Update internal index when prop changes
+  // Update internal index and reset drag offset when prop changes
   useEffect(() => {
-    setIndex(currentIndex)
-  }, [currentIndex])
-
-  // Smooth animation using RAF
-  const animateToIndex = useCallback((targetIndex, initialVelocity = 0) => {
-    if (animationRef.current) {
-      cancelAnimationFrame(animationRef.current)
+    if (currentIndex !== index) {
+      setIndex(currentIndex)
+      const containerWidth = containerRef.current?.offsetWidth || window.innerWidth
+      setDragOffset(-currentIndex * containerWidth)
     }
+  }, [currentIndex, index])
 
+  // Simple smooth animation to target index
+  const animateToIndex = useCallback((targetIndex) => {
     const containerWidth = containerRef.current?.offsetWidth || window.innerWidth
     const targetOffset = -targetIndex * containerWidth
-    let currentOffset = dragOffset
-    let velocity = initialVelocity
-
-    const animate = () => {
-      const distance = targetOffset - currentOffset
-      const springForce = distance * SPRING_STIFFNESS
-      velocity = (velocity + springForce) * SPRING_DAMPING
-
-      currentOffset += velocity
-
-      setDragOffset(currentOffset)
-
-      // Continue animation if we haven't reached the target
-      if (Math.abs(distance) > 1 || Math.abs(velocity) > 0.1) {
-        animationRef.current = requestAnimationFrame(animate)
-      } else {
-        setDragOffset(targetOffset)
-        setIsDragging(false)
-      }
-    }
-
-    animate()
-  }, [dragOffset])
+    setDragOffset(targetOffset)
+    setIsDragging(false)
+  }, [])
 
   // Handle navigation with bounds checking
-  const navigateToIndex = useCallback((newIndex, velocity = 0) => {
+  const navigateToIndex = useCallback((newIndex) => {
     const clampedIndex = Math.max(0, Math.min(images.length - 1, newIndex))
     setIndex(clampedIndex)
     onIndexChange?.(clampedIndex)
-    animateToIndex(clampedIndex, velocity)
+    animateToIndex(clampedIndex)
   }, [images.length, onIndexChange, animateToIndex])
 
   // Touch event handlers optimized for mobile
   const handleTouchStart = useCallback((e) => {
+    if (e.touches.length !== 1) return
+    
     const touch = e.touches[0]
     setIsDragging(true)
     setStartX(touch.clientX)
@@ -78,7 +57,6 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
       cancelAnimationFrame(animationRef.current)
     }
     
-    // Prevent default only for horizontal movements
     e.stopPropagation()
   }, [])
 
@@ -134,16 +112,16 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
     // Determine if we should change slides
     let newIndex = index
     
-    // Use velocity for quick swipes (more sensitive on mobile)
-    if (absVelocity > 0.3) {
-      if (velocityX < -0.3 && index < images.length - 1) {
+    // Use velocity for quick swipes
+    if (absVelocity > VELOCITY_THRESHOLD) {
+      if (velocityX < -VELOCITY_THRESHOLD && index < images.length - 1) {
         newIndex = index + 1
-      } else if (velocityX > 0.3 && index > 0) {
+      } else if (velocityX > VELOCITY_THRESHOLD && index > 0) {
         newIndex = index - 1
       }
     }
-    // Use distance for slow drags (lower threshold)
-    else if (Math.abs(deltaX) > containerWidth * 0.2) {
+    // Use distance for slow drags
+    else if (Math.abs(deltaX) > containerWidth * SNAP_THRESHOLD) {
       if (deltaX < 0 && index < images.length - 1) {
         newIndex = index + 1
       } else if (deltaX > 0 && index > 0) {
@@ -151,9 +129,7 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
       }
     }
 
-    // Apply momentum for smooth deceleration
-    const momentum = velocityX * 50 // Reduced momentum for mobile
-    navigateToIndex(newIndex, momentum)
+    navigateToIndex(newIndex)
   }, [isDragging, dragOffset, index, startTime, velocityX, images.length, navigateToIndex])
 
   // Mouse events for desktop testing
@@ -235,7 +211,7 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
           width: `${images.length * 100}%`,
           height: '100%',
           transform,
-          transition: isDragging ? 'none' : 'transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+          transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           willChange: 'transform',
           backfaceVisibility: 'hidden'
         }}
@@ -262,10 +238,9 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
                 objectFit: 'contain',
                 transform: 'translateZ(0)',
                 backfaceVisibility: 'hidden',
-                // Subtle parallax effect during drag
+                // Clean simple appearance
                 ...(isDragging && imgIndex !== index && {
-                  filter: 'brightness(0.8)',
-                  transform: 'translateZ(0) scale(0.95)'
+                  opacity: '0.9'
                 })
               }}
               onDragStart={(e) => e.preventDefault()}
@@ -278,7 +253,7 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
       {images.length > 1 && (
         <div style={{
           position: 'absolute',
-          bottom: '16px',
+          bottom: '100px',
           left: '50%',
           transform: 'translateX(-50%)',
           display: 'flex',
