@@ -73,7 +73,7 @@ const getTruncatedDescription = (description, isExpanded) => {
 }
 
 // Mobile 3-dot menu component
-function MobileActionMenu({ currentPost, isTextPost, onDownload, onDelete, onEdit }) {
+function MobileActionMenu({ currentPost, isTextPost, onDownload, onDelete, onEdit, isDescriptionExpanded }) {
   const [showMenu, setShowMenu] = useState(false)
   const menuRef = useRef(null)
 
@@ -84,9 +84,10 @@ function MobileActionMenu({ currentPost, isTextPost, onDownload, onDelete, onEdi
       ref={menuRef}
       style={{
         position: 'fixed',
-        bottom: '40px',
+        bottom: isDescriptionExpanded ? '200px' : '40px',
         right: '16px',
-        zIndex: 30
+        zIndex: 30,
+        transition: 'bottom 0.3s ease'
       }}
     >
       {/* Menu items */}
@@ -746,11 +747,12 @@ export default function PostModal({
                 ) : (
                   <div style={{ 
                     width: '100%',
-                    height: '100%',
+                    height: '100vh',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    position: 'relative'
+                    position: 'relative',
+                    boxSizing: 'border-box'
                   }}>
                     {(() => {
                       const multiPhotoUrls = getMultiPhotoUrls(post)
@@ -813,6 +815,7 @@ export default function PostModal({
             onDownload={handleDownload}
             onDelete={handleDelete}
             onEdit={handleEdit}
+            isDescriptionExpanded={isDescriptionExpanded}
           />
         )}
 
@@ -820,14 +823,14 @@ export default function PostModal({
         {(currentPost.title || getCleanDescription(currentPost) || (currentPost.hashtags && currentPost.hashtags.length > 0)) && (
           <div style={{
             position: 'fixed',
-            bottom: '-20px',
+            bottom: '-10px',
             left: '0',
             right: '0',
             background: 'linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.6) 60%, transparent 100%)',
             color: 'white',
             padding: isDescriptionExpanded ? '18px 16px 20px' : '10px 16px 20px',
-            maxHeight: isDescriptionExpanded ? '45vh' : '120px',
-            overflow: 'hidden',
+            maxHeight: isDescriptionExpanded ? '60vh' : '120px',
+            overflow: isDescriptionExpanded ? 'visible' : 'hidden',
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             transform: isDescriptionExpanded ? 'translateY(0)' : 'translateY(0)',
             zIndex: 15
