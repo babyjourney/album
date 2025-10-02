@@ -253,7 +253,7 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
       {images.length > 1 && (
         <div style={{
           position: 'absolute',
-          bottom: '100px',
+          bottom: '160px',
           left: '50%',
           transform: 'translateX(-50%)',
           display: 'flex',

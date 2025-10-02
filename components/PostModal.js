@@ -820,12 +820,12 @@ export default function PostModal({
         {(currentPost.title || getCleanDescription(currentPost) || (currentPost.hashtags && currentPost.hashtags.length > 0)) && (
           <div style={{
             position: 'fixed',
-            bottom: '0',
+            bottom: '-20px',
             left: '0',
             right: '0',
             background: 'linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.6) 60%, transparent 100%)',
             color: 'white',
-            padding: isDescriptionExpanded ? '18px 16px 85px' : '10px 16px 85px',
+            padding: isDescriptionExpanded ? '18px 16px 20px' : '10px 16px 20px',
             maxHeight: isDescriptionExpanded ? '45vh' : '120px',
             overflow: 'hidden',
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
