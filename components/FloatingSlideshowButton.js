@@ -77,7 +77,7 @@ export default function FloatingSlideshowButton({ familyId }) {
         className="slideshow-button-container"
         style={{
           position: 'fixed',
-          bottom: '92px',
+          bottom: '20px',
           right: '20px',
           zIndex: 100
         }}
@@ -87,8 +87,8 @@ export default function FloatingSlideshowButton({ familyId }) {
           disabled={loading}
           className="floating-button"
           style={{
-            width: window.innerWidth <= 768 ? '48px' : '56px',
-            height: window.innerWidth <= 768 ? '48px' : '56px',
+            width: '56px',
+            height: '56px',
             borderRadius: '50%',
             border: 'none',
             background: loading ? 

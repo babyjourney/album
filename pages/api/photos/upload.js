@@ -5,7 +5,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Metoda nu este permisă' })
   }
 
-  const { familyId, title, description, fileUrl, fileType, category, hashtags } = req.body
+  const { familyId, title, description, fileUrl, fileType, category, hashtags, customDate } = req.body
 
   if (!familyId || !title || !fileUrl) {
     return res.status(400).json({ error: 'Câmpuri obligatorii lipsă' })
@@ -34,6 +34,9 @@ export default async function handler(req, res) {
     }
     if (hashtagArray && hashtagArray.length > 0) {
       insertData.hashtags = hashtagArray
+    }
+    if (customDate) {
+      insertData.custom_date = customDate
     }
 
     // Insert photo directly without relying on RLS

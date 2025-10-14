@@ -1,39 +1,8 @@
-+ shuffle mod implementation la slideshow, sa fie optiunea asta de buton
-+ filtrare - slideshow de schimbat cu locu si de pus sa vina drept, perpendicular una sub alta 
-+ inputuri - sa nu se vada ca parole, titlu, descriere, etichete 
-+ buton edit la fiecare postare, descrierea, etichete etichete
-+ pune sa poti scoate copii din mai multi copii din dashboard
-
-paddinguri pe telefon, chestii mai subtiri
-slide-ul nu reactioneaza corect intre postari
-+ deschide imaginea pe pc - se astupa butoanele, nu merge navigation thru posts
-
-
-mai multe poze odata, posibilitatea de a da slide prin ele ca pe instagram cand postezi mai multe odata
-
-pagina login
-pagina dashboard when 
-pentru user - sa nu arate insula aia de upload, doar bara search
-
-2fa la logout
-
-
-
-
-1. nu se vad punctele la postarea cu mai multe poze. stau sub descrierea pozei. fa si descrierea pozei mai subtire. sa nu astupe poza
-2. scrollul vertical e prea sensitive
-3. fa animatie la scrolul din postarea cu mai multe poze, cel orizontal. el lucreaza cu delay, nu e smooth si nu pot da scroll instant dupa ce deschid postarea
-4. nu se deschide postarea cu mai multe poze cand apas pe poza, se deschide doar cand apas pe descrierea ei, fix this
-
-
-filtrare - hashtagurile nu se separa dupa spatiu
-
-iconurile de pe site primesc un border si bg cand sunt apasate. ma refer la toate, alea de la dropdown, alea de iesire din poza de pe desktop, de editare, de downloadoare, de stergere, toate butoanele de pe pagina
-
-1. cand deschid postare cu mai multe poze: nu se da slide normal, logica de slide e fucked, repara, fa smooth, animat\                                            │
-│   2. mereu prima postare are un spatiu negru deasupra cand e deschisa pe telefon, nu inteleg de ce, nu e full screen\                                               │
-│   3. cand sunt deschise pozele, si dau scroll, ele nu se vad in totalitate pentru ca sunt date putin in jos intr-un fel. \                                          │
-│   4. cand sunt deschise postarile pe tel, se vede titlu, descrierea dar vreau sa se vada si hashtagu\                                                               │
-│   5. la search/filtrare, cand dau space dupa hashtag ele nu se separa\                                                                                              │
-│   \                                                                                                                                                                 │
-│   Fixeaza toate astea iar apoi da push pe github  2
+trebuie sa implemntezi:
+1. posibilitatea de a alege Ro Ru
+2. la editare/postare sa fie posibilitatea de a alege data postarii, de modificat data luna anul
+3. pe desktop nu functioneaå slide la poze, fa cumva sa pot da slide la postarile cu mai multe poze
+4. pe desktop butoanele download edit x arata straniu cand dau hover pe ele, scoate toate efectele de hover si lasa doar hover: cursor pointer
+5. scoate bara de filtrare/cautare, iar pe desktop pune-o ca sticky sidebar in stanga, pe telefon las-o in bulina aia din colt
+6. vreau sa adaug/modific categorii la postari
+7. la modal upload schimba incarca fotografia cu "incarca"

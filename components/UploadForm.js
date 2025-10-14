@@ -3,16 +3,9 @@ import imageCompression from 'browser-image-compression'
 import { supabase } from '../lib/supabaseClient'
 import { useToast } from '../contexts/ToastContext'
 import { useOnClickOutside } from '../hooks/useOnClickOutside'
-
-const CATEGORIES = [
-  { value: 'memories', label: 'Amintiri' },
-  { value: 'milestones', label: 'Etape importante' },
-  { value: 'everyday', label: 'Zilnic' },
-  { value: 'special', label: 'Special' },
-  { value: 'family', label: 'Familie' },
-  { value: 'play', label: 'Joacă' },
-  { value: 'learning', label: 'Învățare' }
-]
+import { useLanguage } from '../contexts/LanguageContext'
+import DatePicker from './DatePicker'
+import { getCategories } from '../lib/categoriesData'
 
 export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
   const [title, setTitle] = useState('')
@@ -29,11 +22,19 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
   const [selectedChildren, setSelectedChildren] = useState([])
   const [children, setChildren] = useState([])
   const [albumSettings, setAlbumSettings] = useState(null)
+  const [customDate, setCustomDate] = useState(null)
+  const [categories, setCategories] = useState([])
   const { showSuccess, showError } = useToast()
+  const { t } = useLanguage()
   const modalRef = useRef(null)
 
   // Handle click outside to close modal
   useOnClickOutside(modalRef, onClose)
+
+  // Load categories on mount
+  useEffect(() => {
+    setCategories(getCategories())
+  }, [])
 
   // Handle hashtag input
   const handleHashtagKeyDown = (e) => {
@@ -266,7 +267,8 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
             imageUrls,
             category: category,
             hashtags: hashtags.map(tag => `#${tag}`).join(' '),
-            selectedChildren
+            selectedChildren,
+            customDate
           })
         })
 
@@ -325,7 +327,8 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
             fileType: file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : 'other',
             category: category,
             hashtags: hashtags.map(tag => `#${tag}`).join(' '),
-            selectedChildren
+            selectedChildren,
+            customDate
           })
         })
 
@@ -411,7 +414,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
         borderBottom: '1px solid var(--border-light)',
         flexShrink: 0
       }}>
-        <h2 className="text-section-title">Încărcare fotografie</h2>
+        <h2 className="text-section-title">Încărcare</h2>
       </div>
 
       {/* Scrollable Content */}
@@ -478,7 +481,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
             Categorie
           </label>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-            {CATEGORIES.map((cat) => (
+            {categories.map((cat) => (
               <button
                 key={cat.value}
                 type="button"
@@ -565,6 +568,15 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
           <p className="text-subtle" style={{ marginTop: '4px', fontSize: '12px' }}>
             Tastează un cuvânt și apasă spațiu pentru a crea o etichetă
           </p>
+        </div>
+
+        {/* Date Picker */}
+        <div style={{ marginBottom: '16px' }}>
+          <DatePicker
+            value={customDate}
+            onChange={setCustomDate}
+            label={t('postDate')}
+          />
         </div>
 
         {/* Children Selection - Only show if multi-child is enabled */}
@@ -847,7 +859,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
                 <polyline points="7,10 12,15 17,10"/>
                 <line x1="12" x2="12" y1="15" y2="3"/>
               </svg>
-              Încarcă fotografia
+              Încarcă
             </>
           )}
         </button>

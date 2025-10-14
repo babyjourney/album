@@ -5,7 +5,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Metoda nu este permisă' })
   }
 
-  const { familyId, type, title, description, fileUrl, category, hashtags } = req.body
+  const { familyId, type, title, description, fileUrl, category, hashtags, customDate } = req.body
 
   if (!familyId || !type || (!description && !fileUrl)) {
     return res.status(400).json({ error: 'Câmpuri obligatorii lipsă' })
@@ -43,6 +43,9 @@ export default async function handler(req, res) {
       }
       if (hashtagArray && hashtagArray.length > 0) {
         insertData.hashtags = hashtagArray
+      }
+      if (customDate) {
+        insertData.custom_date = customDate
       }
     } catch (schemaError) {
       console.log('Some optional columns may not exist yet:', schemaError.message)

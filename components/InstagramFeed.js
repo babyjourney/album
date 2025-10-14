@@ -284,24 +284,24 @@ export default function InstagramFeed({ familyId, searchQuery, refreshTrigger, o
                         overflowX: 'auto',
                         overflowY: 'hidden',
                         scrollSnapType: 'x mandatory',
+                        scrollSnapStop: 'always',
                         scrollBehavior: 'smooth',
                         scrollbarWidth: 'none',
                         msOverflowStyle: 'none',
                         WebkitOverflowScrolling: 'touch',
+                        touchAction: 'auto',
+                        gap: 0,
+                        cursor: 'grab',
                         // Enhanced CSS for better momentum scrolling
                         transform: 'translateZ(0)', // Force hardware acceleration
                         willChange: 'scroll-position',
-                        // Improved scroll snap properties
-                        scrollSnapStop: 'always',
                         // Better momentum on iOS
-                        '-webkit-overflow-scrolling': 'touch',
-                        // Smooth transitions for scroll position
-                        transition: 'scroll-left 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+                        '-webkit-overflow-scrolling': 'touch'
                       }}
                       onScroll={(e) => {
                         const container = e.target
                         const scrollLeft = container.scrollLeft
-                        const imageWidth = container.offsetWidth
+                        const imageWidth = container.clientWidth
                         const currentIndex = Math.round(scrollLeft / imageWidth)
                         
                         // Update dots indicator with smooth transitions
@@ -311,59 +311,31 @@ export default function InstagramFeed({ familyId, searchQuery, refreshTrigger, o
                           dot.style.transform = idx === currentIndex ? 'scale(1.2)' : 'scale(1)'
                           dot.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
                         })
-                        
-                        // Add parallax effect to images for smoother visual feedback
-                        const images = container.querySelectorAll('img')
-                        images.forEach((img, idx) => {
-                          const offset = (scrollLeft - (idx * imageWidth)) / imageWidth
-                          const parallaxOffset = offset * 20 // Subtle parallax
-                          img.style.transform = `translateZ(0) translateX(${parallaxOffset}px)`
-                        })
                       }}
                       onMouseDown={(e) => {
-                        e.currentTarget.dataset.scrollStartX = e.clientX
-                        e.currentTarget.dataset.scrollStartLeft = e.currentTarget.scrollLeft
-                        e.currentTarget.dataset.isScrolling = 'false'
+                        const container = e.currentTarget
+                        container.style.cursor = 'grabbing'
+                        container.dataset.isDown = 'true'
+                        container.dataset.startX = e.pageX - container.offsetLeft
+                        container.dataset.scrollLeft = container.scrollLeft
                       }}
-                      onTouchStart={(e) => {
-                        e.currentTarget.dataset.scrollStartX = e.touches[0].clientX
-                        e.currentTarget.dataset.scrollStartLeft = e.currentTarget.scrollLeft
-                        e.currentTarget.dataset.isScrolling = 'false'
+                      onMouseLeave={(e) => {
+                        const container = e.currentTarget
+                        container.style.cursor = 'grab'
+                        container.dataset.isDown = 'false'
+                      }}
+                      onMouseUp={(e) => {
+                        const container = e.currentTarget
+                        container.style.cursor = 'grab'
+                        container.dataset.isDown = 'false'
                       }}
                       onMouseMove={(e) => {
-                        if (e.currentTarget.dataset.scrollStartX) {
-                          const startX = parseFloat(e.currentTarget.dataset.scrollStartX)
-                          const currentX = e.clientX
-                          if (Math.abs(currentX - startX) > 5) {
-                            e.currentTarget.dataset.isScrolling = 'true'
-                          }
-                        }
-                      }}
-                      onTouchMove={(e) => {
-                        if (e.currentTarget.dataset.scrollStartX) {
-                          const startX = parseFloat(e.currentTarget.dataset.scrollStartX)
-                          const currentX = e.touches[0].clientX
-                          if (Math.abs(currentX - startX) > 5) {
-                            e.currentTarget.dataset.isScrolling = 'true'
-                          }
-                        }
-                      }}
-                      onClick={(e) => {
-                        // Only prevent modal opening if there was actual scrolling
-                        const wasScrolling = e.currentTarget.dataset.isScrolling === 'true'
-                        const startX = parseFloat(e.currentTarget.dataset.scrollStartX || 0)
-                        const startLeft = parseFloat(e.currentTarget.dataset.scrollStartLeft || 0)
-                        const currentX = e.clientX || 0
-                        const currentLeft = e.currentTarget.scrollLeft
-                        
-                        const horizontalMovement = Math.abs(currentX - startX)
-                        const scrollMovement = Math.abs(currentLeft - startLeft)
-                        
-                        // If there was significant movement or scrolling detected, prevent modal opening
-                        if (wasScrolling || horizontalMovement > 10 || scrollMovement > 10) {
-                          e.stopPropagation()
-                        }
-                        // Otherwise, allow the click to bubble up and open the modal
+                        const container = e.currentTarget
+                        if (container.dataset.isDown !== 'true') return
+                        e.preventDefault()
+                        const x = e.pageX - container.offsetLeft
+                        const walk = (x - parseFloat(container.dataset.startX)) * 2
+                        container.scrollLeft = parseFloat(container.dataset.scrollLeft) - walk
                       }}
                     >
                       {multiPhotoUrls.map((url, index) => (
@@ -373,10 +345,18 @@ export default function InstagramFeed({ familyId, searchQuery, refreshTrigger, o
                           alt={`${post.title || 'Post'} - ${index + 1}`}
                           style={{ 
                             minWidth: '100%',
+                            maxWidth: '100%',
                             width: '100%', 
                             height: '100%',
                             objectFit: 'cover',
-                            scrollSnapAlign: 'start',
+                            scrollSnapAlign: 'center',
+                            scrollSnapStop: 'always',
+                            flexShrink: 0,
+                            display: 'block',
+                            boxSizing: 'border-box',
+                            margin: 0,
+                            padding: 0,
+                            border: 'none',
                             // Enhanced image rendering
                             transform: 'translateZ(0)', // Hardware acceleration
                             willChange: 'transform',
@@ -420,7 +400,7 @@ export default function InstagramFeed({ familyId, searchQuery, refreshTrigger, o
                           e.stopPropagation()
                           const container = e.target.closest('.instagram-card').querySelector('.smooth-scroll-container')
                           if (container) {
-                            const imageWidth = container.offsetWidth
+                            const imageWidth = container.clientWidth
                             container.scrollTo({
                               left: index * imageWidth,
                               behavior: 'smooth'
@@ -430,6 +410,94 @@ export default function InstagramFeed({ familyId, searchQuery, refreshTrigger, o
                       />
                     ))}
                   </div>
+                  
+                  {/* Desktop Navigation Arrows */}
+                  {multiPhotoUrls.length > 1 && (
+                    <>
+                      {/* Previous Arrow */}
+                      <button
+                        className="carousel-nav-arrow carousel-nav-prev"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          const container = e.target.closest('.instagram-card').querySelector('.smooth-scroll-container')
+                          if (container) {
+                            const imageWidth = container.clientWidth
+                            const currentScroll = container.scrollLeft
+                            const currentIndex = Math.round(currentScroll / imageWidth)
+                            const prevIndex = Math.max(0, currentIndex - 1)
+                            container.scrollTo({
+                              left: prevIndex * imageWidth,
+                              behavior: 'smooth'
+                            })
+                          }
+                        }}
+                        style={{
+                          position: 'absolute',
+                          left: '8px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '50%',
+                          background: 'rgba(0, 0, 0, 0.5)',
+                          border: 'none',
+                          color: 'white',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          opacity: 0.3,
+                          transition: 'opacity 0.2s ease',
+                          zIndex: 3,
+                          backdropFilter: 'blur(8px)'
+                        }}
+                      >
+                        ←
+                      </button>
+                      
+                      {/* Next Arrow */}
+                      <button
+                        className="carousel-nav-arrow carousel-nav-next"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          const container = e.target.closest('.instagram-card').querySelector('.smooth-scroll-container')
+                          if (container) {
+                            const imageWidth = container.clientWidth
+                            const currentScroll = container.scrollLeft
+                            const currentIndex = Math.round(currentScroll / imageWidth)
+                            const nextIndex = Math.min(multiPhotoUrls.length - 1, currentIndex + 1)
+                            container.scrollTo({
+                              left: nextIndex * imageWidth,
+                              behavior: 'smooth'
+                            })
+                          }
+                        }}
+                        style={{
+                          position: 'absolute',
+                          right: '8px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '50%',
+                          background: 'rgba(0, 0, 0, 0.5)',
+                          border: 'none',
+                          color: 'white',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          opacity: 0.3,
+                          transition: 'opacity 0.2s ease',
+                          zIndex: 3,
+                          backdropFilter: 'blur(8px)'
+                        }}
+                      >
+                        →
+                      </button>
+                    </>
+                  )}
+                  
                   {/* Multi-photo icon indicator */}
                   <div style={{
                     position: 'absolute',

@@ -5,6 +5,7 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
   const [isDragging, setIsDragging] = useState(false)
   const [dragOffset, setDragOffset] = useState(0)
   const [startX, setStartX] = useState(0)
+  const [startY, setStartY] = useState(0)
   const [startTime, setStartTime] = useState(0)
   const [velocityX, setVelocityX] = useState(0)
   const containerRef = useRef(null)
@@ -48,6 +49,7 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
     const touch = e.touches[0]
     setIsDragging(true)
     setStartX(touch.clientX)
+    setStartY(touch.clientY)
     setStartTime(Date.now())
     setVelocityX(0)
     lastTouchTime.current = Date.now()
@@ -67,11 +69,13 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
     const currentTime = Date.now()
     const deltaTime = currentTime - lastTouchTime.current
     const deltaX = touch.clientX - lastTouchX.current
-    const deltaY = Math.abs(touch.clientY - e.touches[0].clientY)
+    
+    // Calculate movement from start position
+    const rawOffsetX = Math.abs(touch.clientX - startX)
+    const rawOffsetY = Math.abs(touch.clientY - startY)
     
     // Only prevent default if horizontal movement is dominant
-    const rawOffsetX = Math.abs(touch.clientX - startX)
-    if (rawOffsetX > 10) {
+    if (rawOffsetX > 10 && rawOffsetX > rawOffsetY) {
       e.preventDefault()
     }
 
@@ -132,24 +136,46 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
     navigateToIndex(newIndex)
   }, [isDragging, dragOffset, index, startTime, velocityX, images.length, navigateToIndex])
 
-  // Mouse events for desktop testing
+  // Mouse events for desktop
   const handleMouseDown = useCallback((e) => {
     e.preventDefault()
     setIsDragging(true)
     setStartX(e.clientX)
     setStartTime(Date.now())
+    setVelocityX(0)
+    lastTouchTime.current = Date.now()
+    lastTouchX.current = e.clientX
   }, [])
 
   const handleMouseMove = useCallback((e) => {
     if (!isDragging) return
     e.preventDefault()
 
+    const currentTime = Date.now()
+    const deltaTime = currentTime - lastTouchTime.current
+    const deltaX = e.clientX - lastTouchX.current
+
+    // Calculate velocity for momentum
+    if (deltaTime > 0) {
+      setVelocityX(deltaX / deltaTime)
+    }
+
     const containerWidth = containerRef.current?.offsetWidth || window.innerWidth
-    const offset = e.clientX - startX
+    const rawOffset = e.clientX - startX
     const currentTargetOffset = -index * containerWidth
 
+    // Add resistance at boundaries (rubber band effect)
+    let offset = rawOffset
+    if (index === 0 && offset > 0) {
+      offset = offset * 0.2 // More resistance when at first image
+    } else if (index === images.length - 1 && offset < 0) {
+      offset = offset * 0.2 // More resistance when at last image
+    }
+
     setDragOffset(currentTargetOffset + offset)
-  }, [isDragging, startX, index])
+    lastTouchTime.current = currentTime
+    lastTouchX.current = e.clientX
+  }, [isDragging, startX, index, images.length])
 
   const handleMouseUp = useCallback((e) => {
     if (!isDragging) return
@@ -157,11 +183,24 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
 
     const containerWidth = containerRef.current?.offsetWidth || window.innerWidth
     const deltaX = dragOffset + (index * containerWidth)
+    const deltaTime = Date.now() - startTime
+    const absVelocity = Math.abs(velocityX)
 
     setIsDragging(false)
 
+    // Determine if we should change slides
     let newIndex = index
-    if (Math.abs(deltaX) > containerWidth * SNAP_THRESHOLD) {
+    
+    // Use velocity for quick swipes/drags
+    if (absVelocity > VELOCITY_THRESHOLD) {
+      if (velocityX < -VELOCITY_THRESHOLD && index < images.length - 1) {
+        newIndex = index + 1
+      } else if (velocityX > VELOCITY_THRESHOLD && index > 0) {
+        newIndex = index - 1
+      }
+    }
+    // Use distance for slow drags
+    else if (Math.abs(deltaX) > containerWidth * SNAP_THRESHOLD) {
       if (deltaX < 0 && index < images.length - 1) {
         newIndex = index + 1
       } else if (deltaX > 0 && index > 0) {
@@ -170,7 +209,23 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
     }
 
     navigateToIndex(newIndex)
-  }, [isDragging, dragOffset, index, images.length, navigateToIndex])
+  }, [isDragging, dragOffset, index, startTime, velocityX, images.length, navigateToIndex])
+
+  // Add global mouse event listeners for desktop dragging
+  useEffect(() => {
+    if (isDragging) {
+      const handleGlobalMouseMove = (e) => handleMouseMove(e)
+      const handleGlobalMouseUp = (e) => handleMouseUp(e)
+      
+      document.addEventListener('mousemove', handleGlobalMouseMove)
+      document.addEventListener('mouseup', handleGlobalMouseUp)
+      
+      return () => {
+        document.removeEventListener('mousemove', handleGlobalMouseMove)
+        document.removeEventListener('mouseup', handleGlobalMouseUp)
+      }
+    }
+  }, [isDragging, handleMouseMove, handleMouseUp])
 
   // Cleanup animation on unmount
   useEffect(() => {
@@ -193,7 +248,7 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
         position: 'relative',
         overflow: 'hidden',
         cursor: isDragging ? 'grabbing' : 'grab',
-        touchAction: 'pan-y',
+        touchAction: 'auto',
         WebkitUserSelect: 'none',
         userSelect: 'none'
       }}
@@ -201,9 +256,6 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
     >
       <div 
         style={{
@@ -248,6 +300,91 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
           </div>
         ))}
       </div>
+
+      {/* Navigation arrows for desktop */}
+      {images.length > 1 && (
+        <>
+          {/* Previous arrow */}
+          {index > 0 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                navigateToIndex(index - 1)
+              }}
+              style={{
+                position: 'absolute',
+                left: '20px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: '44px',
+                height: '44px',
+                borderRadius: '50%',
+                background: 'rgba(0, 0, 0, 0.5)',
+                border: 'none',
+                color: 'white',
+                fontSize: '18px',
+                cursor: 'pointer',
+                zIndex: 20,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s ease',
+                backdropFilter: 'blur(8px)'
+              }}
+              onMouseOver={(e) => {
+                e.target.style.background = 'rgba(0, 0, 0, 0.7)'
+                e.target.style.transform = 'translateY(-50%) scale(1.1)'
+              }}
+              onMouseOut={(e) => {
+                e.target.style.background = 'rgba(0, 0, 0, 0.5)'
+                e.target.style.transform = 'translateY(-50%) scale(1)'
+              }}
+            >
+              ←
+            </button>
+          )}
+          
+          {/* Next arrow */}
+          {index < images.length - 1 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                navigateToIndex(index + 1)
+              }}
+              style={{
+                position: 'absolute',
+                right: '20px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: '44px',
+                height: '44px',
+                borderRadius: '50%',
+                background: 'rgba(0, 0, 0, 0.5)',
+                border: 'none',
+                color: 'white',
+                fontSize: '18px',
+                cursor: 'pointer',
+                zIndex: 20,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s ease',
+                backdropFilter: 'blur(8px)'
+              }}
+              onMouseOver={(e) => {
+                e.target.style.background = 'rgba(0, 0, 0, 0.7)'
+                e.target.style.transform = 'translateY(-50%) scale(1.1)'
+              }}
+              onMouseOut={(e) => {
+                e.target.style.background = 'rgba(0, 0, 0, 0.5)'
+                e.target.style.transform = 'translateY(-50%) scale(1)'
+              }}
+            >
+              →
+            </button>
+          )}
+        </>
+      )}
 
       {/* Modern minimalistic progress indicators */}
       {images.length > 1 && (

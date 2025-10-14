@@ -1,16 +1,7 @@
 import { useState, useEffect } from 'react'
-import { Calendar, Hash, ArrowUpDown } from 'lucide-react'
-
-const CATEGORIES = [
-  { value: 'all', label: 'Toate' },
-  { value: 'memories', label: 'Amintiri' },
-  { value: 'milestones', label: 'Etape importante' },
-  { value: 'everyday', label: 'Zilnic' },
-  { value: 'special', label: 'Special' },
-  { value: 'family', label: 'Familie' },
-  { value: 'play', label: 'Joacă' },
-  { value: 'learning', label: 'Învățare' }
-]
+import { Calendar, Hash, ArrowUpDown, Settings } from 'lucide-react'
+import { getCategories } from '../lib/categoriesData'
+import CategoryManager from './CategoryManager'
 
 const SORT_OPTIONS = [
   { value: 'newest', label: 'Cel mai nou' },
@@ -25,6 +16,14 @@ export default function FilterIsland({
   onFiltersChange
 }) {
   const [localHashtag, setLocalHashtag] = useState(filters.hashtag || '')
+  const [categories, setCategories] = useState([])
+  const [showCategoryManager, setShowCategoryManager] = useState(false)
+
+  // Load categories on mount
+  useEffect(() => {
+    const loadedCategories = getCategories()
+    setCategories([{ value: 'all', label: 'Toate' }, ...loadedCategories])
+  }, [])
 
   // Debounced live hashtag filtering
   useEffect(() => {
@@ -191,11 +190,31 @@ export default function FilterIsland({
           borderTop: '1px solid #F3F4F6',
           gridColumn: '1 / -1'
         }}>
-          <label className="text-subtle" style={{ display: 'block', marginBottom: '16px', fontWeight: '500' }}>
-            Filtrare după categorie
-          </label>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <label className="text-subtle" style={{ fontWeight: '500' }}>
+              Filtrare după categorie
+            </label>
+            <button
+              onClick={() => setShowCategoryManager(true)}
+              style={{
+                padding: '6px 12px',
+                background: 'var(--bg-gray)',
+                border: '1px solid var(--border-light)',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                color: 'var(--text-secondary)'
+              }}
+            >
+              <Settings size={14} />
+              Gestionează
+            </button>
+          </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
-            {CATEGORIES.map((cat) => (
+            {categories.map((cat) => (
               <button
                 key={cat.value}
                 type="button"
@@ -246,6 +265,15 @@ export default function FilterIsland({
           </button>
         </div>
       </div>
+      
+      {/* Category Manager Modal */}
+      <CategoryManager
+        isOpen={showCategoryManager}
+        onClose={() => setShowCategoryManager(false)}
+        onCategoriesUpdate={(updatedCategories) => {
+          setCategories([{ value: 'all', label: 'Toate' }, ...updatedCategories])
+        }}
+      />
     </div>
   )
 }

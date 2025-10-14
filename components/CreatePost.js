@@ -1,15 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useToast } from '../contexts/ToastContext'
-
-const CATEGORIES = [
-  { value: 'memories', label: '💭 Amintiri', emoji: '💭' },
-  { value: 'milestones', label: '🎯 Etape importante', emoji: '🎯' },
-  { value: 'everyday', label: '☀️ Zilnic', emoji: '☀️' },
-  { value: 'special', label: '✨ Special', emoji: '✨' },
-  { value: 'family', label: '👨‍👩‍👧‍👦 Familie', emoji: '👨‍👩‍👧‍👦' },
-  { value: 'play', label: '🎮 Joacă', emoji: '🎮' },
-  { value: 'learning', label: '📚 Învățare', emoji: '📚' }
-]
+import { useLanguage } from '../contexts/LanguageContext'
+import DatePicker from './DatePicker'
+import { getCategories } from '../lib/categoriesData'
 
 export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVideoClick }) {
   const [postText, setPostText] = useState('')
@@ -18,7 +11,15 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
   const [error, setError] = useState('')
   const [hashtags, setHashtags] = useState([])
   const [currentHashtagInput, setCurrentHashtagInput] = useState('')
+  const [customDate, setCustomDate] = useState(null)
+  const [categories, setCategories] = useState([])
   const { showSuccess, showError } = useToast()
+  const { t } = useLanguage()
+
+  // Load categories on mount
+  useEffect(() => {
+    setCategories(getCategories())
+  }, [])
 
   const handleTextChange = (e) => {
     setPostText(e.target.value)
@@ -64,7 +65,8 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
           description: postText.trim(),
           fileUrl: null,
           category: category,
-          hashtags: hashtags.map(tag => `#${tag}`).join(' ')
+          hashtags: hashtags.map(tag => `#${tag}`).join(' '),
+          customDate
         })
       })
 
@@ -132,7 +134,7 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
                 Categorie
               </label>
               <div className="flex flex-wrap gap-2">
-                {CATEGORIES.map((cat) => (
+                {categories.map((cat) => (
                   <button
                     key={cat.value}
                     type="button"
@@ -219,6 +221,15 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
               <p style={{ marginTop: '4px', fontSize: '12px', color: '#6B7280' }}>
                 Tastează un cuvânt și apasă spațiu pentru a crea o etichetă
               </p>
+            </div>
+            
+            {/* Date Picker */}
+            <div>
+              <DatePicker
+                value={customDate}
+                onChange={setCustomDate}
+                label={t('postDate')}
+              />
             </div>
           </div>
         )}

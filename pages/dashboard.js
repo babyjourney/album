@@ -8,10 +8,8 @@ import UploadForm from '../components/UploadForm'
 import CreatePost from '../components/CreatePost'
 import Header from '../components/Header'
 import ProfilePictureModal from '../components/ProfilePictureModal'
-import ControlBar from '../components/ControlBar'
-import FilterIsland from '../components/FilterIsland'
 import ChildrenFilter from '../components/ChildrenFilter'
-import FloatingFilterButton from '../components/FloatingFilterButton'
+import SidebarFilter from '../components/SidebarFilter'
 import FloatingSlideshowButton from '../components/FloatingSlideshowButton'
 
 export default function Dashboard() {
@@ -34,10 +32,17 @@ export default function Dashboard() {
     hashtag: '',
     sort: 'newest'
   })
+  const [isMobile, setIsMobile] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
     checkAuth()
+    
+    // Check mobile on mount and resize
+    const checkMobile = () => setIsMobile(window.innerWidth <= 768)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
   const checkAuth = () => {
@@ -177,19 +182,14 @@ export default function Dashboard() {
         onSearchChange={handleSearchChange}
       />
 
-      {/* Control Bar */}
-      <ControlBar
+      {/* Sidebar Filter - Desktop only */}
+      <SidebarFilter
         searchQuery={searchQuery}
         onSearchChange={handleSearchChange}
-        onToggleFilters={() => setShowFilters(!showFilters)}
-        showFilters={showFilters}
-      />
-
-      {/* Filter Island */}
-      <FilterIsland
-        isVisible={showFilters}
         filters={filters}
         onFiltersChange={setFilters}
+        selectedChildId={selectedChildId}
+        onChildFilterChange={handleChildFilterChange}
       />
 
       {/* Children Filter */}
@@ -201,7 +201,12 @@ export default function Dashboard() {
       />
 
       {/* Main Feed */}
-      <main style={{ paddingBottom: '32px' }}>
+      <main style={{ 
+        paddingBottom: '32px',
+        // Sidebar floats over content on desktop, no layout adjustment needed
+        position: 'relative',
+        zIndex: 1
+      }}>
         <InstagramFeed
           familyId={session.familyId}
           searchQuery={searchQuery}
@@ -331,12 +336,6 @@ export default function Dashboard() {
         childImage="/api/placeholder/80/80"
       />
 
-      {/* Floating Filter Button */}
-      <FloatingFilterButton
-        filters={filters}
-        onFiltersChange={setFilters}
-      />
-      
       {/* Floating Slideshow Button */}
       <FloatingSlideshowButton
         familyId={session?.familyId}

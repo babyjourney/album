@@ -1239,16 +1239,7 @@ export default function PostModal({
               borderRadius: '50%',
               cursor: 'pointer',
               color: 'white',
-              transition: 'all 0.2s ease-in-out',
               boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
-            }}
-            onMouseOver={(e) => {
-              e.target.style.background = 'rgba(0, 149, 246, 0.9)'
-              e.target.style.transform = 'scale(1.1)'
-            }}
-            onMouseOut={(e) => {
-              e.target.style.background = 'rgba(0, 0, 0, 0.7)'
-              e.target.style.transform = 'scale(1)'
             }}
             title="Descarcă"
           >
@@ -1272,16 +1263,7 @@ export default function PostModal({
               borderRadius: '50%',
               cursor: 'pointer',
               color: 'white',
-              transition: 'all 0.2s ease-in-out',
               boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
-            }}
-            onMouseOver={(e) => {
-              e.target.style.background = 'rgba(156, 163, 175, 0.9)'
-              e.target.style.transform = 'scale(1.1)'
-            }}
-            onMouseOut={(e) => {
-              e.target.style.background = 'rgba(0, 0, 0, 0.7)'
-              e.target.style.transform = 'scale(1)'
             }}
             title="Editează"
           >
@@ -1305,14 +1287,6 @@ export default function PostModal({
             color: 'white',
             transition: 'all 0.2s ease-in-out',
             boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
-          }}
-          onMouseOver={(e) => {
-            e.target.style.background = 'rgba(0, 0, 0, 0.9)'
-            e.target.style.transform = 'scale(1.1)'
-          }}
-          onMouseOut={(e) => {
-            e.target.style.background = 'rgba(0, 0, 0, 0.7)'
-            e.target.style.transform = 'scale(1)'
           }}
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1411,6 +1385,31 @@ export default function PostModal({
                     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
                       <div 
                         className="multi-photo-container smooth-scroll-container"
+                        onMouseDown={(e) => {
+                          const container = e.currentTarget
+                          container.style.cursor = 'grabbing'
+                          container.dataset.isDown = 'true'
+                          container.dataset.startX = e.pageX - container.offsetLeft
+                          container.dataset.scrollLeft = container.scrollLeft
+                        }}
+                        onMouseLeave={(e) => {
+                          const container = e.currentTarget
+                          container.style.cursor = 'grab'
+                          container.dataset.isDown = 'false'
+                        }}
+                        onMouseUp={(e) => {
+                          const container = e.currentTarget
+                          container.style.cursor = 'grab'
+                          container.dataset.isDown = 'false'
+                        }}
+                        onMouseMove={(e) => {
+                          const container = e.currentTarget
+                          if (container.dataset.isDown !== 'true') return
+                          e.preventDefault()
+                          const x = e.pageX - container.offsetLeft
+                          const walk = (x - parseFloat(container.dataset.startX)) * 2
+                          container.scrollLeft = parseFloat(container.dataset.scrollLeft) - walk
+                        }}
                         style={{
                           width: '100%',
                           height: '100%',
@@ -1422,6 +1421,7 @@ export default function PostModal({
                           scrollbarWidth: 'none',
                           msOverflowStyle: 'none',
                           WebkitOverflowScrolling: 'touch',
+                          cursor: 'grab',
                           // Enhanced CSS for better momentum scrolling
                           transform: 'translateZ(0)', // Force hardware acceleration
                           willChange: 'scroll-position',
@@ -1473,6 +1473,97 @@ export default function PostModal({
                           />
                         ))}
                       </div>
+                      
+                      {/* Desktop Navigation Arrows */}
+                      {multiPhotoUrls.length > 1 && (
+                        <>
+                          {/* Previous Arrow */}
+                          <button
+                            className="modal-carousel-nav-arrow modal-carousel-nav-prev"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              const container = e.target.parentElement.parentElement.querySelector('.multi-photo-container')
+                              console.log('Previous arrow clicked, container:', container)
+                              if (container) {
+                                const imageWidth = container.clientWidth
+                                const currentScroll = container.scrollLeft
+                                const currentIndex = Math.round(currentScroll / imageWidth)
+                                const prevIndex = Math.max(0, currentIndex - 1)
+                                console.log('Scrolling from', currentIndex, 'to', prevIndex)
+                                container.scrollTo({
+                                  left: prevIndex * imageWidth,
+                                  behavior: 'smooth'
+                                })
+                              }
+                            }}
+                            style={{
+                              position: 'absolute',
+                              bottom: '60px',
+                              left: '20px',
+                              width: '40px',
+                              height: '40px',
+                              borderRadius: '50%',
+                              background: 'rgba(0, 0, 0, 0.6)',
+                              border: 'none',
+                              color: 'white',
+                              fontSize: '18px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              opacity: 0.7,
+                              transition: 'opacity 0.2s ease, transform 0.2s ease',
+                              zIndex: 30,
+                              backdropFilter: 'blur(10px)'
+                            }}
+                          >
+                            ←
+                          </button>
+                          
+                          {/* Next Arrow */}
+                          <button
+                            className="modal-carousel-nav-arrow modal-carousel-nav-next"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              const container = e.target.parentElement.parentElement.querySelector('.multi-photo-container')
+                              console.log('Next arrow clicked, container:', container)
+                              if (container) {
+                                const imageWidth = container.clientWidth
+                                const currentScroll = container.scrollLeft
+                                const currentIndex = Math.round(currentScroll / imageWidth)
+                                const nextIndex = Math.min(multiPhotoUrls.length - 1, currentIndex + 1)
+                                console.log('Scrolling from', currentIndex, 'to', nextIndex)
+                                container.scrollTo({
+                                  left: nextIndex * imageWidth,
+                                  behavior: 'smooth'
+                                })
+                              }
+                            }}
+                            style={{
+                              position: 'absolute',
+                              bottom: '60px',
+                              right: '20px',
+                              width: '40px',
+                              height: '40px',
+                              borderRadius: '50%',
+                              background: 'rgba(0, 0, 0, 0.6)',
+                              border: 'none',
+                              color: 'white',
+                              fontSize: '18px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              opacity: 0.7,
+                              transition: 'opacity 0.2s ease, transform 0.2s ease',
+                              zIndex: 30,
+                              backdropFilter: 'blur(10px)'
+                            }}
+                          >
+                            →
+                          </button>
+                        </>
+                      )}
                       
                       {/* Modern dots indicator */}
                       <div style={{

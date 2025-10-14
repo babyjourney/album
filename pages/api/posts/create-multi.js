@@ -5,7 +5,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const { familyId, title, description, category, hashtags, selectedChildren, imageUrls } = req.body
+  const { familyId, title, description, category, hashtags, selectedChildren, imageUrls, customDate } = req.body
 
   if (!familyId) {
     return res.status(400).json({ error: 'Family ID is required' })
@@ -37,6 +37,9 @@ export default async function handler(req, res) {
     }
     if (hashtagArray && hashtagArray.length > 0) {
       basePostData.hashtags = hashtagArray
+    }
+    if (customDate) {
+      basePostData.custom_date = customDate
     }
 
     // Try new schema first, fallback to old schema if columns don't exist

@@ -696,7 +696,7 @@ a:focus:not(:focus-visible) {
 
 /* Enhanced scroll snapping for better UX */
 .smooth-scroll-container > * {
-  scroll-snap-align: start;
+  scroll-snap-align: center;
   scroll-snap-stop: always;
 }
 
@@ -704,10 +704,9 @@ a:focus:not(:focus-visible) {
 @media (max-width: 768px) {
   .smooth-scroll-container {
     -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
-    /* Prevent momentum bounce */
     overscroll-behavior-x: contain;
-    overscroll-behavior-y: none;
+    /* Allow vertical scroll for page navigation */
+    overscroll-behavior-y: auto;
   }
 }
 
@@ -719,6 +718,31 @@ a:focus:not(:focus-visible) {
   backface-visibility: hidden;
   image-rendering: optimizeQuality;
   transition: opacity 0.3s ease-out;
+}
+
+/* Desktop carousel navigation arrows */
+@media (min-width: 1201px) {
+  .carousel-nav-arrow {
+    opacity: 0.3;
+    transition: opacity 0.2s ease, transform 0.2s ease, background 0.2s ease;
+  }
+  
+  .instagram-card:hover .carousel-nav-arrow {
+    opacity: 0.8;
+  }
+  
+  .carousel-nav-arrow:hover {
+    opacity: 1 !important;
+    background: rgba(0, 0, 0, 0.8) !important;
+    transform: translateY(-50%) scale(1.1) !important;
+  }
+  
+  /* Modal carousel arrows */
+  .modal-carousel-nav-arrow:hover {
+    opacity: 1 !important;
+    background: rgba(0, 0, 0, 0.8) !important;
+    transform: scale(1.1) !important;
+  }
 }
 
 /* Utility Classes */
