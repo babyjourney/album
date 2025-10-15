@@ -269,17 +269,10 @@ export default function PostModal({
   const [editLoading, setEditLoading] = useState(false)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [isInitializing, setIsInitializing] = useState(true)
-  const [mobileY, setMobileY] = useState(0)
-  const [isDragging, setIsDragging] = useState(false)
-  const [touchStartY, setTouchStartY] = useState(0)
-  const [touchStartTime, setTouchStartTime] = useState(0)
-  const [velocityY, setVelocityY] = useState(0)
   const { showSuccess, showError } = useToast()
   const modalRef = useRef(null)
   const scrollContainerRef = useRef(null)
   const scrollTimeoutRef = useRef(null)
-  const lastTouchY = useRef(0)
-  const lastTouchTime = useRef(0)
 
   // Handle click on overlay to close modal
   const handleOverlayClick = (e) => {
@@ -376,91 +369,41 @@ export default function PostModal({
     setEditHashtags(editHashtags.filter(tag => tag !== tagToRemove))
   }
 
-  // Mobile touch handlers for manual scroll control
-  const handleTouchStart = useCallback((e) => {
-    if (!isMobile || e.touches.length !== 1) return
+  // Simple scroll handler with auto-snap
+  const handleScroll = useCallback((e) => {
+    if (isInitializing) return
     
-    const touch = e.touches[0]
-    setIsDragging(true)
-    setTouchStartY(touch.clientY)
-    setTouchStartTime(Date.now())
-    setVelocityY(0)
-    lastTouchY.current = touch.clientY
-    lastTouchTime.current = Date.now()
-  }, [isMobile])
-
-  const handleTouchMove = useCallback((e) => {
-    if (!isMobile || !isDragging || e.touches.length !== 1) return
+    const scrollTop = e.target.scrollTop
+    const postHeight = window.innerHeight
+    const scrollIndex = Math.round(scrollTop / postHeight)
     
-    const touch = e.touches[0]
-    const currentTime = Date.now()
-    const deltaTime = currentTime - lastTouchTime.current
-    const deltaY = touch.clientY - lastTouchY.current
-    
-    // Prevent default to avoid conflicts
-    e.preventDefault()
-    e.stopPropagation()
-    
-    // Calculate velocity
-    if (deltaTime > 0 && deltaTime < 100) {
-      setVelocityY(deltaY / deltaTime)
+    // Clear existing timeout
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current)
     }
     
-    // Calculate new Y position based on total movement
-    const totalMoveY = touch.clientY - touchStartY
-    const postHeight = window.innerHeight
-    const baseY = -currentIdx * postHeight
-    const newY = baseY + totalMoveY
-    
-    // Add resistance at boundaries
-    const maxY = 0
-    const minY = -(allPosts.length - 1) * postHeight
-    
-    let constrainedY = newY
-    if (newY > maxY) {
-      constrainedY = maxY + (newY - maxY) * 0.3 // Resistance at top
-    } else if (newY < minY) {
-      constrainedY = minY + (newY - minY) * 0.3 // Resistance at bottom
-    }
-    
-    setMobileY(constrainedY)
-    lastTouchY.current = touch.clientY
-    lastTouchTime.current = currentTime
-  }, [isMobile, isDragging, touchStartY, currentIdx, allPosts.length])
-
-  const handleTouchEnd = useCallback(() => {
-    if (!isMobile || !isDragging) return
-    
-    setIsDragging(false)
-    
-    const postHeight = window.innerHeight
-    const currentPostIndex = Math.round(-mobileY / postHeight)
-    
-    // Velocity threshold for quick swipes
-    const velocityThreshold = 0.5
-    let finalIndex = currentPostIndex
-    
-    // Check for swipe velocity
-    if (Math.abs(velocityY) > velocityThreshold) {
-      if (velocityY > velocityThreshold && currentPostIndex > 0) {
-        finalIndex = currentPostIndex - 1 // Swipe down = previous post
-      } else if (velocityY < -velocityThreshold && currentPostIndex < allPosts.length - 1) {
-        finalIndex = currentPostIndex + 1 // Swipe up = next post
+    // Debounced snap to center
+    scrollTimeoutRef.current = setTimeout(() => {
+      const targetScrollTop = scrollIndex * postHeight
+      const scrollDiff = Math.abs(scrollTop - targetScrollTop)
+      
+      // Snap if we're off by more than 5% of screen height
+      if (scrollDiff > postHeight * 0.05) {
+        e.target.scrollTo({
+          top: targetScrollTop,
+          behavior: 'smooth'
+        })
       }
-    }
-    
-    // Snap to final position
-    const finalY = -finalIndex * postHeight
-    setMobileY(finalY)
-    
-    // Update current post
-    if (finalIndex !== currentIdx) {
-      setCurrentIdx(finalIndex)
-      setCurrentPost(allPosts[finalIndex])
-      setCurrentImageIndex(0)
-      if (onNavigate) onNavigate(allPosts[finalIndex], finalIndex)
-    }
-  }, [isMobile, isDragging, mobileY, velocityY, currentIdx, allPosts, onNavigate])
+      
+      // Update current post
+      if (scrollIndex !== currentIdx && scrollIndex >= 0 && scrollIndex < allPosts.length) {
+        setCurrentIdx(scrollIndex)
+        setCurrentPost(allPosts[scrollIndex])
+        setCurrentImageIndex(0)
+        if (onNavigate) onNavigate(allPosts[scrollIndex], scrollIndex)
+      }
+    }, 150)
+  }, [isInitializing, currentIdx, allPosts, onNavigate])
 
   useEffect(() => {
     setCurrentPost(selectedPost)
@@ -468,10 +411,19 @@ export default function PostModal({
     setCurrentImageIndex(0) // Reset image index when post changes
     setIsDescriptionExpanded(false) // Reset description expansion when changing posts
     
-    // Set initial mobile position
+    // Scroll to correct position immediately
     if (isMobile) {
-      setMobileY(-currentIndex * window.innerHeight)
-      setIsInitializing(false)
+      setIsInitializing(true)
+      requestAnimationFrame(() => {
+        const scrollContainer = document.querySelector('.mobile-scroll-container')
+        if (scrollContainer) {
+          const targetTop = currentIndex * window.innerHeight
+          scrollContainer.scrollTop = targetTop
+          setTimeout(() => setIsInitializing(false), 100)
+        } else {
+          setIsInitializing(false)
+        }
+      })
     } else {
       setIsInitializing(false)
     }
@@ -711,35 +663,25 @@ export default function PostModal({
           {currentIdx + 1} / {allPosts.length}
         </div>
 
-        {/* Manual touch container - no scroll snap conflicts */}
+        {/* Simple scroll container with auto-snap */}
         <div 
-          className="mobile-modal-container"
+          className="mobile-scroll-container"
           style={{
             position: 'absolute',
             top: 0,
             left: 0,
             width: '100vw',
             height: '100vh',
-            overflow: 'hidden', // No scrolling, manual control only
+            overflowY: 'auto',
+            overflowX: 'hidden',
             zIndex: 10,
-            touchAction: 'none', // Disable all default touch behaviors
-            transform: 'translateZ(0)', // Hardware acceleration
-            willChange: 'transform'
+            // Remove scroll snap for now, add manual centering
+            WebkitOverflowScrolling: 'touch',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none'
           }}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
+          onScroll={handleScroll}
         >
-          {/* Posts container with manual transform */}
-          <div
-            style={{
-              width: '100vw',
-              height: `${allPosts.length * 100}vh`,
-              transform: `translate3d(0, ${mobileY}px, 0)`,
-              transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-              willChange: 'transform'
-            }}
-          >
           {allPosts.map((post, index) => {
             const postIsText = post.type === 'text'
             const postIsVideo = post.file_type === 'video' || post.type === 'video'
@@ -850,7 +792,6 @@ export default function PostModal({
               </div>
             )
           })}
-          </div>
         </div>
 
         {/* Mobile action menu - only show if not readonly */}

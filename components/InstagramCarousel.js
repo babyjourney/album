@@ -435,17 +435,17 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
 
       {/* Modern minimalistic progress indicators */}
       {images.length > 1 && (() => {
-        // Calculate safe bottom position based on viewport height
-        const getSafeBottomPosition = () => {
-          // More aggressive positioning for Chrome mobile
-          const safeBottomOffset = Math.max(80, viewportHeight * 0.12) // At least 80px, or 12% of viewport
-          return `${safeBottomOffset}px`
+        // Calculate safe top position instead of bottom
+        const getSafeTopPosition = () => {
+          // Position at top to avoid browser UI conflicts
+          const safeTopOffset = Math.max(60, viewportHeight * 0.08) // At least 60px, or 8% of viewport
+          return `${safeTopOffset}px`
         }
 
         return (
           <div style={{
             position: 'absolute',
-            bottom: getSafeBottomPosition(),
+            top: getSafeTopPosition(),
             left: '50%',
             transform: 'translateX(-50%)',
             display: 'flex',
