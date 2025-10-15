@@ -66,27 +66,33 @@ export default function Header({ familyName, role }) {
               🏠
             </button>
             
-            {/* Language Selector */}
-            <div style={{ position: 'relative' }}>
-              <select
-                value={language}
-                onChange={(e) => changeLanguage(e.target.value)}
-                style={{
-                  padding: '6px 12px',
-                  borderRadius: '6px',
-                  border: '1px solid var(--border-light)',
-                  background: 'white',
-                  color: 'var(--text-primary)',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  outline: 'none'
-                }}
-              >
-                <option value="ro">🇷🇴 RO</option>
-                <option value="ru">🇷🇺 RU</option>
-              </select>
-            </div>
+            {/* Language Toggle Button */}
+            <button
+              onClick={() => changeLanguage(language === 'ro' ? 'ru' : 'ro')}
+              style={{
+                padding: '6px 12px',
+                borderRadius: '6px',
+                border: '1px solid var(--border-light)',
+                background: 'white',
+                color: 'var(--text-primary)',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                outline: 'none',
+                transition: 'all 0.2s ease-in-out',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+              onMouseOver={(e) => {
+                e.target.style.background = 'var(--bg-gray)'
+              }}
+              onMouseOut={(e) => {
+                e.target.style.background = 'white'
+              }}
+            >
+              {language === 'ro' ? '🇷🇴 RO' : '🇷🇺 RU'}
+            </button>
           </div>
 
           {/* Single Navigation Button */}

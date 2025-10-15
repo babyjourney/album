@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useLanguage } from '../contexts/LanguageContext'
 
 export default function ChildrenFilter({ 
   familyId, 
@@ -6,6 +7,7 @@ export default function ChildrenFilter({
   selectedChildId, 
   onChildFilterChange 
 }) {
+  const { t } = useLanguage()
   const [children, setChildren] = useState([])
   const [albumSettings, setAlbumSettings] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -70,7 +72,7 @@ export default function ChildrenFilter({
           fontWeight: '600', 
           marginBottom: window.innerWidth <= 768 ? '8px' : '12px'
         }}>
-          Filtrează după copil
+          {t('filterByChild')}
         </h3>
         
         <div style={{ 
@@ -108,7 +110,7 @@ export default function ChildrenFilter({
             }}
           >
             <span style={{ fontSize: window.innerWidth <= 768 ? '14px' : '16px' }}>👶</span>
-            Toate postările
+            {t('allPosts')}
           </button>
 
           {/* Children Filter Buttons */}

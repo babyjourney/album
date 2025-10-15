@@ -107,7 +107,7 @@ export default function SidebarFilter({
                   fontWeight: '600',
                   margin: 0
                 }}>
-                  Căutare și Filtre
+{t('searchAndFilters')}
                 </h3>
                 <button
                   onClick={() => setShowMobileFilters(false)}
@@ -203,7 +203,7 @@ export default function SidebarFilter({
             margin: 0,
             color: 'var(--text-primary)'
           }}>
-            Filtre și Căutare
+{t('filtersAndSearch')}
           </h3>
           <Filter size={20} color="var(--accent-blue)" />
         </div>
@@ -216,7 +216,7 @@ export default function SidebarFilter({
             color: 'var(--text-secondary)',
             marginBottom: '6px'
           }}>
-            Căutare
+            {t('search')}
           </div>
           <div style={{ position: 'relative' }}>
             <Search 
@@ -261,7 +261,7 @@ export default function SidebarFilter({
               fontWeight: '500', 
               color: 'var(--text-secondary)'
             }}>
-              Categorii
+              {t('categories')}
             </div>
             <button
               onClick={() => setShowCategoryManager(true)}
@@ -279,12 +279,12 @@ export default function SidebarFilter({
               }}
             >
               <Settings size={14} />
-              Gestionează
+              {t('manage')}
             </button>
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
             {[
-              { value: 'all', label: 'Toate' },
+              { value: 'all', label: t('all') },
               ...categories
             ].map((cat) => (
               <button
@@ -316,7 +316,7 @@ export default function SidebarFilter({
             color: 'var(--text-secondary)',
             marginBottom: '6px'
           }}>
-            Data
+            {t('data')}
           </div>
           <input
             type="month"
@@ -342,7 +342,7 @@ export default function SidebarFilter({
             color: 'var(--text-secondary)',
             marginBottom: '6px'
           }}>
-            Hashtag
+            {t('hashtag')}
           </div>
           <div style={{ position: 'relative' }}>
             <Hash 
@@ -382,7 +382,7 @@ export default function SidebarFilter({
             color: 'var(--text-secondary)',
             marginBottom: '6px'
           }}>
-            Sortare
+            {t('sorting')}
           </div>
           <select
             value={filters.sort || 'newest'}
@@ -397,10 +397,10 @@ export default function SidebarFilter({
               background: 'white'
             }}
           >
-            <option value="newest">Cel mai nou</option>
-            <option value="oldest">Cel mai vechi</option>
-            <option value="title_asc">Titlu A-Z</option>
-            <option value="title_desc">Titlu Z-A</option>
+            <option value="newest">{t('newest')}</option>
+            <option value="oldest">{t('oldest')}</option>
+            <option value="title_asc">{t('titleAZ')}</option>
+            <option value="title_desc">{t('titleZA')}</option>
           </select>
         </div>
 
@@ -423,7 +423,7 @@ export default function SidebarFilter({
               fontWeight: '500'
             }}
           >
-            Șterge toate filtrele
+            {t('clearAllFilters')}
           </button>
         )}
       </div>

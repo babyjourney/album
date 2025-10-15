@@ -46,7 +46,35 @@ export const translations = {
     first: 'Prima dată',
     siblings: 'Frați',
     events: 'Evenimente',
-    school: 'Școală'
+    school: 'Școală',
+    
+    // Filters and search
+    searchAndFilters: 'Căutare și Filtre',
+    filtersAndSearch: 'Filtre și Căutare',
+    search: 'Căutare',
+    categories: 'Categorii',
+    data: 'Data',
+    hashtag: 'Hashtag',
+    sorting: 'Sortare',
+    all: 'Toate',
+    newest: 'Cel mai nou',
+    oldest: 'Cel mai vechi',
+    titleAZ: 'Titlu A-Z',
+    titleZA: 'Titlu Z-A',
+    clearAllFilters: 'Șterge toate filtrele',
+    manage: 'Gestionează',
+    title: 'Titlu',
+    
+    // Children filter
+    filterByChild: 'Filtrează după copil',
+    allPosts: 'Toate postările',
+    
+    // Category management
+    categoryManagement: 'Gestionare Categorii',
+    resetToDefaults: 'Resetează la categoriile implicite',
+    addNewCategory: 'Adaugă categorie nouă',
+    confirmResetCategories: 'Sunteți sigur că doriți să resetați la categoriile implicite? Toate categoriile personalizate vor fi șterse.',
+    categoriesResetSuccess: 'Categoriile au fost resetate la valorile implicite!'
   },
   ru: {
     // Header
@@ -91,7 +119,35 @@ export const translations = {
     first: 'Первый раз',
     siblings: 'Братья и сестры',
     events: 'События',
-    school: 'Школа'
+    school: 'Школа',
+    
+    // Filters and search
+    searchAndFilters: 'Поиск и Фильтры',
+    filtersAndSearch: 'Фильтры и Поиск',
+    search: 'Поиск',
+    categories: 'Категории',
+    data: 'Дата',
+    hashtag: 'Хештег',
+    sorting: 'Сортировка',
+    all: 'Все',
+    newest: 'Новые',
+    oldest: 'Старые',
+    titleAZ: 'Название А-Я',
+    titleZA: 'Название Я-А',
+    clearAllFilters: 'Очистить все фильтры',
+    manage: 'Управлять',
+    title: 'Название',
+    
+    // Children filter
+    filterByChild: 'Фильтр по ребенку',
+    allPosts: 'Все посты',
+    
+    // Category management
+    categoryManagement: 'Управление Категориями',
+    resetToDefaults: 'Сбросить к стандартным',
+    addNewCategory: 'Добавить новую категорию',
+    confirmResetCategories: 'Вы уверены, что хотите сбросить к стандартным категориям? Все пользовательские категории будут удалены.',
+    categoriesResetSuccess: 'Категории сброшены к стандартным значениям!'
   }
 }
 
