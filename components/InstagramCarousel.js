@@ -441,33 +441,32 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
 
       {/* Modern minimalistic progress indicators */}
       {images.length > 1 && (() => {
-        // Calculate safe top position instead of bottom
-        const getSafeTopPosition = () => {
-          // Position at top to avoid browser UI conflicts
-          const safeTopOffset = Math.max(60, viewportHeight * 0.08) // At least 60px, or 8% of viewport
-          return `${safeTopOffset}px`
-        }
-
         return (
           <div style={{
             position: 'absolute',
-            top: getSafeTopPosition(),
-            left: '50%',
-            transform: 'translateX(-50%)',
+            top: '20px',
+            right: '20px', // Align with post counter on right side
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
+            gap: '4px',
             zIndex: 30, // Higher z-index
-            padding: '10px 16px',
-            background: 'rgba(0, 0, 0, 0.8)', // Darker background
-            borderRadius: '20px',
-            backdropFilter: 'blur(15px)',
-            border: '2px solid rgba(255, 255, 255, 0.2)',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
-            // Force visibility
-            minHeight: '40px',
-            minWidth: '60px'
+            padding: '6px 12px',
+            background: 'rgba(0, 0, 0, 0.7)', // Match post counter style
+            borderRadius: '16px',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
+            // Compact design for top positioning
+            fontSize: '12px',
+            color: 'white',
+            fontWeight: '500'
           }}>
+          {/* Photo count text */}
+          <span style={{ marginRight: '6px' }}>
+            {index + 1}/{images.length}
+          </span>
+          
+          {/* Compact dots */}
           {images.map((_, dotIndex) => (
             <div
               key={dotIndex}
@@ -476,14 +475,14 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
                 navigateToIndex(dotIndex)
               }}
               style={{
-                width: dotIndex === index ? '16px' : '4px',
-                height: '4px',
+                width: dotIndex === index ? '12px' : '3px',
+                height: '3px',
                 borderRadius: '2px',
                 background: dotIndex === index 
-                  ? 'rgba(255, 255, 255, 0.9)' 
-                  : 'rgba(255, 255, 255, 0.4)',
+                  ? 'rgba(255, 255, 255, 1)' 
+                  : 'rgba(255, 255, 255, 0.5)',
                 cursor: 'pointer',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                transition: 'all 0.2s ease',
                 WebkitTapHighlightColor: 'transparent',
                 outline: 'none'
               }}
