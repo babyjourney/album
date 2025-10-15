@@ -378,18 +378,28 @@ export default function PostModal({
     // Immediate scroll to correct position in mobile modal to prevent delay
     if (isMobile) {
       setIsInitializing(true)
-      setTimeout(() => {
+      
+      // Use requestAnimationFrame for better timing
+      requestAnimationFrame(() => {
         const scrollContainer = document.querySelector('.mobile-modal-scroll')
         if (scrollContainer) {
           const postHeight = window.innerHeight
-          scrollContainer.scrollTo({
-            top: currentIndex * postHeight,
-            behavior: 'instant' // No animation for initial positioning
-          })
-          // Allow scroll events after positioning
-          setTimeout(() => setIsInitializing(false), 100)
+          const targetScrollTop = currentIndex * postHeight
+          
+          // Force immediate positioning without animation
+          scrollContainer.style.scrollBehavior = 'auto'
+          scrollContainer.scrollTop = targetScrollTop
+          
+          // Re-enable smooth scrolling after positioning
+          setTimeout(() => {
+            scrollContainer.style.scrollBehavior = 'smooth'
+            setIsInitializing(false)
+          }, 150) // Longer delay to ensure positioning is complete
+        } else {
+          // Fallback if container not found
+          setTimeout(() => setIsInitializing(false), 150)
         }
-      }, 0) // Execute on next tick
+      })
     } else {
       setIsInitializing(false)
     }
@@ -663,9 +673,21 @@ export default function PostModal({
             overflowY: 'auto',
             overflowX: 'hidden',
             scrollSnapType: 'y mandatory',
+            scrollSnapStop: 'always',
             scrollBehavior: 'smooth',
             WebkitOverflowScrolling: 'touch',
-            zIndex: 10
+            zIndex: 10,
+            // Enhanced scroll snap properties for better centering
+            scrollPaddingTop: '0px',
+            scrollMarginTop: '0px',
+            // Optimize for real mobile devices
+            touchAction: 'pan-y', // Only allow vertical panning
+            willChange: 'scroll-position',
+            transform: 'translateZ(0)', // Force hardware acceleration
+            // Better scroll momentum on mobile
+            '-webkit-overflow-scrolling': 'touch',
+            '-ms-overflow-style': 'none',
+            'scrollbar-width': 'none'
           }}
           onScroll={(e) => {
             // Ignore scroll events during initialization to prevent conflicts
@@ -676,24 +698,41 @@ export default function PostModal({
               clearTimeout(scrollTimeoutRef.current)
             }
             
-            // Immediate update for better responsiveness
+            // More precise scroll calculation
             const scrollTop = e.target.scrollTop
             const postHeight = window.innerHeight
-            const scrollProgress = scrollTop / postHeight
+            const scrollRatio = scrollTop / postHeight
             
-            // Only change post when scroll is more than 70% through (less sensitive)
-            const newIndex = Math.floor(scrollProgress + 0.3)
+            // Calculate which post should be considered active
+            // Use a threshold to prevent jittery switching
+            const newIndex = Math.round(scrollRatio)
             
-            if (newIndex !== currentIdx && newIndex >= 0 && newIndex < allPosts.length) {
-              // Debounce only the navigation callback, update state immediately
-              setCurrentIdx(newIndex)
-              setCurrentPost(allPosts[newIndex])
+            // Ensure we stay within bounds
+            const boundedIndex = Math.max(0, Math.min(allPosts.length - 1, newIndex))
+            
+            if (boundedIndex !== currentIdx && boundedIndex >= 0 && boundedIndex < allPosts.length) {
+              // Update state immediately for responsive UI
+              setCurrentIdx(boundedIndex)
+              setCurrentPost(allPosts[boundedIndex])
               setCurrentImageIndex(0) // Reset image index when changing posts
               
-              // Debounce only the navigation callback to prevent excessive API calls
+              // Snap to the correct post position to ensure proper centering
               scrollTimeoutRef.current = setTimeout(() => {
-                if (onNavigate) onNavigate(allPosts[newIndex], newIndex)
-              }, 50) // Reduced to 50ms and only for callback
+                const targetScrollTop = boundedIndex * postHeight
+                const currentScrollTop = e.target.scrollTop
+                const scrollDiff = Math.abs(targetScrollTop - currentScrollTop)
+                
+                // Only snap if we're significantly off-center (more than 10% of screen height)
+                if (scrollDiff > postHeight * 0.1) {
+                  e.target.scrollTo({
+                    top: targetScrollTop,
+                    behavior: 'smooth'
+                  })
+                }
+                
+                // Call navigation callback
+                if (onNavigate) onNavigate(allPosts[boundedIndex], boundedIndex)
+              }, 100) // Slightly longer delay for snapping logic
             }
           }}
         >
@@ -711,8 +750,13 @@ export default function PostModal({
                   alignItems: 'center',
                   justifyContent: 'center',
                   scrollSnapAlign: 'start',
+                  scrollSnapStop: 'always',
                   position: 'relative',
-                  background: '#000'
+                  background: '#000',
+                  // Ensure proper positioning and dimensions
+                  minHeight: '100vh',
+                  maxHeight: '100vh',
+                  boxSizing: 'border-box'
                 }}
               >
                 {postIsText ? (
