@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useLanguage } from '../contexts/LanguageContext'
 
 export default function SkillsTracker({ familyId, readOnly = false }) {
+  const { t } = useLanguage()
   const [skills, setSkills] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -36,7 +38,7 @@ export default function SkillsTracker({ familyId, readOnly = false }) {
     e.preventDefault()
     
     if (!newSkillName.trim()) {
-      setError('Please enter a skill name')
+      setError(t('skillName'))
       return
     }
 
@@ -67,7 +69,7 @@ export default function SkillsTracker({ familyId, readOnly = false }) {
       await fetchSkills()
     } catch (error) {
       console.error('Error adding skill:', error)
-      setError('Failed to add skill. Please try again.')
+      setError(t('error'))
     } finally {
       setAddingSkill(false)
     }
@@ -97,12 +99,12 @@ export default function SkillsTracker({ familyId, readOnly = false }) {
       ))
     } catch (error) {
       console.error('Error updating progress:', error)
-      setError('Failed to update progress')
+      setError(t('error'))
     }
   }
 
   const handleDeleteSkill = async (skillId) => {
-    if (!confirm('Are you sure you want to delete this skill?')) {
+    if (!confirm(t('confirmDeleteText'))) {
       return
     }
 
@@ -126,7 +128,7 @@ export default function SkillsTracker({ familyId, readOnly = false }) {
       setSkills(skills.filter(skill => skill.id !== skillId))
     } catch (error) {
       console.error('Error deleting skill:', error)
-      setError('Failed to delete skill')
+      setError(t('error'))
     }
   }
 
@@ -141,7 +143,7 @@ export default function SkillsTracker({ familyId, readOnly = false }) {
   if (loading) {
     return (
       <div className="card">
-        <h2 className="text-xl font-semibold mb-4">Skills Tracker</h2>
+        <h2 className="text-xl font-semibold mb-4">{t('skillsTracker')}</h2>
         <div className="flex items-center justify-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
         </div>
@@ -153,14 +155,14 @@ export default function SkillsTracker({ familyId, readOnly = false }) {
     <div className="card p-5">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-semibold">
-          Skills Tracker ({skills.length} {skills.length === 1 ? 'skill' : 'skills'})
+          {t('skillsTracker')} ({skills.length} {skills.length === 1 ? t('skillName') : t('skills')})
         </h2>
         {!readOnly && (
           <button
             onClick={() => setShowAddForm(!showAddForm)}
             className="btn btn-primary text-sm"
           >
-            {showAddForm ? 'Cancel' : 'Add Skill'}
+            {showAddForm ? t('cancel') : t('addSkill')}
           </button>
         )}
       </div>
@@ -178,7 +180,7 @@ export default function SkillsTracker({ familyId, readOnly = false }) {
               type="text"
               value={newSkillName}
               onChange={(e) => setNewSkillName(e.target.value)}
-              placeholder="Enter skill name (e.g., 'Riding a Bike', 'Reading')"
+              placeholder={t('skillName')}
               className="input flex-1"
               disabled={addingSkill}
             />
@@ -187,7 +189,7 @@ export default function SkillsTracker({ familyId, readOnly = false }) {
               disabled={addingSkill}
               className="btn btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {addingSkill ? 'Adding...' : 'Add'}
+              {addingSkill ? t('uploading') : t('save')}
             </button>
           </div>
         </form>
@@ -196,7 +198,7 @@ export default function SkillsTracker({ familyId, readOnly = false }) {
       {skills.length === 0 ? (
         <div className="text-center py-8 text-gray-500">
           <div className="text-4xl mb-4">🎯</div>
-          <p>No skills tracked yet. Add your first skill above!</p>
+          <p>{t('noSkillsFound')}</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -213,7 +215,7 @@ export default function SkillsTracker({ familyId, readOnly = false }) {
                       onClick={() => handleDeleteSkill(skill.id)}
                       className="text-red-600 hover:text-red-700 text-sm font-medium"
                     >
-                      Delete
+                      {t('delete')}
                     </button>
                   )}
                 </div>
@@ -230,7 +232,7 @@ export default function SkillsTracker({ familyId, readOnly = false }) {
 
               {!readOnly && (
                 <div className="flex items-center gap-2">
-                  <label className="text-sm text-gray-600">Update progress:</label>
+                  <label className="text-sm text-gray-600">{t('skillLevel')}:</label>
                   <input
                     type="range"
                     min="0"
@@ -244,17 +246,17 @@ export default function SkillsTracker({ familyId, readOnly = false }) {
               
               {readOnly && (
                 <div className="text-sm text-gray-500 text-center mt-2">
-                  Progress: {skill.progress}%
+                  {t('skillLevel')}: {skill.progress}%
                 </div>
               )}
               
               <div className="flex justify-between text-xs text-gray-500 mt-1">
-                <span>Beginner</span>
-                <span>Expert</span>
+                <span>{t('beginner')}</span>
+                <span>{t('expert')}</span>
               </div>
 
               <div className="text-xs text-gray-500 mt-2">
-                Added on {new Date(skill.created_at).toLocaleDateString()}
+                {t('date')}: {new Date(skill.created_at).toLocaleDateString()}
               </div>
             </div>
           ))}

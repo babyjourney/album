@@ -24,13 +24,13 @@ export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate })
 
   const handleAddCategory = () => {
     if (!newCategory.value.trim() || !newCategory.label.trim()) {
-      showError('Vă rugăm să completați toate câmpurile')
+      showError(t('error'))
       return
     }
 
     // Check if value already exists
     if (categories.some(cat => cat.value === newCategory.value.trim())) {
-      showError('O categorie cu această valoare există deja')
+      showError(t('error'))
       return
     }
 
@@ -46,9 +46,9 @@ export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate })
       setNewCategory({ value: '', label: '', emoji: '📝' })
       setIsAdding(false)
       onCategoriesUpdate?.(updatedCategories)
-      showSuccess('Categoria a fost adăugată cu succes!')
+      showSuccess(t('success'))
     } catch (error) {
-      showError('Eroare la adăugarea categoriei')
+      showError(t('error'))
     }
   }
 
@@ -63,27 +63,27 @@ export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate })
       setCategories(updatedCategories)
       setEditingCategory(null)
       onCategoriesUpdate?.(updatedCategories)
-      showSuccess('Categoria a fost actualizată cu succes!')
+      showSuccess(t('success'))
     } catch (error) {
       showError('Eroare la actualizarea categoriei')
     }
   }
 
   const handleDeleteCategory = (categoryValue) => {
-    if (window.confirm('Sunteți sigur că doriți să ștergeți această categorie? Această acțiune nu poate fi anulată.')) {
+    if (window.confirm(t('confirmDeleteText'))) {
       try {
         const updatedCategories = deleteCategory(categoryValue)
         setCategories(updatedCategories)
         onCategoriesUpdate?.(updatedCategories)
-        showSuccess('Categoria a fost ștearsă cu succes!')
+        showSuccess(t('success'))
       } catch (error) {
-        showError(error.message || 'Eroare la ștergerea categoriei')
+        showError(t('error'))
       }
     }
   }
 
   const handleResetToDefaults = () => {
-    if (window.confirm('Sunteți sigur că doriți să resetați la categoriile implicite? Toate categoriile personalizate vor fi șterse.')) {
+    if (window.confirm(t('confirmResetCategories'))) {
       try {
         const defaultCategories = resetToDefaults()
         setCategories(defaultCategories)

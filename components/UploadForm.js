@@ -93,7 +93,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
       // Check if adding these files would exceed the 10-file limit
       const totalFilesAfterAddition = files.length + selectedFiles.length
       if (totalFilesAfterAddition > 10) {
-        const errorMessage = `Poți încărca maximum 10 imagini per postare. Ai selectat ${selectedFiles.length} imagini noi, dar ai deja ${files.length} imagini selectate.`
+        const errorMessage = t('error')
         setError(errorMessage)
         showError(errorMessage)
         return
@@ -212,17 +212,17 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
     e.preventDefault()
     
     if (!title.trim()) {
-      setError('Vă rugăm să introduceți un titlu')
+      setError(t('title'))
       return
     }
     
     if (isMultiPhoto && files.length === 0) {
-      setError('Vă rugăm să selectați cel puțin o imagine pentru postarea multiplă')
+      setError(t('uploadPhotos'))
       return
     }
     
     if (!isMultiPhoto && !file) {
-      setError('Vă rugăm să selectați un fișier pentru încărcare')
+      setError(t('selectFiles'))
       return
     }
 
@@ -275,7 +275,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
         const result = await response.json()
         
         if (!response.ok) {
-          throw new Error(result.error || 'Salvarea postării multiple a eșuat')
+          throw new Error(result.error || t('error'))
         }
 
         // Handle child associations for multi-photo posts
@@ -335,7 +335,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
         const result = await response.json()
         
         if (!response.ok) {
-          throw new Error(result.error || 'Salvarea fotografiei a eșuat')
+          throw new Error(result.error || t('error'))
         }
 
         // Handle child associations for single photo posts
@@ -360,9 +360,9 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
       // Determine success message before resetting form
       let successMessage
       if (isMultiPhoto) {
-        successMessage = 'Fotografiile au fost încărcate cu succes!'
+        successMessage = t('success')
       } else {
-        successMessage = `${file && file.type.startsWith('image/') ? 'Fotografia' : 'Video-ul'} a fost încărcat cu succes!`
+        successMessage = t('success')
       }
 
       // Reset form
@@ -414,7 +414,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
         borderBottom: '1px solid var(--border-light)',
         flexShrink: 0
       }}>
-        <h2 className="text-section-title">Încărcare</h2>
+        <h2 className="text-section-title">{t('upload')}</h2>
       </div>
 
       {/* Scrollable Content */}
@@ -435,7 +435,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             className="input-field"
-            placeholder="Introduceți un titlu pentru fotografia dumneavoastră"
+            placeholder={t('titlePlaceholder')}
             autoComplete="off"
             autoCorrect="off"
             autoCapitalize="off"
@@ -461,7 +461,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
             className="input-field"
             style={{ resize: 'none', minHeight: '80px' }}
             rows="3"
-            placeholder="Descriere opțională"
+            placeholder={t('addDescription')}
             autoComplete="off"
             autoCorrect="off"
             autoCapitalize="off"
@@ -543,7 +543,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
               value={currentHashtagInput}
               onChange={(e) => setCurrentHashtagInput(e.target.value)}
               onKeyDown={handleHashtagKeyDown}
-              placeholder={hashtags.length === 0 ? "Tastează o etichetă și apasă spațiu..." : ""}
+              placeholder={hashtags.length === 0 ? t('hashtagInputPlaceholder') : ""}
               autoComplete="off"
               autoCorrect="off"
               autoCapitalize="off"
@@ -566,7 +566,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
             />
           </div>
           <p className="text-subtle" style={{ marginTop: '4px', fontSize: '12px' }}>
-            Tastează un cuvânt și apasă spațiu pentru a crea o etichetă
+{t('hashtagInputHelp')}
           </p>
         </div>
 
@@ -583,7 +583,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
         {albumSettings?.is_multi_child && children.length > 0 && (
           <div style={{ marginBottom: '16px' }}>
             <label className="text-subtle" style={{ display: 'block', marginBottom: '8px' }}>
-              Asociază cu copii
+{t('filterByChild')}
             </label>
             <div style={{
               display: 'grid',
@@ -850,7 +850,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
                 borderRadius: '50%',
                 animation: 'spin 1s linear infinite'
               }}></div>
-              Se încarcă...
+{t('uploading')}
             </>
           ) : (
             <>
@@ -859,7 +859,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
                 <polyline points="7,10 12,15 17,10"/>
                 <line x1="12" x2="12" y1="15" y2="3"/>
               </svg>
-              Încarcă
+{t('upload')}
             </>
           )}
         </button>

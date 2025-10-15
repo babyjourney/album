@@ -45,7 +45,7 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
     e.preventDefault()
     
     if (!postText.trim()) {
-      setError('Vă rugăm să introduceți text pentru postarea dumneavoastră')
+      setError(t('postDescription'))
       return
     }
 
@@ -73,7 +73,7 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.error || 'Crearea postării a eșuat')
+        throw new Error(result.error || t('postCreationFailed'))
       }
 
       // Reset form
@@ -83,7 +83,7 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
       setCurrentHashtagInput('')
       
       // Show success toast
-      showSuccess('Postarea dumneavoastră text a fost creată cu succes!')
+      showSuccess(t('success'))
       
       // Notify parent component
       if (onPostSuccess) {
@@ -92,7 +92,7 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
 
     } catch (error) {
       console.error('Error creating text post:', error)
-      const errorMessage = 'Crearea postării a eșuat. Vă rugăm să încercați din nou.'
+      const errorMessage = t('postCreationFailedRetry')
       setError(errorMessage)
       showError(errorMessage)
     } finally {
@@ -111,7 +111,7 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
             onChange={handleTextChange}
             className="input text-lg"
             rows="3"
-            placeholder="La ce vă gândiți?"
+            placeholder={t('addDescription')}
             disabled={loading}
             autoComplete="off"
             autoCorrect="off"
@@ -131,7 +131,7 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
           <div className="space-y-4 mb-4">
             <div>
               <label className="block body-small font-medium text-gray-700 mb-2">
-                Categorie
+                {t('category')}
               </label>
               <div className="flex flex-wrap gap-2">
                 {categories.map((cat) => (
@@ -151,7 +151,7 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
             </div>
             <div>
               <label htmlFor="hashtags" className="block body-small font-medium text-gray-700 mb-2">
-                Etichete
+                {t('hashtag')}
               </label>
               <div style={{
                 border: '1px solid #D1D5DB',
@@ -195,7 +195,7 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
                   value={currentHashtagInput}
                   onChange={(e) => setCurrentHashtagInput(e.target.value)}
                   onKeyDown={handleHashtagKeyDown}
-                  placeholder={hashtags.length === 0 ? "Tastează o etichetă și apasă spațiu..." : ""}
+                  placeholder={hashtags.length === 0 ? t('hashtagInputPlaceholder') : ""}
                   disabled={loading}
                   autoComplete="off"
                   autoCorrect="off"
@@ -219,7 +219,7 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
                 />
               </div>
               <p style={{ marginTop: '4px', fontSize: '12px', color: '#6B7280' }}>
-                Tastează un cuvânt și apasă spațiu pentru a crea o etichetă
+                {t('hashtagInputHelp')}
               </p>
             </div>
             
@@ -250,7 +250,7 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
                 className="btn btn-ghost flex items-center space-x-2 px-4 py-2"
               >
                 <span className="text-lg">📷</span>
-                <span className="body-small font-medium">Fotografie</span>
+                <span className="body-small font-medium">{t('uploadPhoto')}</span>
               </button>
               
               <button
@@ -272,7 +272,7 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
                 disabled={loading || !postText.trim()}
                 className="btn btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? 'Postez...' : 'Postează'}
+{loading ? t('uploading') : t('createPost')}
               </button>
             </div>
           )}

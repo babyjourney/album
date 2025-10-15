@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { getSession, isAuthenticated, isEditor } from '../lib/pinAuth'
-import { SKILL_CATEGORIES } from '../lib/skillsData'
+import { getSkillCategories, SKILL_CATEGORIES } from '../lib/skillsData'
 import { useToast } from '../contexts/ToastContext'
+import { useLanguage } from '../contexts/LanguageContext'
 import Header from '../components/Header'
 
 export default function Skills() {
@@ -12,6 +13,7 @@ export default function Skills() {
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [updatingSkill, setUpdatingSkill] = useState(null)
   const { showSuccess, showError } = useToast()
+  const { t } = useLanguage()
   const router = useRouter()
 
   useEffect(() => {
@@ -41,7 +43,7 @@ export default function Skills() {
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.error || 'Încărcarea progresului a eșuat')
+        throw new Error(result.error || t('loading'))
       }
 
       const progressMap = {}
@@ -51,7 +53,7 @@ export default function Skills() {
       setSkillsProgress(progressMap)
     } catch (error) {
       console.error('Error fetching skills progress:', error)
-      showError('Încărcarea progresului a eșuat')
+      showError(t('loading'))
     }
   }
 
@@ -78,7 +80,7 @@ export default function Skills() {
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.error || 'Actualizarea progresului a eșuat')
+        throw new Error(result.error || t('error'))
       }
 
       // Update local state
@@ -87,21 +89,22 @@ export default function Skills() {
         [skillId]: result.skill
       }))
 
-      showSuccess('Progresul a fost actualizat!')
+      showSuccess(t('success'))
     } catch (error) {
       console.error('Error updating skill progress:', error)
-      showError('Actualizarea progresului a eșuat')
+      showError(t('error'))
     } finally {
       setUpdatingSkill(null)
     }
   }
 
   const getOverallProgress = (category) => {
+    const skillCategories = getSkillCategories(t)
     if (category === 'all') {
       let totalProgress = 0
       let totalSkills = 0
       
-      Object.values(SKILL_CATEGORIES).forEach(cat => {
+      Object.values(skillCategories).forEach(cat => {
         cat.skills.forEach(skill => {
           const progress = skillsProgress[skill.id]?.progress || 0
           totalProgress += progress
@@ -111,7 +114,7 @@ export default function Skills() {
       
       return totalSkills > 0 ? Math.round(totalProgress / totalSkills) : 0
     } else {
-      const categorySkills = SKILL_CATEGORIES[category]?.skills || []
+      const categorySkills = skillCategories[category]?.skills || []
       let totalProgress = 0
       
       categorySkills.forEach(skill => {
@@ -327,7 +330,8 @@ export default function Skills() {
   }
 
   const hasEditorAccess = isEditor()
-  const categories = Object.keys(SKILL_CATEGORIES)
+  const skillCategories = getSkillCategories(t)
+  const categories = Object.keys(skillCategories)
   const filteredCategories = selectedCategory === 'all' ? categories : [selectedCategory]
 
   return (
@@ -348,13 +352,13 @@ export default function Skills() {
                 color: '#374151',
                 marginBottom: '4px'
               }}>
-                Progresul lui {session.familyName}
+{session.familyName} - {t('skills')}
               </h1>
               <p style={{ 
                 fontSize: '14px',
                 color: '#9ca3af'
               }}>
-                Urmărește dezvoltarea abilităților
+{t('skillsTracker')}
               </p>
             </div>
             <button
@@ -380,7 +384,7 @@ export default function Skills() {
                 e.target.style.background = 'white'
               }}
             >
-              ← Înapoi la album
+← {t('back')} {t('album')}
             </button>
           </div>
 
@@ -399,7 +403,7 @@ export default function Skills() {
                 fontSize: '14px',
                 color: '#6b7280'
               }}>
-                {selectedCategory === 'all' ? 'Total' : SKILL_CATEGORIES[selectedCategory]?.name}
+{selectedCategory === 'all' ? t('all') : getSkillCategories(t)[selectedCategory]?.name}
               </span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -449,7 +453,7 @@ export default function Skills() {
                   color: selectedCategory === 'all' ? 'white' : '#6b7280'
                 }}
               >
-                Toate
+{t('all')}
               </button>
               {categories.map((category) => (
                 <button
@@ -466,7 +470,7 @@ export default function Skills() {
                     color: selectedCategory === category ? 'white' : '#6b7280'
                   }}
                 >
-                  {SKILL_CATEGORIES[category].name}
+                  {skillCategories[category].name}
                 </button>
               ))}
             </div>
@@ -484,13 +488,13 @@ export default function Skills() {
                   fontWeight: '500',
                   color: '#374151'
                 }}>
-                  {SKILL_CATEGORIES[category].name}
+                  {skillCategories[category].name}
                 </h3>
               </div>
             )}
 
             <div>
-              {SKILL_CATEGORIES[category].skills.map((skill) => 
+              {skillCategories[category].skills.map((skill) => 
                 renderSkillCard(skill, category)
               )}
             </div>
@@ -508,7 +512,7 @@ export default function Skills() {
             color: '#6b7280',
             fontSize: '13px'
           }}>
-            Pentru a actualiza progresul, folosește PIN-ul de editor.
+{t('info')}: {t('edit')} PIN
           </div>
         )}
       </div>

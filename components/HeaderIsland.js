@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useToast } from '../contexts/ToastContext'
+import { useLanguage } from '../contexts/LanguageContext'
 
 export default function HeaderIsland({ 
   childName = "Child", 
@@ -18,6 +19,7 @@ export default function HeaderIsland({
   const [hashtags, setHashtags] = useState('')
   const [loading, setLoading] = useState(false)
   const { showSuccess, showError } = useToast()
+  const { t } = useLanguage()
 
   const handlePostSubmit = async () => {
     if (!postText.trim()) return
@@ -112,7 +114,7 @@ export default function HeaderIsland({
               type="text"
               value={postText}
               onChange={(e) => setPostText(e.target.value)}
-              placeholder="Împărtășește un moment special..."
+              placeholder={t('shareSpecialMoment')}
               className="input-field"
               style={{ flex: 1 }}
               disabled={loading}
