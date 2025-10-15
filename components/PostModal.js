@@ -269,10 +269,17 @@ export default function PostModal({
   const [editLoading, setEditLoading] = useState(false)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [isInitializing, setIsInitializing] = useState(true)
+  const [mobileY, setMobileY] = useState(0)
+  const [isDragging, setIsDragging] = useState(false)
+  const [touchStartY, setTouchStartY] = useState(0)
+  const [touchStartTime, setTouchStartTime] = useState(0)
+  const [velocityY, setVelocityY] = useState(0)
   const { showSuccess, showError } = useToast()
   const modalRef = useRef(null)
   const scrollContainerRef = useRef(null)
   const scrollTimeoutRef = useRef(null)
+  const lastTouchY = useRef(0)
+  const lastTouchTime = useRef(0)
 
   // Handle click on overlay to close modal
   const handleOverlayClick = (e) => {
@@ -369,37 +376,102 @@ export default function PostModal({
     setEditHashtags(editHashtags.filter(tag => tag !== tagToRemove))
   }
 
+  // Mobile touch handlers for manual scroll control
+  const handleTouchStart = useCallback((e) => {
+    if (!isMobile || e.touches.length !== 1) return
+    
+    const touch = e.touches[0]
+    setIsDragging(true)
+    setTouchStartY(touch.clientY)
+    setTouchStartTime(Date.now())
+    setVelocityY(0)
+    lastTouchY.current = touch.clientY
+    lastTouchTime.current = Date.now()
+  }, [isMobile])
+
+  const handleTouchMove = useCallback((e) => {
+    if (!isMobile || !isDragging || e.touches.length !== 1) return
+    
+    const touch = e.touches[0]
+    const currentTime = Date.now()
+    const deltaTime = currentTime - lastTouchTime.current
+    const deltaY = touch.clientY - lastTouchY.current
+    
+    // Prevent default to avoid conflicts
+    e.preventDefault()
+    e.stopPropagation()
+    
+    // Calculate velocity
+    if (deltaTime > 0 && deltaTime < 100) {
+      setVelocityY(deltaY / deltaTime)
+    }
+    
+    // Calculate new Y position based on total movement
+    const totalMoveY = touch.clientY - touchStartY
+    const postHeight = window.innerHeight
+    const baseY = -currentIdx * postHeight
+    const newY = baseY + totalMoveY
+    
+    // Add resistance at boundaries
+    const maxY = 0
+    const minY = -(allPosts.length - 1) * postHeight
+    
+    let constrainedY = newY
+    if (newY > maxY) {
+      constrainedY = maxY + (newY - maxY) * 0.3 // Resistance at top
+    } else if (newY < minY) {
+      constrainedY = minY + (newY - minY) * 0.3 // Resistance at bottom
+    }
+    
+    setMobileY(constrainedY)
+    lastTouchY.current = touch.clientY
+    lastTouchTime.current = currentTime
+  }, [isMobile, isDragging, touchStartY, currentIdx, allPosts.length])
+
+  const handleTouchEnd = useCallback(() => {
+    if (!isMobile || !isDragging) return
+    
+    setIsDragging(false)
+    
+    const postHeight = window.innerHeight
+    const currentPostIndex = Math.round(-mobileY / postHeight)
+    
+    // Velocity threshold for quick swipes
+    const velocityThreshold = 0.5
+    let finalIndex = currentPostIndex
+    
+    // Check for swipe velocity
+    if (Math.abs(velocityY) > velocityThreshold) {
+      if (velocityY > velocityThreshold && currentPostIndex > 0) {
+        finalIndex = currentPostIndex - 1 // Swipe down = previous post
+      } else if (velocityY < -velocityThreshold && currentPostIndex < allPosts.length - 1) {
+        finalIndex = currentPostIndex + 1 // Swipe up = next post
+      }
+    }
+    
+    // Snap to final position
+    const finalY = -finalIndex * postHeight
+    setMobileY(finalY)
+    
+    // Update current post
+    if (finalIndex !== currentIdx) {
+      setCurrentIdx(finalIndex)
+      setCurrentPost(allPosts[finalIndex])
+      setCurrentImageIndex(0)
+      if (onNavigate) onNavigate(allPosts[finalIndex], finalIndex)
+    }
+  }, [isMobile, isDragging, mobileY, velocityY, currentIdx, allPosts, onNavigate])
+
   useEffect(() => {
     setCurrentPost(selectedPost)
     setCurrentIdx(currentIndex)
     setCurrentImageIndex(0) // Reset image index when post changes
     setIsDescriptionExpanded(false) // Reset description expansion when changing posts
     
-    // Immediate scroll to correct position in mobile modal to prevent delay
+    // Set initial mobile position
     if (isMobile) {
-      setIsInitializing(true)
-      
-      // Use requestAnimationFrame for better timing
-      requestAnimationFrame(() => {
-        const scrollContainer = document.querySelector('.mobile-modal-scroll')
-        if (scrollContainer) {
-          const postHeight = window.innerHeight
-          const targetScrollTop = currentIndex * postHeight
-          
-          // Force immediate positioning without animation
-          scrollContainer.style.scrollBehavior = 'auto'
-          scrollContainer.scrollTop = targetScrollTop
-          
-          // Re-enable smooth scrolling after positioning
-          setTimeout(() => {
-            scrollContainer.style.scrollBehavior = 'smooth'
-            setIsInitializing(false)
-          }, 150) // Longer delay to ensure positioning is complete
-        } else {
-          // Fallback if container not found
-          setTimeout(() => setIsInitializing(false), 150)
-        }
-      })
+      setMobileY(-currentIndex * window.innerHeight)
+      setIsInitializing(false)
     } else {
       setIsInitializing(false)
     }
@@ -450,28 +522,6 @@ export default function PostModal({
     }
   }, [currentIdx, allPosts, onNavigate, onClose])
 
-  // Throttled scroll handler for better performance
-  const handleScroll = useRef(
-    (() => {
-      let timeout = null
-      return (e) => {
-        if (isMobile) {
-          if (timeout) clearTimeout(timeout)
-          timeout = setTimeout(() => {
-            const scrollLeft = e.target.scrollLeft
-            const postWidth = window.innerWidth
-            const newIndex = Math.round(scrollLeft / postWidth)
-            
-            if (newIndex !== currentIdx && newIndex >= 0 && newIndex < allPosts.length) {
-              setCurrentIdx(newIndex)
-              setCurrentPost(allPosts[newIndex])
-              if (onNavigate) onNavigate(allPosts[newIndex], newIndex)
-            }
-          }, 100) // Throttle to 100ms
-        }
-      }
-    })()
-  ).current
 
   // Navigation helper function
   const navigateToPost = (newIndex) => {
@@ -661,81 +711,35 @@ export default function PostModal({
           {currentIdx + 1} / {allPosts.length}
         </div>
 
-        {/* Vertical scroll container - Instagram style */}
+        {/* Manual touch container - no scroll snap conflicts */}
         <div 
-          className="mobile-modal-scroll"
+          className="mobile-modal-container"
           style={{
             position: 'absolute',
             top: 0,
             left: 0,
             width: '100vw',
             height: '100vh',
-            overflowY: 'auto',
-            overflowX: 'hidden',
-            scrollSnapType: 'y mandatory',
-            scrollSnapStop: 'always',
-            scrollBehavior: 'smooth',
-            WebkitOverflowScrolling: 'touch',
+            overflow: 'hidden', // No scrolling, manual control only
             zIndex: 10,
-            // Enhanced scroll snap properties for better centering
-            scrollPaddingTop: '0px',
-            scrollMarginTop: '0px',
-            // Optimize for real mobile devices
-            touchAction: 'pan-y', // Only allow vertical panning
-            willChange: 'scroll-position',
-            transform: 'translateZ(0)', // Force hardware acceleration
-            // Better scroll momentum on mobile
-            '-webkit-overflow-scrolling': 'touch',
-            '-ms-overflow-style': 'none',
-            'scrollbar-width': 'none'
+            touchAction: 'none', // Disable all default touch behaviors
+            transform: 'translateZ(0)', // Hardware acceleration
+            willChange: 'transform'
           }}
-          onScroll={(e) => {
-            // Ignore scroll events during initialization to prevent conflicts
-            if (isInitializing) return
-            
-            // Clear existing timeout
-            if (scrollTimeoutRef.current) {
-              clearTimeout(scrollTimeoutRef.current)
-            }
-            
-            // More precise scroll calculation
-            const scrollTop = e.target.scrollTop
-            const postHeight = window.innerHeight
-            const scrollRatio = scrollTop / postHeight
-            
-            // Calculate which post should be considered active
-            // Use a threshold to prevent jittery switching
-            const newIndex = Math.round(scrollRatio)
-            
-            // Ensure we stay within bounds
-            const boundedIndex = Math.max(0, Math.min(allPosts.length - 1, newIndex))
-            
-            if (boundedIndex !== currentIdx && boundedIndex >= 0 && boundedIndex < allPosts.length) {
-              // Update state immediately for responsive UI
-              setCurrentIdx(boundedIndex)
-              setCurrentPost(allPosts[boundedIndex])
-              setCurrentImageIndex(0) // Reset image index when changing posts
-              
-              // Snap to the correct post position to ensure proper centering
-              scrollTimeoutRef.current = setTimeout(() => {
-                const targetScrollTop = boundedIndex * postHeight
-                const currentScrollTop = e.target.scrollTop
-                const scrollDiff = Math.abs(targetScrollTop - currentScrollTop)
-                
-                // Only snap if we're significantly off-center (more than 10% of screen height)
-                if (scrollDiff > postHeight * 0.1) {
-                  e.target.scrollTo({
-                    top: targetScrollTop,
-                    behavior: 'smooth'
-                  })
-                }
-                
-                // Call navigation callback
-                if (onNavigate) onNavigate(allPosts[boundedIndex], boundedIndex)
-              }, 100) // Slightly longer delay for snapping logic
-            }
-          }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
         >
+          {/* Posts container with manual transform */}
+          <div
+            style={{
+              width: '100vw',
+              height: `${allPosts.length * 100}vh`,
+              transform: `translate3d(0, ${mobileY}px, 0)`,
+              transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              willChange: 'transform'
+            }}
+          >
           {allPosts.map((post, index) => {
             const postIsText = post.type === 'text'
             const postIsVideo = post.file_type === 'video' || post.type === 'video'
@@ -749,13 +753,10 @@ export default function PostModal({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  scrollSnapAlign: 'start',
-                  scrollSnapStop: 'always',
                   position: 'relative',
                   background: '#000',
-                  // Ensure proper positioning and dimensions
-                  minHeight: '100vh',
-                  maxHeight: '100vh',
+                  // Force exact dimensions
+                  flexShrink: 0,
                   boxSizing: 'border-box'
                 }}
               >
@@ -849,6 +850,7 @@ export default function PostModal({
               </div>
             )
           })}
+          </div>
         </div>
 
         {/* Mobile action menu - only show if not readonly */}

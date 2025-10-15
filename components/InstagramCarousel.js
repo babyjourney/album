@@ -437,14 +437,9 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
       {images.length > 1 && (() => {
         // Calculate safe bottom position based on viewport height
         const getSafeBottomPosition = () => {
-          // For mobile browsers, especially Chrome, adjust based on viewport height
-          if (viewportHeight < 700) {
-            return '100px'  // Higher up for smaller viewports
-          } else if (viewportHeight < 800) {
-            return '120px'  // Medium position
-          } else {
-            return '140px'  // Standard position for larger viewports
-          }
+          // More aggressive positioning for Chrome mobile
+          const safeBottomOffset = Math.max(80, viewportHeight * 0.12) // At least 80px, or 12% of viewport
+          return `${safeBottomOffset}px`
         }
 
         return (
@@ -456,13 +451,16 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
-            zIndex: 20,
-            padding: '8px 12px',
-            background: 'rgba(0, 0, 0, 0.5)',
-            borderRadius: '12px',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
+            zIndex: 30, // Higher z-index
+            padding: '10px 16px',
+            background: 'rgba(0, 0, 0, 0.8)', // Darker background
+            borderRadius: '20px',
+            backdropFilter: 'blur(15px)',
+            border: '2px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
+            // Force visibility
+            minHeight: '40px',
+            minWidth: '60px'
           }}>
           {images.map((_, dotIndex) => (
             <div
