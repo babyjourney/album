@@ -91,18 +91,23 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
     const rawOffsetX = Math.abs(touch.clientX - startX)
     const rawOffsetY = Math.abs(touch.clientY - startY)
     
-    // Enhanced mobile-specific gesture detection
-    const horizontalGestureThreshold = 15 // Reduced threshold for better responsiveness
-    const verticalScrollAllowance = 1.5 // Allow some vertical movement
+    // Enhanced gesture detection to prevent vertical scroll conflicts
+    const horizontalGestureThreshold = 10 // Lower threshold for quicker detection
+    const verticalScrollAllowance = 2.0 // More strict about horizontal gestures
     
     // Determine if this is a horizontal swipe gesture
     const isHorizontalGesture = rawOffsetX > horizontalGestureThreshold && 
                                rawOffsetX > rawOffsetY * verticalScrollAllowance
     
-    // Prevent default and stop propagation for horizontal gestures
+    // Aggressively prevent vertical scroll for horizontal gestures
     if (isHorizontalGesture) {
       e.preventDefault()
       e.stopPropagation()
+      // Also prevent on parent elements
+      const modalContainer = document.querySelector('.mobile-scroll-container')
+      if (modalContainer) {
+        modalContainer.style.touchAction = 'none'
+      }
     }
 
     // Calculate velocity for momentum (improved for mobile)
@@ -168,11 +173,12 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
     // Re-enable touch action after gesture completes
     if (containerRef.current) {
       containerRef.current.style.touchAction = 'auto'
-      setTimeout(() => {
-        if (containerRef.current) {
-          containerRef.current.style.touchAction = 'auto'
-        }
-      }, 100)
+    }
+    
+    // Re-enable vertical scroll on modal container
+    const modalContainer = document.querySelector('.mobile-scroll-container')
+    if (modalContainer) {
+      modalContainer.style.touchAction = 'pan-y'
     }
   }, [isDragging, dragOffset, index, startTime, velocityX, images.length, navigateToIndex])
 

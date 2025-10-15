@@ -369,7 +369,7 @@ export default function PostModal({
     setEditHashtags(editHashtags.filter(tag => tag !== tagToRemove))
   }
 
-  // Simple scroll handler - just track current post
+  // Enhanced scroll handler with centering logic
   const handleScroll = useCallback((e) => {
     if (isInitializing) return
     
@@ -382,8 +382,20 @@ export default function PostModal({
       clearTimeout(scrollTimeoutRef.current)
     }
     
-    // Debounced update current post only
+    // Debounced centering and post tracking
     scrollTimeoutRef.current = setTimeout(() => {
+      const targetScrollTop = scrollIndex * postHeight
+      const scrollDiff = Math.abs(scrollTop - targetScrollTop)
+      
+      // Auto-center if off by more than 10px
+      if (scrollDiff > 10) {
+        e.target.scrollTo({
+          top: targetScrollTop,
+          behavior: 'smooth'
+        })
+      }
+      
+      // Update current post
       if (scrollIndex !== currentIdx && scrollIndex >= 0 && scrollIndex < allPosts.length) {
         setCurrentIdx(scrollIndex)
         setCurrentPost(allPosts[scrollIndex])
@@ -659,7 +671,7 @@ export default function PostModal({
           {currentIdx + 1} / {allPosts.length}
         </div>
 
-        {/* Fixed scroll container with proper scroll snap */}
+        {/* Fixed scroll container with enhanced centering */}
         <div 
           className="mobile-scroll-container"
           style={{
@@ -671,14 +683,17 @@ export default function PostModal({
             overflowY: 'auto',
             overflowX: 'hidden',
             zIndex: 10,
-            // Proper scroll snap
+            // Enhanced scroll snap for perfect centering
             scrollSnapType: 'y mandatory',
             scrollSnapStop: 'always',
             WebkitOverflowScrolling: 'touch',
             scrollbarWidth: 'none',
             msOverflowStyle: 'none',
-            // Ensure no gaps
-            scrollPadding: '0px'
+            // Force precise alignment
+            scrollPadding: '0px',
+            scrollMargin: '0px',
+            // Prevent scroll during horizontal swipes
+            touchAction: 'pan-y'
           }}
           onScroll={handleScroll}
         >
