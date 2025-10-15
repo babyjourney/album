@@ -369,7 +369,7 @@ export default function PostModal({
     setEditHashtags(editHashtags.filter(tag => tag !== tagToRemove))
   }
 
-  // Simple scroll handler with auto-snap
+  // Simple scroll handler - just track current post
   const handleScroll = useCallback((e) => {
     if (isInitializing) return
     
@@ -382,27 +382,15 @@ export default function PostModal({
       clearTimeout(scrollTimeoutRef.current)
     }
     
-    // Debounced snap to center
+    // Debounced update current post only
     scrollTimeoutRef.current = setTimeout(() => {
-      const targetScrollTop = scrollIndex * postHeight
-      const scrollDiff = Math.abs(scrollTop - targetScrollTop)
-      
-      // Snap if we're off by more than 5% of screen height
-      if (scrollDiff > postHeight * 0.05) {
-        e.target.scrollTo({
-          top: targetScrollTop,
-          behavior: 'smooth'
-        })
-      }
-      
-      // Update current post
       if (scrollIndex !== currentIdx && scrollIndex >= 0 && scrollIndex < allPosts.length) {
         setCurrentIdx(scrollIndex)
         setCurrentPost(allPosts[scrollIndex])
         setCurrentImageIndex(0)
         if (onNavigate) onNavigate(allPosts[scrollIndex], scrollIndex)
       }
-    }, 150)
+    }, 100)
   }, [isInitializing, currentIdx, allPosts, onNavigate])
 
   useEffect(() => {
@@ -414,15 +402,23 @@ export default function PostModal({
     // Scroll to correct position immediately
     if (isMobile) {
       setIsInitializing(true)
+      // Use multiple frames to ensure DOM is ready
       requestAnimationFrame(() => {
-        const scrollContainer = document.querySelector('.mobile-scroll-container')
-        if (scrollContainer) {
-          const targetTop = currentIndex * window.innerHeight
-          scrollContainer.scrollTop = targetTop
-          setTimeout(() => setIsInitializing(false), 100)
-        } else {
-          setIsInitializing(false)
-        }
+        requestAnimationFrame(() => {
+          const scrollContainer = document.querySelector('.mobile-scroll-container')
+          if (scrollContainer) {
+            const targetTop = currentIndex * window.innerHeight
+            scrollContainer.style.scrollBehavior = 'auto'
+            scrollContainer.scrollTop = targetTop
+            // Re-enable smooth scrolling
+            setTimeout(() => {
+              scrollContainer.style.scrollBehavior = 'smooth'
+              setIsInitializing(false)
+            }, 50)
+          } else {
+            setIsInitializing(false)
+          }
+        })
       })
     } else {
       setIsInitializing(false)
@@ -663,7 +659,7 @@ export default function PostModal({
           {currentIdx + 1} / {allPosts.length}
         </div>
 
-        {/* Simple scroll container with auto-snap */}
+        {/* Fixed scroll container with proper scroll snap */}
         <div 
           className="mobile-scroll-container"
           style={{
@@ -675,10 +671,14 @@ export default function PostModal({
             overflowY: 'auto',
             overflowX: 'hidden',
             zIndex: 10,
-            // Remove scroll snap for now, add manual centering
+            // Proper scroll snap
+            scrollSnapType: 'y mandatory',
+            scrollSnapStop: 'always',
             WebkitOverflowScrolling: 'touch',
             scrollbarWidth: 'none',
-            msOverflowStyle: 'none'
+            msOverflowStyle: 'none',
+            // Ensure no gaps
+            scrollPadding: '0px'
           }}
           onScroll={handleScroll}
         >
@@ -692,14 +692,17 @@ export default function PostModal({
                 style={{
                   width: '100vw',
                   height: '100vh',
+                  minHeight: '100vh',
+                  maxHeight: '100vh',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   position: 'relative',
                   background: '#000',
-                  // Force exact dimensions
                   flexShrink: 0,
-                  boxSizing: 'border-box'
+                  boxSizing: 'border-box',
+                  scrollSnapAlign: 'start',
+                  scrollSnapStop: 'always'
                 }}
               >
                 {postIsText ? (
