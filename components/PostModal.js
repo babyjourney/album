@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useToast } from '../contexts/ToastContext'
 import { useOnClickOutside } from '../hooks/useOnClickOutside'
 import InstagramCarousel from './InstagramCarousel'
