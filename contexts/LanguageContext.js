@@ -81,7 +81,87 @@ export const translations = {
     hashtagPlaceholder: 'hashtag',
     titlePlaceholder: 'Introduceți un titlu pentru fotografia dumneavoastră',
     hashtagInputPlaceholder: 'Tastează o etichetă și apasă spațiu...',
-    searchInDescriptions: 'Caută în descrieri, titluri sau hashtag-uri...'
+    searchInDescriptions: 'Caută în descrieri, titluri sau hashtag-uri...',
+    
+    // Navigation and pages
+    dashboard: 'Tablou de bord',
+    skillsTracker: 'Urmărire Abilități',
+    
+    // Skills
+    skills: 'Abilități',
+    skillName: 'Nume abilitate',
+    skillDescription: 'Descrierea abilității',
+    addSkill: 'Adaugă abilitate',
+    editSkill: 'Editează abilitate',
+    deleteSkill: 'Șterge abilitate',
+    skillLevel: 'Nivel abilitate',
+    beginner: 'Începător',
+    intermediate: 'Intermediar',
+    advanced: 'Avansat',
+    expert: 'Expert',
+    
+    // Post actions
+    viewPost: 'Vezi postarea',
+    editPost: 'Editează postarea',
+    deletePost: 'Șterge postarea',
+    confirmDelete: 'Confirmare ștergere',
+    confirmDeleteText: 'Sunteți sigur că doriți să ștergeți această postare? Această acțiune nu poate fi anulată.',
+    
+    // Form actions
+    save: 'Salvează',
+    cancel: 'Anulează',
+    confirm: 'Confirmă',
+    close: 'Închide',
+    back: 'Înapoi',
+    next: 'Următorul',
+    previous: 'Anterior',
+    
+    // Upload and creation
+    uploadPhotos: 'Încarcă fotografii',
+    createTextPost: 'Creează postare text',
+    selectFiles: 'Selectează fișiere',
+    dragAndDrop: 'Trage și lasă fișierele aici',
+    
+    // Dates and time
+    today: 'Astăzi',
+    yesterday: 'Ieri',
+    thisWeek: 'Săptămâna aceasta',
+    thisMonth: 'Luna aceasta',
+    
+    // Messages and notifications
+    success: 'Succes',
+    error: 'Eroare',
+    warning: 'Avertisment',
+    info: 'Informație',
+    loading: 'Se încarcă...',
+    saving: 'Se salvează...',
+    uploading: 'Se încarcă...',
+    processing: 'Se procesează...',
+    
+    // Modal titles
+    uploadModal: 'Încarcă fotografii',
+    editPostModal: 'Editează postarea',
+    deletePostModal: 'Șterge postarea',
+    profileModal: 'Profil utilizator',
+    settingsModal: 'Setări',
+    
+    // Status messages
+    noPostsFound: 'Nu au fost găsite postări',
+    noCategoriesFound: 'Nu au fost găsite categorii',
+    noSkillsFound: 'Nu au fost găsite abilități',
+    emptyAlbum: 'Albumul este gol',
+    
+    // Photo count
+    photo: 'fotografie',
+    photos: 'fotografii',
+    onePhoto: '1 fotografie',
+    multiplePhotos: '{count} fotografii',
+    
+    // Post editing
+    addDescription: 'Adaugă o descriere...',
+    postDescription: 'Descrierea postării...',
+    hashtagInputHelp: 'Tastează un cuvânt și apasă spațiu pentru a crea o etichetă',
+    addHashtag: 'Adaugă etichetă...'
   },
   ru: {
     // Header
@@ -161,7 +241,87 @@ export const translations = {
     hashtagPlaceholder: 'хештег',
     titlePlaceholder: 'Введите название для вашей фотографии',
     hashtagInputPlaceholder: 'Введите тег и нажмите пробел...',
-    searchInDescriptions: 'Поиск в описаниях, заголовках или хештегах...'
+    searchInDescriptions: 'Поиск в описаниях, заголовках или хештегах...',
+    
+    // Navigation and pages
+    dashboard: 'Панель управления',
+    skillsTracker: 'Отслеживание навыков',
+    
+    // Skills
+    skills: 'Навыки',
+    skillName: 'Название навыка',
+    skillDescription: 'Описание навыка',
+    addSkill: 'Добавить навык',
+    editSkill: 'Редактировать навык',
+    deleteSkill: 'Удалить навык',
+    skillLevel: 'Уровень навыка',
+    beginner: 'Начинающий',
+    intermediate: 'Средний',
+    advanced: 'Продвинутый',
+    expert: 'Эксперт',
+    
+    // Post actions
+    viewPost: 'Посмотреть пост',
+    editPost: 'Редактировать пост',
+    deletePost: 'Удалить пост',
+    confirmDelete: 'Подтверждение удаления',
+    confirmDeleteText: 'Вы уверены, что хотите удалить этот пост? Это действие нельзя отменить.',
+    
+    // Form actions
+    save: 'Сохранить',
+    cancel: 'Отмена',
+    confirm: 'Подтвердить',
+    close: 'Закрыть',
+    back: 'Назад',
+    next: 'Далее',
+    previous: 'Предыдущий',
+    
+    // Upload and creation
+    uploadPhotos: 'Загрузить фотографии',
+    createTextPost: 'Создать текстовый пост',
+    selectFiles: 'Выбрать файлы',
+    dragAndDrop: 'Перетащите файлы сюда',
+    
+    // Dates and time
+    today: 'Сегодня',
+    yesterday: 'Вчера',
+    thisWeek: 'На этой неделе',
+    thisMonth: 'В этом месяце',
+    
+    // Messages and notifications
+    success: 'Успех',
+    error: 'Ошибка',
+    warning: 'Предупреждение',
+    info: 'Информация',
+    loading: 'Загрузка...',
+    saving: 'Сохранение...',
+    uploading: 'Загрузка...',
+    processing: 'Обработка...',
+    
+    // Modal titles
+    uploadModal: 'Загрузить фотографии',
+    editPostModal: 'Редактировать пост',
+    deletePostModal: 'Удалить пост',
+    profileModal: 'Профиль пользователя',
+    settingsModal: 'Настройки',
+    
+    // Status messages
+    noPostsFound: 'Посты не найдены',
+    noCategoriesFound: 'Категории не найдены',
+    noSkillsFound: 'Навыки не найдены',
+    emptyAlbum: 'Альбом пуст',
+    
+    // Photo count
+    photo: 'фотография',
+    photos: 'фотографии',
+    onePhoto: '1 фотография',
+    multiplePhotos: '{count} фотографий',
+    
+    // Post editing
+    addDescription: 'Добавьте описание...',
+    postDescription: 'Описание поста...',
+    hashtagInputHelp: 'Введите слово и нажмите пробел для создания тега',
+    addHashtag: 'Добавить тег...'
   }
 }
 

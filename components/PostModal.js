@@ -988,13 +988,13 @@ export default function PostModal({
               
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
-                  Titlu
+                  {t('title')}
                 </label>
                 <input
                   type="text"
                   value={editTitle}
                   onChange={(e) => setEditTitle(e.target.value)}
-                  placeholder="Adaugă un titlu..."
+                  placeholder={t('titlePlaceholder')}
                   style={{
                     width: '100%',
                     padding: '12px',
@@ -1020,7 +1020,7 @@ export default function PostModal({
                 <textarea
                   value={editDescription}
                   onChange={(e) => setEditDescription(e.target.value)}
-                  placeholder="Adaugă o descriere..."
+                  placeholder={t('addDescription')}
                   style={{
                     width: '100%',
                     padding: '12px',
@@ -1092,7 +1092,7 @@ export default function PostModal({
                     value={editHashtagInput}
                     onChange={(e) => setEditHashtagInput(e.target.value)}
                     onKeyDown={handleHashtagKeyDown}
-                    placeholder={editHashtags.length === 0 ? "Tastează o etichetă și apasă spațiu..." : ""}
+                    placeholder={editHashtags.length === 0 ? t('hashtagInputPlaceholder') : ""}
                     style={{
                       border: 'none',
                       outline: 'none',
@@ -1113,7 +1113,7 @@ export default function PostModal({
                   />
                 </div>
                 <p style={{ marginTop: '4px', fontSize: '12px', color: '#6B7280' }}>
-                  Tastează un cuvânt și apasă spațiu pentru a crea o etichetă
+                  {t('hashtagInputHelp')}
                 </p>
               </div>
 
@@ -1859,7 +1859,7 @@ export default function PostModal({
                   resize: 'vertical',
                   minHeight: '80px'
                 }}
-                placeholder="Descrierea postării..."
+                placeholder={t('postDescription')}
                 autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="off"
@@ -1924,7 +1924,7 @@ export default function PostModal({
                 ))}
                 <input
                   type="text"
-                  placeholder="Adaugă etichetă..."
+                  placeholder={t('addHashtag')}
                   style={{
                     border: 'none',
                     outline: 'none',
