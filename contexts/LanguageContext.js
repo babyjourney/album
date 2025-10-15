@@ -74,7 +74,14 @@ export const translations = {
     resetToDefaults: 'Resetează la categoriile implicite',
     addNewCategory: 'Adaugă categorie nouă',
     confirmResetCategories: 'Sunteți sigur că doriți să resetați la categoriile implicite? Toate categoriile personalizate vor fi șterse.',
-    categoriesResetSuccess: 'Categoriile au fost resetate la valorile implicite!'
+    categoriesResetSuccess: 'Categoriile au fost resetate la valorile implicite!',
+    
+    // Placeholders and inputs
+    searchPlaceholder: 'Caută în postări...',
+    hashtagPlaceholder: 'hashtag',
+    titlePlaceholder: 'Introduceți un titlu pentru fotografia dumneavoastră',
+    hashtagInputPlaceholder: 'Tastează o etichetă și apasă spațiu...',
+    searchInDescriptions: 'Caută în descrieri, titluri sau hashtag-uri...'
   },
   ru: {
     // Header
@@ -147,7 +154,14 @@ export const translations = {
     resetToDefaults: 'Сбросить к стандартным',
     addNewCategory: 'Добавить новую категорию',
     confirmResetCategories: 'Вы уверены, что хотите сбросить к стандартным категориям? Все пользовательские категории будут удалены.',
-    categoriesResetSuccess: 'Категории сброшены к стандартным значениям!'
+    categoriesResetSuccess: 'Категории сброшены к стандартным значениям!',
+    
+    // Placeholders and inputs  
+    searchPlaceholder: 'Поиск в постах...',
+    hashtagPlaceholder: 'хештег',
+    titlePlaceholder: 'Введите название для вашей фотографии',
+    hashtagInputPlaceholder: 'Введите тег и нажмите пробел...',
+    searchInDescriptions: 'Поиск в описаниях, заголовках или хештегах...'
   }
 }
 

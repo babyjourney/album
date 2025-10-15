@@ -141,7 +141,7 @@ export default function SidebarFilter({
                     type="text"
                     value={searchQuery}
                     onChange={(e) => onSearchChange(e.target.value)}
-                    placeholder="Caută în descrieri, titluri sau hashtag-uri..."
+                    placeholder={t('searchInDescriptions')}
                     style={{
                       width: '100%',
                       padding: '12px 16px 12px 40px',
@@ -234,7 +234,7 @@ export default function SidebarFilter({
               type="text"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="Caută în postări..."
+              placeholder={t('searchPlaceholder')}
               style={{
                 width: '100%',
                 padding: '12px 14px 12px 40px',
@@ -360,7 +360,7 @@ export default function SidebarFilter({
               type="text"
               value={filters.hashtag}
               onChange={(e) => onFiltersChange({ ...filters, hashtag: e.target.value.replace('#', '') })}
-              placeholder="hashtag"
+              placeholder={t('hashtagPlaceholder')}
               style={{
                 width: '100%',
                 padding: '10px 12px 10px 40px',
