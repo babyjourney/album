@@ -445,7 +445,8 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
           <div style={{
             position: 'absolute',
             top: '20px',
-            right: '20px', // Align with post counter on right side
+            left: '50%',
+            transform: 'translateX(-50%)', // Center horizontally
             display: 'flex',
             alignItems: 'center',
             gap: '4px',
