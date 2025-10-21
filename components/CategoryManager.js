@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Plus, Edit2, Trash2, RotateCcw, Save, X } from 'lucide-react'
 import { getCategories, addCategory, updateCategory, deleteCategory, resetToDefaults } from '../lib/categoriesData'
 import { useToast } from '../contexts/ToastContext'
 import { useLanguage } from '../contexts/LanguageContext'
+import { useOnClickOutside } from '../hooks/useOnClickOutside'
 
 export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate }) {
   const [categories, setCategories] = useState([])
@@ -11,6 +12,10 @@ export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate })
   const [isAdding, setIsAdding] = useState(false)
   const { showSuccess, showError } = useToast()
   const { t } = useLanguage()
+  const modalRef = useRef(null)
+
+  // Handle click outside to close modal
+  useOnClickOutside(modalRef, onClose)
 
   useEffect(() => {
     if (isOpen) {
@@ -108,7 +113,7 @@ export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate })
       zIndex: 1000,
       backdropFilter: 'blur(4px)'
     }}>
-      <div style={{
+      <div ref={modalRef} style={{
         background: 'white',
         borderRadius: '16px',
         padding: '24px',
@@ -131,7 +136,7 @@ export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate })
             margin: 0,
             color: 'var(--text-primary)'
           }}>
-            Gestionare Categorii
+{t('categoryManagement')}
           </h2>
           <button
             onClick={onClose}
@@ -166,7 +171,7 @@ export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate })
             }}
           >
             <RotateCcw size={16} />
-            Resetează la categoriile implicite
+            {t('resetToDefaults')}
           </button>
         </div>
 
@@ -183,7 +188,7 @@ export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate })
             marginBottom: '12px',
             color: 'var(--text-primary)'
           }}>
-            Adaugă categorie nouă
+            {t('addNewCategory')}
           </h3>
           
           {isAdding ? (
@@ -230,7 +235,7 @@ export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate })
                     fontSize: '14px'
                   }}
                 >
-                  Anulează
+                  {t('cancel')}
                 </button>
                 <button
                   onClick={handleAddCategory}
@@ -248,7 +253,7 @@ export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate })
                   }}
                 >
                   <Save size={14} />
-                  Salvează
+                  {t('save')}
                 </button>
               </div>
             </div>
@@ -269,7 +274,7 @@ export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate })
               }}
             >
               <Plus size={14} />
-              Adaugă categorie
+              {t('addNewCategory')}
             </button>
           )}
         </div>

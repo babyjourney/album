@@ -38,9 +38,10 @@ export default async function handler(req, res) {
     if (hashtagArray && hashtagArray.length > 0) {
       basePostData.hashtags = hashtagArray
     }
-    if (customDate) {
-      basePostData.custom_date = customDate
-    }
+    // Remove custom_date field as it doesn't exist in the schema
+    // if (customDate) {
+    //   basePostData.custom_date = customDate
+    // }
 
     // Try new schema first, fallback to old schema if columns don't exist
     let createdPost

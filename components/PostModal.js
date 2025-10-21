@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useToast } from '../contexts/ToastContext'
+import { useLanguage } from '../contexts/LanguageContext'
 import { useOnClickOutside } from '../hooks/useOnClickOutside'
 import InstagramCarousel from './InstagramCarousel'
 
@@ -138,7 +139,7 @@ function MobileActionMenu({ currentPost, isTextPost, onDownload, onDelete, onEdi
                 <polyline points="7,10 12,15 17,10"/>
                 <line x1="12" x2="12" y1="15" y2="3"/>
               </svg>
-              Descarcă
+{t('download')}
             </button>
           )}
           
@@ -175,7 +176,7 @@ function MobileActionMenu({ currentPost, isTextPost, onDownload, onDelete, onEdi
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
               <path d="m18.5 2.5 2 2L13 12l-4 1 1-4 7.5-7.5z"/>
             </svg>
-            Editează
+{t('edit')}
           </button>
           
           <button
@@ -211,7 +212,7 @@ function MobileActionMenu({ currentPost, isTextPost, onDownload, onDelete, onEdi
               <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
               <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
             </svg>
-            Șterge
+{t('delete')}
           </button>
         </div>
       )}
@@ -253,6 +254,7 @@ export default function PostModal({
   currentIndex, 
   onClose, 
   onDelete,
+  onUpdate,
   onNavigate,
   onHashtagClick,
   readOnly = false 
@@ -270,6 +272,7 @@ export default function PostModal({
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [isInitializing, setIsInitializing] = useState(true)
   const { showSuccess, showError } = useToast()
+  const { t } = useLanguage()
   const modalRef = useRef(null)
   const scrollContainerRef = useRef(null)
   const scrollTimeoutRef = useRef(null)
@@ -292,6 +295,7 @@ export default function PostModal({
 
   // Edit functionality
   const handleEdit = () => {
+    console.log('Edit button clicked, current post:', currentPost)
     setEditTitle(currentPost.title || '')
     setEditDescription(getCleanDescription(currentPost) || '')
     
@@ -312,40 +316,94 @@ export default function PostModal({
       }
     }
     
+    console.log('Setting edit modal state:', {
+      title: currentPost.title || '',
+      description: getCleanDescription(currentPost) || '',
+      hashtags: hashtagsArray
+    })
+    
     setEditHashtags(hashtagsArray)
     setEditHashtagInput('')
     setShowEditModal(true)
+    console.log('Edit modal should now be visible')
   }
 
   const handleEditSave = async () => {
     setEditLoading(true)
     try {
+      console.log('Saving post with data:', {
+        postId: currentPost.id,
+        title: editTitle,
+        description: editDescription,
+        hashtags: editHashtags.map(tag => `#${tag}`).join(' ')
+      })
+
+      // Preserve existing file_urls for multi-photo posts
+      const updateData = {
+        postId: currentPost.id,
+        title: editTitle,
+        description: editDescription,
+        hashtags: editHashtags.map(tag => `#${tag}`) // Send as array, not joined string
+      }
+
+      // CRITICAL: Preserve file_urls for multi-photo posts
+      console.log('Current post data:', currentPost)
+      console.log('Post type:', currentPost.type)
+      console.log('file_urls field:', currentPost.file_urls)
+      console.log('Description:', currentPost.description)
+      
+      // Check if this is ANY kind of multi-photo post
+      const multiUrls = getMultiPhotoUrls(currentPost)
+      console.log('Detected multi-photo URLs:', multiUrls)
+      
+      // Always preserve file_urls if it exists, regardless of post type
+      if (currentPost.file_urls !== undefined && currentPost.file_urls !== null) {
+        updateData.file_urls = currentPost.file_urls
+        console.log('Preserving file_urls:', currentPost.file_urls)
+      } else if (multiUrls && multiUrls.length > 1) {
+        // If we detected multi-photo URLs from ANY source, preserve them
+        updateData.file_urls = multiUrls
+        console.log('Extracted and preserving file_urls from multi-photo data:', multiUrls)
+      } else if (currentPost.description && currentPost.description.includes('__MULTI_PHOTO_URLS__:')) {
+        // If description contains multi-photo data, don't modify it
+        console.log('DETECTED multi-photo data in description - preserving original description')
+        updateData.description = currentPost.description
+      }
+
       const response = await fetch('/api/posts/update', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          postId: currentPost.id,
-          title: editTitle,
-          description: editDescription,
-          hashtags: editHashtags.map(tag => `#${tag}`).join(' ')
-        })
+        body: JSON.stringify(updateData)
       })
 
+      const result = await response.json()
+      console.log('Update response:', result)
+
       if (response.ok) {
+        // Use the response from the server to ensure we have the latest data
+        const serverPost = result.post
         const updatedPost = { 
           ...currentPost, 
+          ...serverPost, // Use server response as base
           title: editTitle,
           description: editDescription,
-          hashtags: editHashtags.map(tag => `#${tag}`).join(' ')
+          hashtags: editHashtags.map(tag => `#${tag}`), // Keep as array to match database format
         }
+        console.log('Updated post state:', updatedPost)
         setCurrentPost(updatedPost)
         setShowEditModal(false)
-        showSuccess('Postarea a fost actualizată cu succes!')
+        showSuccess(t('success'))
+        
+        // Trigger refresh in parent component
+        if (onUpdate && typeof onUpdate === 'function') {
+          onUpdate(updatedPost)
+        }
       } else {
-        throw new Error('Failed to update post')
+        throw new Error(result.error || 'Failed to update post')
       }
     } catch (error) {
-      showError('Eroare la actualizarea postării. Încercați din nou.')
+      console.error('Error saving post:', error)
+      showError(error.message || t('error'))
     } finally {
       setEditLoading(false)
     }
@@ -524,7 +582,7 @@ export default function PostModal({
   }
 
   const handleDelete = async () => {
-    if (!confirm('Sunteți sigur că doriți să ștergeți această postare?')) {
+    if (!confirm(t('confirmDeleteText'))) {
       return
     }
 
@@ -543,10 +601,10 @@ export default function PostModal({
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.error || 'Ștergerea postării a eșuat')
+        throw new Error(result.error || t('error'))
       }
 
-      showSuccess('Postarea a fost ștearsă cu succes!')
+      showSuccess(t('success'))
       
       if (onDelete) {
         onDelete(currentPost.id)
@@ -555,13 +613,13 @@ export default function PostModal({
       onClose()
     } catch (error) {
       console.error('Delete error:', error)
-      showError('Ștergerea postării a eșuat')
+      showError(t('error'))
     }
   }
 
   const handleDownload = async () => {
     if (!currentPost.file_url || currentPost.type === 'text') {
-      showError('Această postare nu poate fi descărcată')
+      showError(t('error'))
       return
     }
 
@@ -585,15 +643,18 @@ export default function PostModal({
       document.body.removeChild(link)
       window.URL.revokeObjectURL(url)
       
-      showSuccess('Descărcarea a început!')
+      showSuccess(t('success'))
     } catch (error) {
       console.error('Download failed:', error)
-      showError('Descărcarea a eșuat. Încercați din nou.')
+      showError(t('error'))
     }
   }
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('ro-RO', {
+    const { language } = useLanguage()
+    const locale = language === 'ru' ? 'ru-RU' : 'ro-RO'
+    
+    return new Date(dateString).toLocaleDateString(locale, {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
@@ -983,7 +1044,7 @@ export default function PostModal({
               overflow: 'auto'
             }}>
               <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>
-                Editează postarea
+{t('editPost')}
               </h3>
               
               <div style={{ marginBottom: '16px' }}>
@@ -1128,7 +1189,7 @@ export default function PostModal({
                     cursor: 'pointer'
                   }}
                 >
-                  Anulează
+{t('cancel')}
                 </button>
                 <button
                   onClick={handleEditSave}
@@ -1143,7 +1204,7 @@ export default function PostModal({
                     opacity: editLoading ? 0.6 : 1
                   }}
                 >
-                  {editLoading ? 'Salvez...' : 'Salvează'}
+{editLoading ? t('saving') : t('save')}
                 </button>
               </div>
             </div>
@@ -1246,7 +1307,7 @@ export default function PostModal({
               color: 'white',
               boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
             }}
-            title="Descarcă"
+            title={t('download')}
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -1270,7 +1331,7 @@ export default function PostModal({
               color: 'white',
               boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
             }}
-            title="Editează"
+            title={t('edit')}
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -1833,7 +1894,7 @@ export default function PostModal({
               marginBottom: '20px',
               color: 'var(--text-primary)'
             }}>
-              Editează postarea
+  {t('edit')} postarea
             </h3>
 
             {/* Description */}
@@ -1989,7 +2050,7 @@ export default function PostModal({
                   opacity: editLoading ? 0.7 : 1
                 }}
               >
-                {editLoading ? 'Se salvează...' : 'Salvează'}
+{editLoading ? t('saving') : t('save')}
               </button>
             </div>
           </div>

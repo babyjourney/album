@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useToast } from '../contexts/ToastContext'
+import { useLanguage } from '../contexts/LanguageContext'
 
 // Helper function to detect and extract multi-photo URLs
 const getMultiPhotoUrls = (post) => {
@@ -56,6 +57,7 @@ export default function InstagramFeed({ familyId, searchQuery, refreshTrigger, o
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const { showError } = useToast()
+  const { language } = useLanguage()
 
   useEffect(() => {
     fetchPosts()
@@ -135,7 +137,9 @@ export default function InstagramFeed({ familyId, searchQuery, refreshTrigger, o
   const filteredPosts = posts
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('ro-RO', {
+    const locale = language === 'ru' ? 'ru-RU' : 'ro-RO'
+    
+    return new Date(dateString).toLocaleDateString(locale, {
       month: 'short',
       day: 'numeric',
       year: 'numeric'

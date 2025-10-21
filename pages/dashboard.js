@@ -86,6 +86,19 @@ export default function Dashboard() {
     setAllPosts(updatedPosts)
   }
 
+  const handlePostUpdate = (updatedPost) => {
+    // Update the post in allPosts array
+    setAllPosts(prevPosts => 
+      prevPosts.map(post => 
+        post.id === updatedPost.id ? updatedPost : post
+      )
+    )
+    // Update the selected post
+    setSelectedPost(updatedPost)
+    // Trigger refresh to update the main feed
+    setRefreshTrigger(prev => prev + 1)
+  }
+
   const handleModalNavigate = (post, index) => {
     setSelectedPost(post)
     setCurrentPostIndex(index)
@@ -227,6 +240,7 @@ export default function Dashboard() {
           currentIndex={currentPostIndex}
           onClose={handleModalClose}
           onDelete={handlePostDelete}
+          onUpdate={handlePostUpdate}
           onNavigate={handleModalNavigate}
           onHashtagClick={handleHashtagClick}
           readOnly={!hasEditorAccess}

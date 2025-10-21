@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Search, Filter, X, Hash, Settings, Plus } from 'lucide-react'
 import FilterIsland from './FilterIsland'
 import { useLanguage } from '../contexts/LanguageContext'
 import { getCategories } from '../lib/categoriesData'
 import CategoryManager from './CategoryManager'
+import { useOnClickOutside } from '../hooks/useOnClickOutside'
 
 export default function SidebarFilter({ 
   searchQuery, 
@@ -15,9 +16,14 @@ export default function SidebarFilter({
 }) {
   const [isMobile, setIsMobile] = useState(false)
   const [showMobileFilters, setShowMobileFilters] = useState(false)
+  const [showDesktopSidebar, setShowDesktopSidebar] = useState(false)
   const [showCategoryManager, setShowCategoryManager] = useState(false)
   const [categories, setCategories] = useState([])
   const { t } = useLanguage()
+  const sidebarRef = useRef(null)
+
+  // Handle click outside to close desktop sidebar
+  useOnClickOutside(sidebarRef, () => setShowDesktopSidebar(false))
 
   useEffect(() => {
     const checkMobile = () => {
@@ -167,27 +173,78 @@ export default function SidebarFilter({
     )
   }
 
-  // Desktop version - permanent sidebar
+  // Desktop version - collapsible sidebar with toggle button
   return (
     <>
-      <div 
+      {/* Desktop Toggle Button */}
+      <button
+        onClick={() => setShowDesktopSidebar(!showDesktopSidebar)}
         style={{
           position: 'fixed',
-          left: '10px',
+          left: '20px',
           top: '80px',
-          width: '240px',
-          height: 'calc(100vh - 120px)',
+          width: '48px',
+          height: '48px',
           background: 'white',
           border: '1px solid var(--border-light)',
           borderRadius: '12px',
-          padding: '12px',
-          zIndex: 100,
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
-          overflowY: 'auto',
+          cursor: 'pointer',
+          zIndex: 200,
           display: 'flex',
-          flexDirection: 'column'
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+          transition: 'all 0.2s ease'
+        }}
+        onMouseOver={(e) => {
+          e.target.style.background = '#f8f9fa'
+          e.target.style.transform = 'scale(1.05)'
+        }}
+        onMouseOut={(e) => {
+          e.target.style.background = 'white'
+          e.target.style.transform = 'scale(1)'
         }}
       >
+        <Filter size={20} color={hasActiveFilters ? '#3b82f6' : 'var(--text-secondary)'} />
+      </button>
+
+      {/* Desktop Sidebar Backdrop */}
+      {showDesktopSidebar && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.1)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 140,
+            animation: 'fadeIn 0.2s ease-out'
+          }}
+        />
+      )}
+
+      {/* Desktop Sidebar */}
+      {showDesktopSidebar && (
+        <div 
+          ref={sidebarRef}
+          style={{
+            position: 'fixed',
+            left: '10px',
+            top: '80px',
+            width: '280px',
+            height: 'calc(100vh - 120px)',
+            background: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.3)',
+            borderRadius: '12px',
+            padding: '12px',
+            zIndex: 150,
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)',
+            overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            animation: 'slideInLeft 0.2s ease-out'
+          }}
+        >
         {/* Header */}
         <div style={{
           display: 'flex',
@@ -426,7 +483,8 @@ export default function SidebarFilter({
             {t('clearAllFilters')}
           </button>
         )}
-      </div>
+        </div>
+      )}
       
       {/* Category Manager Modal */}
       <CategoryManager

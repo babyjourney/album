@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabaseClient'
 import { useLanguage } from '../contexts/LanguageContext'
 
 export default function SkillsTracker({ familyId, readOnly = false }) {
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const [skills, setSkills] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -256,7 +256,7 @@ export default function SkillsTracker({ familyId, readOnly = false }) {
               </div>
 
               <div className="text-xs text-gray-500 mt-2">
-                {t('date')}: {new Date(skill.created_at).toLocaleDateString()}
+                {t('date')}: {new Date(skill.created_at).toLocaleDateString(language === 'ru' ? 'ru-RU' : 'ro-RO')}
               </div>
             </div>
           ))}

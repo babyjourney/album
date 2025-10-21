@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import imageCompression from 'browser-image-compression'
+import { useLanguage } from '../../contexts/LanguageContext'
 
 export default function AdminDashboard() {
+  const { language } = useLanguage()
   const [loading, setLoading] = useState(true)
   const [children, setChildren] = useState([])
   const [albumSettings, setAlbumSettings] = useState(null)
@@ -763,7 +765,7 @@ export default function AdminDashboard() {
                     </h3>
                     {child.birth_date && (
                       <p className="text-subtle" style={{ fontSize: '14px' }}>
-                        {new Date(child.birth_date).toLocaleDateString('ro-RO')}
+                        {new Date(child.birth_date).toLocaleDateString(language === 'ru' ? 'ru-RU' : 'ro-RO')}
                       </p>
                     )}
                   </div>

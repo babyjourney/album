@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import Image from 'next/image'
 import { supabase } from '../lib/supabaseClient'
 import { useToast } from '../contexts/ToastContext'
+import { useLanguage } from '../contexts/LanguageContext'
 
 const CATEGORIES = [
   { value: 'all', label: 'All Posts', emoji: '📋' },
@@ -28,6 +29,7 @@ export default function PhotoGallery({ familyId, refreshTrigger, readOnly = fals
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [sortBy, setSortBy] = useState('newest')
   const { showSuccess, showError } = useToast()
+  const { language } = useLanguage()
 
   useEffect(() => {
     fetchPhotos()
@@ -293,7 +295,7 @@ export default function PhotoGallery({ familyId, refreshTrigger, readOnly = fals
                   )}
                   
                   <div className="body-small text-gray-400">
-                    {new Date(photo.created_at).toLocaleDateString('en-US', {
+                    {new Date(photo.created_at).toLocaleDateString(language === 'ru' ? 'ru-RU' : 'ro-RO', {
                       month: 'short',
                       day: 'numeric',
                       year: photo.created_at.includes(new Date().getFullYear().toString()) ? undefined : 'numeric'
@@ -331,7 +333,7 @@ export default function PhotoGallery({ familyId, refreshTrigger, readOnly = fals
                   )}
                 </div>
                 <p className="body-small text-gray-500">
-                  {new Date(selectedPhoto.created_at).toLocaleDateString('en-US', {
+                  {new Date(selectedPhoto.created_at).toLocaleDateString(language === 'ru' ? 'ru-RU' : 'ro-RO', {
                     weekday: 'long',
                     year: 'numeric',
                     month: 'long',
