@@ -373,7 +373,7 @@ export default function FloatingFilterButton({ filters, onFiltersChange }) {
                         fontWeight: '500',
                         gap: '6px'
                       }}>
-                        <span>#{hashtag}</span>
+                        <span>{hashtag.startsWith('#') ? hashtag : `#${hashtag}`}</span>
                         <button
                           onClick={() => {
                             const remainingTags = filters.hashtag.split(/\s+/)

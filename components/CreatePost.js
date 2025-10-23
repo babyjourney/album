@@ -185,7 +185,7 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
                       whiteSpace: 'nowrap'
                     }}
                   >
-                    #{tag}
+                    {tag.startsWith('#') ? tag : `#${tag}`}
                   </span>
                 ))}
                 

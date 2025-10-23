@@ -7,7 +7,7 @@ export default async function handler(req, res) {
 
   console.log('Update request received:', req.body)
 
-  const { postId, title, description, hashtags, file_urls } = req.body
+  const { postId, title, description, hashtags, file_urls, customDate } = req.body
 
   if (!postId) {
     return res.status(400).json({ error: 'Post ID is required' })
@@ -22,6 +22,11 @@ export default async function handler(req, res) {
       description: description || null,
       hashtags: hashtags || null,
       updated_at: new Date().toISOString()
+    }
+
+    // Handle custom date if provided
+    if (customDate) {
+      updateData.created_at = new Date(customDate).toISOString()
     }
 
     // Get current post to check if it's multi-photo before updating

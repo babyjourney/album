@@ -4,7 +4,7 @@ import imageCompression from 'browser-image-compression'
 import { useLanguage } from '../../contexts/LanguageContext'
 
 export default function AdminDashboard() {
-  const { language } = useLanguage()
+  const { language, t } = useLanguage()
   const [loading, setLoading] = useState(true)
   const [children, setChildren] = useState([])
   const [albumSettings, setAlbumSettings] = useState(null)
@@ -532,7 +532,7 @@ export default function AdminDashboard() {
                     fontWeight: '600'
                   }}
                 >
-                  Anulează
+                  {t('cancel')}
                 </button>
                 <button
                   type="submit"
@@ -842,7 +842,7 @@ export default function AdminDashboard() {
                         fontWeight: '600'
                       }}
                     >
-                      Anulează
+                      {t('cancel')}
                     </button>
                     <button
                       type="submit"

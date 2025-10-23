@@ -15,13 +15,15 @@ const CATEGORIES = [
   { value: 'celebration', label: 'Celebration', emoji: '🎉' }
 ]
 
-const SORT_OPTIONS = [
-  { value: 'newest', label: 'Newest First' },
-  { value: 'oldest', label: 'Oldest First' },
-  { value: 'title', label: 'Title A-Z' }
-]
+export default function PhotoGallery({ familyId, refreshTrigger, readOnly = false, showTitle }) {
+  const { t } = useLanguage()
+  
+  const SORT_OPTIONS = [
+    { value: 'newest', label: t('newestFirst') },
+    { value: 'oldest', label: t('oldestFirst') },
+    { value: 'title', label: t('titleAtoZ') }
+  ]
 
-export default function PhotoGallery({ familyId, refreshTrigger, readOnly = false, showTitle = "Photo Gallery" }) {
   const [photos, setPhotos] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -152,7 +154,7 @@ export default function PhotoGallery({ familyId, refreshTrigger, readOnly = fals
       <div className="post-card card-padding">
         <div className="flex items-center justify-between mb-6">
           <h2 className="heading-2">
-            {showTitle}
+            {showTitle || t('photoGallery')}
           </h2>
           <div className="body-small text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
             {filteredAndSortedPhotos.length} of {photos.length} posts
@@ -409,7 +411,7 @@ export default function PhotoGallery({ familyId, refreshTrigger, readOnly = fals
               
               {selectedPhoto.description && selectedPhoto.type !== 'text' && (
                 <div className="mt-6 pt-6 border-t border-gray-100">
-                  <h4 className="heading-3 mb-3">Description</h4>
+                  <h4 className="heading-3 mb-3">{t('description')}</h4>
                   <p className="body-medium text-gray-700 leading-relaxed">
                     {selectedPhoto.description}
                   </p>

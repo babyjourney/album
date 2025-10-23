@@ -208,7 +208,21 @@ export const translations = {
     digitalSafety: 'Siguranță Digitală',
     educationalApps: 'Aplicații Educaționale',
     technologyAwareness: 'Conștientizarea Tehnologiei',
-    onlineLearning: 'Învățare Online'
+    onlineLearning: 'Învățare Online',
+    
+    // UI Elements
+    seeMore: 'vezi mai mult',
+    seeLess: 'vezi mai puțin',
+    more: 'în plus',
+    tags: 'Etichete',
+    description: 'Descriere',
+    images: 'Imagini',
+    loading: 'Se încarcă...',
+    failedToLoad: 'Eșec la încărcare',
+    newestFirst: 'Cele mai noi primul',
+    oldestFirst: 'Cele mai vechi primul',
+    titleAtoZ: 'Titlu A-Z',
+    photoGallery: 'Galeria de Fotografii'
   },
   ru: {
     // Header
@@ -415,7 +429,21 @@ export const translations = {
     digitalSafety: 'Цифровая безопасность',
     educationalApps: 'Образовательные приложения',
     technologyAwareness: 'Осведомленность о технологиях',
-    onlineLearning: 'Онлайн обучение'
+    onlineLearning: 'Онлайн обучение',
+    
+    // UI Elements
+    seeMore: 'подробнее',
+    seeLess: 'скрыть',
+    more: 'еще',
+    tags: 'Теги',
+    description: 'Описание',
+    images: 'Изображения',
+    loading: 'Загрузка...',
+    failedToLoad: 'Ошибка загрузки',
+    newestFirst: 'Сначала новые',
+    oldestFirst: 'Сначала старые',
+    titleAtoZ: 'Название А-Я',
+    photoGallery: 'Фотогалерея'
   }
 }
 

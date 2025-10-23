@@ -133,7 +133,7 @@ export default function FilterIsland({
                   fontSize: '12px',
                   fontWeight: '500'
                 }}>
-                  #{filters.hashtag}
+                  {filters.hashtag.startsWith('#') ? filters.hashtag : `#${filters.hashtag}`}
                   <button
                     onClick={() => {
                       onFiltersChange({...filters, hashtag: ''})

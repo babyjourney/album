@@ -3,6 +3,7 @@ import { useToast } from '../contexts/ToastContext'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useOnClickOutside } from '../hooks/useOnClickOutside'
 import InstagramCarousel from './InstagramCarousel'
+import DatePicker from './DatePicker'
 
 // Helper function to get multi-photo URLs
 const getMultiPhotoUrls = (post) => {
@@ -267,6 +268,7 @@ export default function PostModal({
   const [editDescription, setEditDescription] = useState('')
   const [editHashtags, setEditHashtags] = useState([])
   const [editHashtagInput, setEditHashtagInput] = useState('')
+  const [editDate, setEditDate] = useState(null)
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
   const [editLoading, setEditLoading] = useState(false)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
@@ -324,6 +326,7 @@ export default function PostModal({
     
     setEditHashtags(hashtagsArray)
     setEditHashtagInput('')
+    setEditDate(currentPost.created_at ? new Date(currentPost.created_at) : null)
     setShowEditModal(true)
     console.log('Edit modal should now be visible')
   }
@@ -343,7 +346,8 @@ export default function PostModal({
         postId: currentPost.id,
         title: editTitle,
         description: editDescription,
-        hashtags: editHashtags.map(tag => `#${tag}`) // Send as array, not joined string
+        hashtags: editHashtags.map(tag => `#${tag}`), // Send as array, not joined string
+        customDate: editDate
       }
 
       // CRITICAL: Preserve file_urls for multi-photo posts
@@ -950,7 +954,7 @@ export default function PostModal({
                         fontWeight: '400'
                       }}
                     >
-                      {isDescriptionExpanded ? 'see less' : 'see more'}
+                      {isDescriptionExpanded ? t('seeLess') : t('seeMore')}
                     </button>
                   )}
                 </div>
@@ -993,7 +997,7 @@ export default function PostModal({
                       e.target.style.transform = 'scale(1)'
                     }}
                   >
-                    #{hashtag}
+                    {hashtag.startsWith('#') ? hashtag : `#${hashtag}`}
                   </button>
                 ))}
                 {!isDescriptionExpanded && currentPost.hashtags.length > 3 && (
@@ -1003,7 +1007,7 @@ export default function PostModal({
                     fontSize: '12px',
                     fontStyle: 'italic'
                   }}>
-                    +{currentPost.hashtags.length - 3} more
+                    +{currentPost.hashtags.length - 3} {t('more')}
                   </span>
                 )}
               </div>
@@ -1076,7 +1080,7 @@ export default function PostModal({
 
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
-                  Descriere
+                  {t('description')}
                 </label>
                 <textarea
                   value={editDescription}
@@ -1104,7 +1108,7 @@ export default function PostModal({
 
               <div style={{ marginBottom: '20px' }}>
                 <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
-                  Etichete
+                  {t('tags')}
                 </label>
                 <div style={{
                   border: '1px solid #ddd',
@@ -1131,7 +1135,7 @@ export default function PostModal({
                       height: 'auto',
                       minHeight: 'unset'
                     }}>
-                      #{tag}
+                      {tag.startsWith('#') ? tag : `#${tag}`}
                       <button
                         onClick={() => removeHashtag(tag)}
                         style={{
@@ -1176,6 +1180,15 @@ export default function PostModal({
                 <p style={{ marginTop: '4px', fontSize: '12px', color: '#6B7280' }}>
                   {t('hashtagInputHelp')}
                 </p>
+              </div>
+
+              {/* Date Picker */}
+              <div style={{ marginBottom: '20px' }}>
+                <DatePicker
+                  value={editDate}
+                  onChange={setEditDate}
+                  label={t('postDate')}
+                />
               </div>
 
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
@@ -1796,7 +1809,7 @@ export default function PostModal({
                   textTransform: 'uppercase',
                   letterSpacing: '0.5px'
                 }}>
-                  Descriere
+                  {t('description')}
                 </h4>
                 <p style={{
                   fontSize: '15px',
@@ -1824,7 +1837,7 @@ export default function PostModal({
                   textTransform: 'uppercase',
                   letterSpacing: '0.5px'
                 }}>
-                  Tags ({currentPost.hashtags.length})
+                  {t('tags')} ({currentPost.hashtags.length})
                 </h4>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                   {currentPost.hashtags.map((hashtag, index) => (
@@ -1857,7 +1870,7 @@ export default function PostModal({
                         e.target.style.transform = 'translateY(0)'
                       }}
                     >
-                      #{hashtag}
+                      {hashtag.startsWith('#') ? hashtag : `#${hashtag}`}
                     </button>
                   ))}
                 </div>
@@ -1906,7 +1919,7 @@ export default function PostModal({
                 color: 'var(--text-primary)',
                 marginBottom: '8px'
               }}>
-                Descriere
+                {t('description')}
               </label>
               <textarea
                 value={editDescription}
@@ -1941,7 +1954,7 @@ export default function PostModal({
                 color: 'var(--text-primary)',
                 marginBottom: '8px'
               }}>
-                Etichete
+                {t('tags')}
               </label>
               <div style={{
                 border: '1px solid var(--border-light)',
@@ -1968,7 +1981,7 @@ export default function PostModal({
                     height: 'auto',
                     minHeight: 'unset'
                   }}>
-                    #{tag}
+                    {tag.startsWith('#') ? tag : `#${tag}`}
                     <button
                       onClick={() => setEditHashtags(editHashtags.filter((_, i) => i !== index))}
                       style={{
@@ -2015,6 +2028,15 @@ export default function PostModal({
               </div>
             </div>
 
+            {/* Date Picker */}
+            <div style={{ marginBottom: '24px' }}>
+              <DatePicker
+                value={editDate}
+                onChange={setEditDate}
+                label={t('postDate')}
+              />
+            </div>
+
             {/* Buttons */}
             <div style={{
               display: 'flex',
@@ -2034,7 +2056,7 @@ export default function PostModal({
                   fontSize: '14px'
                 }}
               >
-                Anulează
+                {t('cancel')}
               </button>
               <button
                 onClick={handleEditSave}

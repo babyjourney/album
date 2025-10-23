@@ -636,7 +636,7 @@ export default function InstagramFeed({ familyId, searchQuery, refreshTrigger, o
                       appearance: 'none'
                     }}
                   >
-                    #{hashtag}
+                    {hashtag.startsWith('#') ? hashtag : `#${hashtag}`}
                   </button>
                 ))}
                 {post.hashtags.length > 2 && (

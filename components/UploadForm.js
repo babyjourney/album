@@ -11,9 +11,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [category, setCategory] = useState('memories')
-  const [file, setFile] = useState(null)
   const [files, setFiles] = useState([])
-  const [isMultiPhoto, setIsMultiPhoto] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [hashtags, setHashtags] = useState([])
@@ -89,122 +87,78 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
     setError('')
     setCompressionInfo(null)
 
-    if (isMultiPhoto) {
-      // Check if adding these files would exceed the 10-file limit
-      const totalFilesAfterAddition = files.length + selectedFiles.length
-      if (totalFilesAfterAddition > 10) {
-        const errorMessage = t('error')
-        setError(errorMessage)
-        showError(errorMessage)
-        return
-      }
+    // Check if adding these files would exceed the 10-file limit
+    const totalFilesAfterAddition = files.length + selectedFiles.length
+    if (totalFilesAfterAddition > 10) {
+      const errorMessage = t('error')
+      setError(errorMessage)
+      showError(errorMessage)
+      return
+    }
 
-      // Handle multiple files - add to existing files
-      const processedFiles = [...files] // Start with existing files
-      setLoading(true)
+    // Handle multiple files - add to existing files
+    const processedFiles = [...files] // Start with existing files
+    setLoading(true)
 
-      for (const selectedFile of selectedFiles) {
-        // Check if file already exists (by name and size)
-        const fileExists = processedFiles.some(existingFile => 
-          existingFile.name === selectedFile.name && existingFile.size === selectedFile.size
-        )
-        
-        if (fileExists) {
-          console.log(`File ${selectedFile.name} already selected, skipping`)
-          continue
-        }
-
-        // Check if we've reached the 10-file limit
-        if (processedFiles.length >= 10) {
-          const warningMessage = `Maximum 10 imagini sunt permise per postare. Restul imaginilor nu vor fi adăugate.`
-          showError(warningMessage)
-          break
-        }
-
-        // Check file size limit
-        if (selectedFile.size > 500 * 1024 * 1024) {
-          const errorMessage = `Fișierul ${selectedFile.name} trebuie să fie mai mic de 500MB`
-          setError(errorMessage)
-          showError(errorMessage)
-          continue
-        }
-
-        // Only allow images for multi-photo posts
-        if (!selectedFile.type.startsWith('image/')) {
-          const errorMessage = `Pentru postări multiple sunt permise doar imagini. ${selectedFile.name} nu este o imagine.`
-          setError(errorMessage)
-          showError(errorMessage)
-          continue
-        }
-
-        try {
-          const options = {
-            maxSizeMB: 2,
-            maxWidthOrHeight: 2048,
-            useWebWorker: true,
-            fileType: selectedFile.type,
-            initialQuality: 0.8,
-            alwaysKeepResolution: false
-          }
-          
-          const compressedFile = await imageCompression(selectedFile, options)
-          processedFiles.push(compressedFile)
-        } catch (error) {
-          console.error('Compression failed for', selectedFile.name, error)
-          processedFiles.push(selectedFile)
-        }
-      }
-
-      setFiles(processedFiles)
-      setFile(null)
-      setLoading(false)
+    for (const selectedFile of selectedFiles) {
+      // Check if file already exists (by name and size)
+      const fileExists = processedFiles.some(existingFile => 
+        existingFile.name === selectedFile.name && existingFile.size === selectedFile.size
+      )
       
-      // Reset file input to allow selecting more files
-      const fileInput = document.getElementById('file-upload')
-      if (fileInput) {
-        fileInput.value = ''
+      if (fileExists) {
+        console.log(`File ${selectedFile.name} already selected, skipping`)
+        continue
       }
-    } else {
-      // Handle single file (existing logic)
-      const selectedFile = selectedFiles[0]
-      
+
+      // Check if we've reached the 10-file limit
+      if (processedFiles.length >= 10) {
+        const warningMessage = `Maximum 10 imagini sunt permise per postare. Restul imaginilor nu vor fi adăugate.`
+        showError(warningMessage)
+        break
+      }
+
       // Check file size limit
       if (selectedFile.size > 500 * 1024 * 1024) {
-        const errorMessage = 'Mărimea fișierului trebuie să fie mai mică de 500MB'
+        const errorMessage = `Fișierul ${selectedFile.name} trebuie să fie mai mic de 500MB`
         setError(errorMessage)
         showError(errorMessage)
-        return
+        continue
       }
 
-      // Handle different file types
-      if (selectedFile.type.startsWith('image/')) {
-        try {
-          setLoading(true)
-          
-          const options = {
-            maxSizeMB: 2,
-            maxWidthOrHeight: 2048,
-            useWebWorker: true,
-            fileType: selectedFile.type,
-            initialQuality: 0.8,
-            alwaysKeepResolution: false
-          }
-          
-          const compressedFile = await imageCompression(selectedFile, options)
-          setFile(compressedFile)
-          setFiles([])
-          setLoading(false)
-        } catch (error) {
-          console.error('Compression failed:', error)
-          setFile(selectedFile)
-          setFiles([])
-          setLoading(false)
-        }
-      } else {
-        // For videos, use original file
-        setFile(selectedFile)
-        setFiles([])
+      // Only allow images for multi-photo posts
+      if (!selectedFile.type.startsWith('image/')) {
+        const errorMessage = `Pentru postări multiple sunt permise doar imagini. ${selectedFile.name} nu este o imagine.`
+        setError(errorMessage)
+        showError(errorMessage)
+        continue
       }
+
+      try {
+        const options = {
+          maxSizeMB: 2,
+          maxWidthOrHeight: 2048,
+          useWebWorker: true,
+          fileType: selectedFile.type,
+          initialQuality: 0.8,
+          alwaysKeepResolution: false
+        }
+        
+        const compressedFile = await imageCompression(selectedFile, options)
+        processedFiles.push(compressedFile)
+      } catch (error) {
+        console.error('Compression failed for', selectedFile.name, error)
+        processedFiles.push(selectedFile)
+      }
+    }
+
+    setFiles(processedFiles)
+    setLoading(false)
+    
+    // Reset file input to allow selecting more files
+    const fileInput = document.getElementById('file-upload')
+    if (fileInput) {
+      fileInput.value = ''
     }
   }
 
@@ -216,13 +170,8 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
       return
     }
     
-    if (isMultiPhoto && files.length === 0) {
+    if (files.length === 0) {
       setError(t('uploadPhotos'))
-      return
-    }
-    
-    if (!isMultiPhoto && !file) {
-      setError(t('selectFiles'))
       return
     }
 
@@ -230,80 +179,17 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
     setError('')
 
     try {
-      if (isMultiPhoto) {
-        // Handle multiple files upload
-        const imageUrls = []
-        
-        for (const [index, fileToUpload] of files.entries()) {
-          const fileExt = fileToUpload.name.split('.').pop()
-          const fileName = `${Date.now()}-${index}-${Math.random().toString(36).substring(2)}.${fileExt}`
-          const filePath = `${familyId}/${fileName}`
-
-          const { error: uploadError } = await supabase.storage
-            .from('album_uploads')
-            .upload(filePath, fileToUpload)
-
-          if (uploadError) {
-            throw uploadError
-          }
-
-          const { data: publicUrlData } = supabase.storage
-            .from('album_uploads')
-            .getPublicUrl(filePath)
-
-          imageUrls.push(publicUrlData.publicUrl)
-        }
-
-        // Save multi-photo post via API
-        const response = await fetch('/api/posts/create-multi', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            familyId,
-            title: title.trim(),
-            description: description.trim(),
-            imageUrls,
-            category: category,
-            hashtags: hashtags.map(tag => `#${tag}`).join(' '),
-            selectedChildren,
-            customDate
-          })
-        })
-
-        const result = await response.json()
-        
-        if (!response.ok) {
-          throw new Error(result.error || t('error'))
-        }
-
-        // Handle child associations for multi-photo posts
-        if (albumSettings?.is_multi_child && selectedChildren.length > 0) {
-          const childResponse = await fetch('/api/child-posts/create', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              photoId: result.post.id,
-              childIds: selectedChildren
-            })
-          })
-
-          if (!childResponse.ok) {
-            console.warn('Child association failed, but photo was uploaded successfully')
-          }
-        }
-      } else {
-        // Handle single file upload (existing logic)
-        const fileExt = file.name.split('.').pop()
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
+      // Handle multiple files upload
+      const imageUrls = []
+      
+      for (const [index, fileToUpload] of files.entries()) {
+        const fileExt = fileToUpload.name.split('.').pop()
+        const fileName = `${Date.now()}-${index}-${Math.random().toString(36).substring(2)}.${fileExt}`
         const filePath = `${familyId}/${fileName}`
 
         const { error: uploadError } = await supabase.storage
           .from('album_uploads')
-          .upload(filePath, file)
+          .upload(filePath, fileToUpload)
 
         if (uploadError) {
           throw uploadError
@@ -313,57 +199,53 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
           .from('album_uploads')
           .getPublicUrl(filePath)
 
-        // Save photo metadata via API
-        const response = await fetch('/api/photos/upload', {
+        imageUrls.push(publicUrlData.publicUrl)
+      }
+
+      // Save multi-photo post via API
+      const response = await fetch('/api/posts/create-multi', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          familyId,
+          title: title.trim(),
+          description: description.trim(),
+          imageUrls,
+          category: category,
+          hashtags: hashtags.map(tag => `#${tag}`).join(' '),
+          selectedChildren,
+          customDate
+        })
+      })
+
+      const result = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(result.error || t('error'))
+      }
+
+      // Handle child associations for multi-photo posts
+      if (albumSettings?.is_multi_child && selectedChildren.length > 0) {
+        const childResponse = await fetch('/api/child-posts/create', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            familyId,
-            title: title.trim(),
-            description: description.trim(),
-            fileUrl: publicUrlData.publicUrl,
-            fileType: file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : 'other',
-            category: category,
-            hashtags: hashtags.map(tag => `#${tag}`).join(' '),
-            selectedChildren,
-            customDate
+            photoId: result.post.id,
+            childIds: selectedChildren
           })
         })
 
-        const result = await response.json()
-        
-        if (!response.ok) {
-          throw new Error(result.error || t('error'))
-        }
-
-        // Handle child associations for single photo posts
-        if (albumSettings?.is_multi_child && selectedChildren.length > 0) {
-          const childResponse = await fetch('/api/child-posts/create', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              photoId: result.photo.id,
-              childIds: selectedChildren
-            })
-          })
-
-          if (!childResponse.ok) {
-            console.warn('Child association failed, but photo was uploaded successfully')
-          }
+        if (!childResponse.ok) {
+          console.warn('Child association failed, but photo was uploaded successfully')
         }
       }
 
       // Determine success message before resetting form
-      let successMessage
-      if (isMultiPhoto) {
-        successMessage = t('success')
-      } else {
-        successMessage = t('success')
-      }
+      const successMessage = t('success')
 
       // Reset form
       setTitle('')
@@ -371,9 +253,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
       setCategory('memories')
       setHashtags([])
       setCurrentHashtagInput('')
-      setIsMultiPhoto(false)
       setFiles([])
-      setFile(null)
       setCompressionInfo(null)
       setSelectedChildren([])
       
@@ -428,7 +308,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
         {/* Title Input */}
         <div style={{ marginBottom: '16px' }}>
           <label className="text-subtle" style={{ display: 'block', marginBottom: '8px' }}>
-            Titlu
+            {t('title')}
           </label>
           <input
             type="text"
@@ -453,7 +333,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
         {/* Description Input */}
         <div style={{ marginBottom: '16px' }}>
           <label className="text-subtle" style={{ display: 'block', marginBottom: '8px' }}>
-            Descriere
+            {t('description')}
           </label>
           <textarea
             value={description}
@@ -499,7 +379,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
         {/* Hashtags Input */}
         <div style={{ marginBottom: '16px' }}>
           <label className="text-subtle" style={{ display: 'block', marginBottom: '8px' }}>
-            Etichete
+            {t('tags')}
           </label>
           <div style={{
             border: '1px solid var(--border-light)',
@@ -533,7 +413,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
                   whiteSpace: 'nowrap'
                 }}
               >
-                #{tag}
+                {tag.startsWith('#') ? tag : `#${tag}`}
               </span>
             ))}
             
@@ -652,85 +532,36 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
         )}
 
         {/* File Upload */}
-        {/* Multi-photo option */}
-        <div style={{ marginBottom: '16px' }}>
-          <label style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: '500'
-          }}>
-            <input
-              type="checkbox"
-              checked={isMultiPhoto}
-              onChange={(e) => {
-                setIsMultiPhoto(e.target.checked)
-                setFile(null)
-                setFiles([])
-                setError('')
-              }}
-              style={{
-                width: '16px',
-                height: '16px',
-                accentColor: 'var(--accent-blue)'
-              }}
-            />
-            📸 Mai multe poze (ca pe Instagram)
-          </label>
-          {isMultiPhoto && (
-            <p className="text-subtle" style={{ marginTop: '4px', fontSize: '12px', marginLeft: '24px' }}>
-              Selectează mai multe imagini pentru a crea o postare cu slide-uri
-            </p>
-          )}
-        </div>
 
         <div style={{ marginBottom: '16px' }}>
           <label className="text-subtle" style={{ display: 'block', marginBottom: '8px' }}>
-            {isMultiPhoto ? 'Imagini' : 'Fotografie/Video'}
+            {t('images')}
           </label>
           <input
             id="file-upload"
             type="file"
             onChange={handleFileChange}
-            accept={isMultiPhoto ? "image/*" : "image/*,video/*"}
-            multiple={isMultiPhoto}
+            accept="image/*"
+            multiple={true}
             className="input-field"
             style={{ 
               paddingTop: '8px', 
               paddingBottom: '8px',
-              opacity: isMultiPhoto && files.length >= 10 ? 0.5 : 1,
-              cursor: isMultiPhoto && files.length >= 10 ? 'not-allowed' : 'pointer'
+              opacity: files.length >= 10 ? 0.5 : 1,
+              cursor: files.length >= 10 ? 'not-allowed' : 'pointer'
             }}
-            disabled={isMultiPhoto && files.length >= 10}
+            disabled={files.length >= 10}
             required
           />
           <p className="text-subtle" style={{ marginTop: '4px', fontSize: '12px' }}>
-            {isMultiPhoto 
-              ? (files.length >= 10 
-                  ? 'Limită atinsă: Maximum 10 imagini per postare.' 
-                  : 'Formate acceptate: JPG, PNG, GIF. Maximum 10 imagini per postare. Selectează mai multe imagini deodată.')
-              : 'Formate acceptate: JPG, PNG, GIF, MP4, MOV. Mărime maximă: 500MB'
+            {files.length >= 10 
+              ? 'Limită atinsă: Maximum 10 imagini per postare.' 
+              : 'Formate acceptate: JPG, PNG, GIF. Maximum 10 imagini per postare. Selectează mai multe imagini deodată.'
             }
           </p>
           
-          {/* File selected feedback */}
-          {file && !isMultiPhoto && (
-            <div style={{ 
-              marginTop: '12px', 
-              padding: '12px', 
-              backgroundColor: '#F0FDF4', 
-              border: '1px solid #DCFCE7',
-              borderRadius: '12px',
-              color: '#15803D'
-            }}>
-              ✅ Fișier selectat cu succes!
-            </div>
-          )}
-
           {/* Multiple files selected feedback */}
-          {files.length > 0 && isMultiPhoto && (
+          {files.length > 0 && (
             <div style={{ 
               marginTop: '12px', 
               padding: '12px', 
@@ -841,7 +672,12 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
           style={{ minWidth: '140px' }}
         >
           {loading ? (
-            <>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
+            }}>
               <div style={{
                 width: '16px',
                 height: '16px',
@@ -850,8 +686,8 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
                 borderRadius: '50%',
                 animation: 'spin 1s linear infinite'
               }}></div>
-{t('uploading')}
-            </>
+              {t('uploading')}
+            </div>
           ) : (
             <>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
