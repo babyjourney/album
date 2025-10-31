@@ -1,9 +1,5 @@
-arrows
-albumul familiei, album nume copil particular 
-salvare parole la login, cu extensii etc.
-de salvat cu data si titlu - anul primu.
-de facut demo
-
---- domeniu landing page demo.babyjourney.life
---- host babyjourney.life /demo
---- host album album.babyjourney.life
+1. env local si de scos din supabase.js -- loading
+2. limitare la parole - 3 incercari - 10 minute cooldown, dupa acele 10 minute, alte 3 incercari - 24h cooldown
+3. la login de adaugat inca ceva pe langa pin, precum nr tel, adresa email, nume, prenume
+4. securizare panel admin
+5. sterge toate debugurile din consola
