@@ -6,14 +6,18 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Metoda nu este permisă' })
   }
 
-  const { pin } = req.body
+  const { pin, phoneNumber } = req.body
 
   if (!pin) {
     return res.status(400).json({ error: 'PIN-ul este obligatoriu' })
   }
 
-  // Get client identifier for rate limiting
-  const clientId = rateLimiter.getClientId(req)
+  if (!phoneNumber) {
+    return res.status(400).json({ error: 'Numărul de telefon este obligatoriu' })
+  }
+
+  // Get client identifier for rate limiting (include phone number for better tracking)
+  const clientId = rateLimiter.getClientId(req, cleanPhone)
   
   // Check if client is currently blocked
   const blockStatus = rateLimiter.isBlocked(clientId)
@@ -32,21 +36,29 @@ export default async function handler(req, res) {
 
   // Remove any spaces and validate PIN format
   const cleanPin = pin.toString().replace(/\s/g, '')
+  const cleanPhone = phoneNumber.toString().replace(/\s/g, '')
   
   if (!/^\d{4}$|^\d{8}$/.test(cleanPin)) {
     return res.status(400).json({ error: 'PIN-ul trebuie să aibă 4 sau 8 cifre' })
+  }
+
+  // Validate phone number format
+  const phoneRegex = /^(\+40|0040|0)[7-9][0-9]{8}$/
+  if (!phoneRegex.test(cleanPhone)) {
+    return res.status(400).json({ error: 'Numărul de telefon nu este valid' })
   }
 
   try {
     let family = null
     let role = null
 
-    // Check if it's a 4-digit viewer PIN
+    // Check if it's a 4-digit viewer PIN with matching phone number
     if (cleanPin.length === 4) {
       const { data, error } = await supabase
         .from('families')
-        .select('id, name, viewer_pin')
+        .select('id, name, phone_number, viewer_pin')
         .eq('viewer_pin', cleanPin)
+        .eq('phone_number', cleanPhone)
         .single()
 
       if (!error && data) {
@@ -55,12 +67,13 @@ export default async function handler(req, res) {
       }
     }
 
-    // Check if it's an 8-digit editor PIN
+    // Check if it's an 8-digit editor PIN with matching phone number
     if (cleanPin.length === 8 && !family) {
       const { data, error } = await supabase
         .from('families')
-        .select('id, name, editor_pin')
+        .select('id, name, phone_number, editor_pin')
         .eq('editor_pin', cleanPin)
+        .eq('phone_number', cleanPhone)
         .single()
 
       if (!error && data) {
@@ -71,22 +84,22 @@ export default async function handler(req, res) {
 
     // If no family found with this PIN
     if (!family) {
-      // Record failed attempt for rate limiting
-      const attemptResult = rateLimiter.recordFailedAttempt(clientId, cleanPin)
+      // Record failed attempt for rate limiting (include phone number for analysis)
+      const attemptResult = rateLimiter.recordFailedAttempt(clientId, cleanPin, cleanPhone)
       
-      let errorMessage = 'PIN invalid'
+      let errorMessage = 'Numărul de telefon sau PIN-ul sunt incorecte'
       if (attemptResult.blocked) {
         const timeRemaining = rateLimiter.formatTimeRemaining(attemptResult.timeRemaining)
         const level = attemptResult.level === 1 ? '10 minute' : '24 hour'
-        errorMessage = `PIN invalid. ${level} cooldown activat din cauza prea multor încercări.`
+        errorMessage = `Numărul de telefon sau PIN-ul sunt incorecte. ${level} cooldown activat din cauza prea multor încercări.`
       } else if (attemptResult.attemptsRemaining <= 2) {
-        errorMessage = `PIN invalid. Mai aveți ${attemptResult.attemptsRemaining} încercări înainte de cooldown.`
+        errorMessage = `Numărul de telefon sau PIN-ul sunt incorecte. Mai aveți ${attemptResult.attemptsRemaining} încercări înainte de cooldown.`
       }
       
       // Get security analysis for logging
       const securityAnalysis = rateLimiter.getSecurityAnalysis(clientId)
       if (securityAnalysis?.isLikelyBruteForce) {
-        console.warn(`🚨 Possible brute force attack detected from ${clientId.substring(0, 20)}... - ${securityAnalysis.uniquePins} unique PINs tried`)
+        console.warn(`🚨 Possible brute force attack detected from ${clientId.substring(0, 20)}... - ${securityAnalysis.uniquePins} unique PINs, ${securityAnalysis.uniquePhoneNumbers} unique phones tried`)
       }
       
       return res.status(401).json({ 

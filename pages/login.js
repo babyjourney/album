@@ -5,6 +5,7 @@ import { loginWithPin, isAuthenticated } from '../lib/pinAuth'
 
 export default function Login() {
   const [pin, setPin] = useState('')
+  const [phoneNumber, setPhoneNumber] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [isMobile, setIsMobile] = useState(false)
@@ -72,13 +73,19 @@ export default function Login() {
     setLoading(true)
     setError('')
 
+    if (!phoneNumber) {
+      setError('Vă rugăm să introduceți numărul de telefon')
+      setLoading(false)
+      return
+    }
+
     if (!pin) {
       setError('Vă rugăm să introduceți PIN-ul')
       setLoading(false)
       return
     }
 
-    const result = await loginWithPin(pin)
+    const result = await loginWithPin(pin, phoneNumber)
 
     if (result.success) {
       // Clear any rate limiting info on success
@@ -235,6 +242,53 @@ export default function Login() {
               tabIndex="-1"
             />
             
+            {/* Phone Number input */}
+            <div style={{ marginBottom: '20px' }}>
+              <label htmlFor="phone" style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#374151',
+                marginBottom: '12px'
+              }}>
+                Numărul de Telefon
+              </label>
+              
+              <div style={{ position: 'relative' }}>
+                <input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  autoComplete="tel"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: isMobile ? '16px 20px' : '18px 24px',
+                    fontSize: isMobile ? '16px' : '18px',
+                    background: 'rgba(249, 250, 251, 0.8)',
+                    border: '2px solid rgba(229, 231, 235, 0.5)',
+                    borderRadius: isMobile ? '12px' : '16px',
+                    outline: 'none',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)'
+                  }}
+                  placeholder="07XXXXXXXX"
+                  required
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#667eea'
+                    e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1), 0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                    e.target.style.background = 'rgba(255, 255, 255, 0.95)'
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'rgba(229, 231, 235, 0.5)'
+                    e.target.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)'
+                    e.target.style.background = 'rgba(249, 250, 251, 0.8)'
+                  }}
+                />
+              </div>
+            </div>
+
             {/* Modern PIN input */}
             <div style={{ marginBottom: '24px' }}>
               <label htmlFor="pin" style={{
@@ -317,7 +371,7 @@ export default function Login() {
                       fontWeight: '500',
                       color: '#374151'
                     }}>
-                      4 digits - Viewer
+                      Telefon + 4 cifre - Viewer
                     </span>
                   </div>
                   <span style={{
@@ -349,7 +403,7 @@ export default function Login() {
                       fontWeight: '500',
                       color: '#374151'
                     }}>
-                      8 digits - Editor
+                      Telefon + 8 cifre - Editor
                     </span>
                   </div>
                   <span style={{

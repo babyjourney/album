@@ -19,6 +19,7 @@ export default function AdminDashboard() {
   // Family setup states
   const [showFamilySetup, setShowFamilySetup] = useState(false)
   const [familyName, setFamilyName] = useState('')
+  const [phoneNumber, setPhoneNumber] = useState('')
   const [profilePicture, setProfilePicture] = useState(null)
   const [profilePreview, setProfilePreview] = useState('')
   const [setupLoading, setSetupLoading] = useState(false)
@@ -308,6 +309,18 @@ export default function AdminDashboard() {
       return
     }
 
+    if (!phoneNumber.trim()) {
+      setSetupError('Vă rugăm să introduceți numărul de telefon')
+      return
+    }
+
+    // Validate phone number format (Romanian format)
+    const phoneRegex = /^(\+40|0040|0)[7-9][0-9]{8}$/
+    if (!phoneRegex.test(phoneNumber.replace(/\s/g, ''))) {
+      setSetupError('Numărul de telefon nu este valid (format: 07XXXXXXXX sau +407XXXXXXXX)')
+      return
+    }
+
     setSetupLoading(true)
     setSetupError('')
     setSetupSuccess(null)
@@ -320,6 +333,7 @@ export default function AdminDashboard() {
         .from('families')
         .insert({
           name: familyName.trim(),
+          phone_number: phoneNumber.replace(/\s/g, ''),
           viewer_pin: viewerPin,
           editor_pin: editorPin
         })
@@ -359,11 +373,13 @@ export default function AdminDashboard() {
       setSetupSuccess({
         familyId: data.id,
         familyName: data.name,
+        phoneNumber: data.phone_number,
         viewerPin,
         editorPin,
         profilePictureUrl
       })
       setFamilyName('')
+      setPhoneNumber('')
       setProfilePicture(null)
       setProfilePreview('')
       
@@ -382,6 +398,8 @@ export default function AdminDashboard() {
   const handleCreateAnother = () => {
     setSetupSuccess(null)
     setSetupError('')
+    setFamilyName('')
+    setPhoneNumber('')
     setProfilePicture(null)
     setProfilePreview('')
     setShowFamilySetup(false)
@@ -512,6 +530,23 @@ export default function AdminDashboard() {
 
               <div style={{ marginBottom: '20px' }}>
                 <label className="text-subtle" style={{ display: 'block', marginBottom: '8px' }}>
+                  Numărul de Telefon *
+                </label>
+                <input
+                  type="tel"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  className="input-field"
+                  placeholder="Introduceți numărul de telefon (ex: 0712345678)"
+                  required
+                />
+                <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>
+                  Format acceptat: 07XXXXXXXX sau +407XXXXXXXX
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label className="text-subtle" style={{ display: 'block', marginBottom: '8px' }}>
                   Poza de Profil (Opțional)
                 </label>
                 <input
@@ -637,6 +672,10 @@ export default function AdminDashboard() {
               
               <div style={{ marginBottom: '12px' }}>
                 <strong style={{ color: '#15803D' }}>Familie:</strong> {setupSuccess.familyName}
+              </div>
+              
+              <div style={{ marginBottom: '12px' }}>
+                <strong style={{ color: '#15803D' }}>Telefon:</strong> {setupSuccess.phoneNumber}
               </div>
               
               <div style={{ marginBottom: '12px' }}>
