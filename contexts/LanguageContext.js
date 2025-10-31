@@ -222,7 +222,19 @@ export const translations = {
     newestFirst: 'Cele mai noi primul',
     oldestFirst: 'Cele mai vechi primul',
     titleAtoZ: 'Titlu A-Z',
-    photoGallery: 'Galeria de Fotografii'
+    photoGallery: 'Galeria de Fotografii',
+    
+    // Admin and children management
+    pinEditor: 'PIN Editor',
+    fullAccess: 'Acces Complet',
+    addChild: 'Adaugă Copil',
+    addNewChild: 'Adaugă Copil Nou',
+    adding: 'Se adaugă...',
+    fullAccessDescription: 'Acces complet pentru a încărca fotografii, gestiona abilități și edita conținut',
+    addFirstChild: 'Adaugă primul copil pentru a începe să folosești funcționalitatea multi-copil.',
+    
+    // Error messages
+    photoDeleteFailed: 'Ștergerea fotografiei a eșuat'
   },
   ru: {
     // Header
@@ -274,7 +286,7 @@ export const translations = {
     filtersAndSearch: 'Фильтры и Поиск',
     search: 'Поиск',
     categories: 'Категории',
-    data: 'Дата',
+    date: 'Дата',
     hashtag: 'Хештег',
     sorting: 'Сортировка',
     all: 'Все',
@@ -397,10 +409,10 @@ export const translations = {
     // Individual skills
     grossMotor: 'Крупная моторика',
     fineMotor: 'Мелкая моторика',
-    balanceCoordination: 'Баланс и координация',
+    balanceCoordination: 'Равновесие и координация',
     runningJumping: 'Бег и прыжки',
     handEyeCoordination: 'Координация рук и глаз',
-    memoryRecall: 'Память и воспроизведение',
+    memoryRecall: 'Память и припоминание',
     problemSolving: 'Решение проблем',
     logicalThinking: 'Логическое мышление',
     attentionFocus: 'Внимание и концентрация',
@@ -410,11 +422,11 @@ export const translations = {
     writingSkills: 'Навыки письма',
     listeningSkills: 'Навыки слушания',
     vocabularyDevelopment: 'Развитие словарного запаса',
-    sharingCooperation: 'Совместное использование и сотрудничество',
+    sharingCooperation: 'Обмен и сотрудничество',
     empathyUnderstanding: 'Эмпатия и понимание',
     emotionRegulation: 'Регуляция эмоций',
     makingFriends: 'Заведение друзей',
-    conflictResolution: 'Разрешение конфликтов',
+    conflictResolution: 'Решение конфликтов',
     personalHygiene: 'Личная гигиена',
     dressingCare: 'Одевание и уход',
     independentEating: 'Самостоятельное питание',
@@ -423,17 +435,17 @@ export const translations = {
     drawingPainting: 'Рисование и живопись',
     musicRhythm: 'Музыка и ритм',
     danceMovement: 'Танец и движение',
-    imaginativePlay: 'Воображаемая игра',
-    storytelling: 'Рассказывание историй',
+    imaginativePlay: 'Творческая игра',
+    storytelling: 'Рассказывание сказок',
     basicComputer: 'Основы работы с компьютером',
     digitalSafety: 'Цифровая безопасность',
-    educationalApps: 'Образовательные приложения',
+    educationalApps: 'Обучающие приложения',
     technologyAwareness: 'Осведомленность о технологиях',
     onlineLearning: 'Онлайн обучение',
     
     // UI Elements
-    seeMore: 'подробнее',
-    seeLess: 'скрыть',
+    seeMore: 'показать больше',
+    seeLess: 'показать меньше',
     more: 'еще',
     tags: 'Теги',
     description: 'Описание',
@@ -443,7 +455,19 @@ export const translations = {
     newestFirst: 'Сначала новые',
     oldestFirst: 'Сначала старые',
     titleAtoZ: 'Название А-Я',
-    photoGallery: 'Фотогалерея'
+    photoGallery: 'Фотогалерея',
+    
+    // Admin and children management
+    pinEditor: 'PIN Редактор',
+    fullAccess: 'Полный Доступ',
+    addChild: 'Добавить Ребенка',
+    addNewChild: 'Добавить Нового Ребенка',
+    adding: 'Добавление...',
+    fullAccessDescription: 'Полный доступ для загрузки фотографий, управления навыками и редактирования контента',
+    addFirstChild: 'Добавьте первого ребенка, чтобы начать использовать функционал для нескольких детей.',
+    
+    // Error messages
+    photoDeleteFailed: 'Не удалось удалить фотографию'
   }
 }
 

@@ -6,6 +6,37 @@ import { getCategories } from '../lib/categoriesData'
 import CategoryManager from './CategoryManager'
 import { useOnClickOutside } from '../hooks/useOnClickOutside'
 
+// Add CSS animations
+const animations = `
+  @keyframes slideInLeft {
+    from {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+`
+
+// Inject styles if not already present
+if (typeof document !== 'undefined' && !document.getElementById('sidebar-animations')) {
+  const style = document.createElement('style')
+  style.id = 'sidebar-animations'
+  style.textContent = animations
+  document.head.appendChild(style)
+}
+
 export default function SidebarFilter({ 
   searchQuery, 
   onSearchChange, 
@@ -181,7 +212,7 @@ export default function SidebarFilter({
         onClick={() => setShowDesktopSidebar(!showDesktopSidebar)}
         style={{
           position: 'fixed',
-          left: '20px',
+          left: showDesktopSidebar ? '300px' : '20px',
           top: '80px',
           width: '48px',
           height: '48px',
@@ -194,7 +225,7 @@ export default function SidebarFilter({
           alignItems: 'center',
           justifyContent: 'center',
           boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
-          transition: 'all 0.2s ease'
+          transition: 'all 0.3s ease'
         }}
         onMouseOver={(e) => {
           e.target.style.background = '#f8f9fa'
@@ -217,7 +248,8 @@ export default function SidebarFilter({
             background: 'rgba(0, 0, 0, 0.1)',
             backdropFilter: 'blur(8px)',
             zIndex: 140,
-            animation: 'fadeIn 0.2s ease-out'
+            opacity: 1,
+            transition: 'opacity 0.3s ease'
           }}
         />
       )}
@@ -242,7 +274,7 @@ export default function SidebarFilter({
             overflowY: 'auto',
             display: 'flex',
             flexDirection: 'column',
-            animation: 'slideInLeft 0.2s ease-out'
+            animation: 'slideInLeft 0.3s ease-out'
           }}
         >
         {/* Header */}
