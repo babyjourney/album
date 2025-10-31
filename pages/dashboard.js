@@ -33,6 +33,7 @@ export default function Dashboard() {
     sort: 'newest'
   })
   const [isMobile, setIsMobile] = useState(false)
+  const [albumTitle, setAlbumTitle] = useState('Family Album')
   const router = useRouter()
 
   useEffect(() => {
@@ -45,7 +46,7 @@ export default function Dashboard() {
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
-  const checkAuth = () => {
+  const checkAuth = async () => {
     if (!isAuthenticated()) {
       router.push('/login')
       return
@@ -53,6 +54,21 @@ export default function Dashboard() {
 
     const userSession = getSession()
     setSession(userSession)
+    
+    // Fetch album title
+    if (userSession?.familyId) {
+      try {
+        const response = await fetch(`/api/album-settings/get-title?familyId=${userSession.familyId}`)
+        const result = await response.json()
+        
+        if (response.ok) {
+          setAlbumTitle(result.title)
+        }
+      } catch (error) {
+        console.error('Error fetching album title:', error)
+      }
+    }
+    
     setLoading(false)
   }
 
@@ -157,11 +173,13 @@ export default function Dashboard() {
       <Header 
         familyName={session.familyName} 
         role={session.role}
+        albumTitle={albumTitle}
       />
       
       {/* Header Island with Create Post */}
       <HeaderIsland
         childName={session.familyName}
+        albumTitle={albumTitle}
         postCount={postCount}
         onCreatePost={async (postData) => {
           // Handle text post creation directly from header

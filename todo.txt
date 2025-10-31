@@ -1,8 +1,9 @@
-trebuie sa implemntezi:
-1. posibilitatea de a alege Ro Ru
-2. la editare/postare sa fie posibilitatea de a alege data postarii, de modificat data luna anul
-3. pe desktop nu functioneaå slide la poze, fa cumva sa pot da slide la postarile cu mai multe poze
-4. pe desktop butoanele download edit x arata straniu cand dau hover pe ele, scoate toate efectele de hover si lasa doar hover: cursor pointer
-5. scoate bara de filtrare/cautare, iar pe desktop pune-o ca sticky sidebar in stanga, pe telefon las-o in bulina aia din colt
-6. vreau sa adaug/modific categorii la postari
-7. la modal upload schimba incarca fotografia cu "incarca"
+arrows
+albumul familiei, album nume copil particular 
+salvare parole la login, cu extensii etc.
+de salvat cu data si titlu - anul primu.
+de facut demo
+
+--- domeniu landing page demo.babyjourney.life
+--- host babyjourney.life /demo
+--- host album album.babyjourney.life

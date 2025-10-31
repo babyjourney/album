@@ -25,6 +25,13 @@ export default function AdminDashboard() {
   const [setupError, setSetupError] = useState('')
   const [setupSuccess, setSetupSuccess] = useState(null)
   
+  // Album title configuration states
+  const [showTitleConfig, setShowTitleConfig] = useState(false)
+  const [configFamilyName, setConfigFamilyName] = useState('')
+  const [configChildName, setConfigChildName] = useState('')
+  const [titleConfigLoading, setTitleConfigLoading] = useState(false)
+  const [currentTitle, setCurrentTitle] = useState('Family Album')
+  
   // Family management states
   const [allFamilies, setAllFamilies] = useState([])
   const [selectedFamilyId, setSelectedFamilyId] = useState('')
@@ -71,6 +78,8 @@ export default function AdminDashboard() {
       
       if (settingsResponse.ok) {
         setAlbumSettings(settingsResult.settings)
+        setConfigFamilyName(settingsResult.settings?.family_name || '')
+        setConfigChildName(settingsResult.settings?.primary_child_name || '')
       }
 
       // Fetch children
@@ -79,6 +88,14 @@ export default function AdminDashboard() {
       
       if (childrenResponse.ok) {
         setChildren(childrenResult.children)
+      }
+
+      // Fetch current album title
+      const titleResponse = await fetch(`/api/album-settings/get-title?familyId=${familyId}`)
+      const titleResult = await titleResponse.json()
+      
+      if (titleResponse.ok) {
+        setCurrentTitle(titleResult.title)
       }
     } catch (error) {
       console.error('Error fetching family data:', error)
@@ -156,6 +173,8 @@ export default function AdminDashboard() {
         setChildren([...children, result.child])
         setNewChild({ name: '', birthDate: '', profilePictureUrl: '' })
         setShowAddChild(false)
+        // Refresh title after adding child
+        fetchFamilyData(selectedFamilyId)
         alert('Copilul a fost adăugat cu succes!')
       } else {
         alert('Eroare la adăugarea copilului: ' + result.error)
@@ -187,6 +206,8 @@ export default function AdminDashboard() {
       if (response.ok) {
         // Remove child from local state
         setChildren(children.filter(child => child.id !== childId))
+        // Refresh title after removing child
+        fetchFamilyData(selectedFamilyId)
         alert(`Copilul "${childName}" a fost eliminat cu succes!`)
       } else {
         alert('Eroare la eliminarea copilului: ' + result.error)
@@ -364,6 +385,47 @@ export default function AdminDashboard() {
     setProfilePicture(null)
     setProfilePreview('')
     setShowFamilySetup(false)
+  }
+
+  // Album title configuration functions
+  const handleTitleConfigSave = async () => {
+    if (!selectedFamilyId) {
+      alert('Vă rugăm să selectați o familie')
+      return
+    }
+
+    setTitleConfigLoading(true)
+    try {
+      const response = await fetch('/api/album-settings/update', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          familyId: selectedFamilyId,
+          isMultiChild: albumSettings?.is_multi_child || false,
+          familyName: configFamilyName.trim() || null,
+          primaryChildName: configChildName.trim() || null
+        })
+      })
+
+      const result = await response.json()
+      
+      if (response.ok) {
+        setAlbumSettings(result.settings)
+        // Refresh title
+        fetchFamilyData(selectedFamilyId)
+        setShowTitleConfig(false)
+        alert('Setările numelui albumului au fost actualizate cu succes!')
+      } else {
+        alert('Eroare la actualizarea setărilor: ' + result.error)
+      }
+    } catch (error) {
+      console.error('Error updating title settings:', error)
+      alert('Eroare la actualizarea setărilor numelui albumului')
+    } finally {
+      setTitleConfigLoading(false)
+    }
   }
 
   if (loading) {
@@ -632,7 +694,8 @@ export default function AdminDashboard() {
             padding: '16px',
             backgroundColor: 'var(--bg-gray)',
             borderRadius: '12px',
-            border: '1px solid var(--border-light)'
+            border: '1px solid var(--border-light)',
+            marginBottom: '16px'
           }}>
             <div>
               <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '4px' }}>
@@ -658,6 +721,134 @@ export default function AdminDashboard() {
             >
               {albumSettings?.is_multi_child ? 'Activat' : 'Dezactivat'}
             </button>
+          </div>
+
+          {/* Album Title Configuration */}
+          <div style={{
+            padding: '16px',
+            backgroundColor: 'var(--bg-gray)',
+            borderRadius: '12px',
+            border: '1px solid var(--border-light)'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '12px'
+            }}>
+              <div>
+                <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '4px' }}>
+                  Titlul Albumului
+                </h3>
+                <p className="text-subtle" style={{ fontSize: '14px' }}>
+                  Configurează numele familiei și copilului pentru titlul albumului
+                </p>
+              </div>
+              <button
+                onClick={() => setShowTitleConfig(!showTitleConfig)}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '20px',
+                  border: '1px solid var(--border-light)',
+                  backgroundColor: 'white',
+                  color: 'var(--text-primary)',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}
+              >
+                {showTitleConfig ? 'Ascunde' : 'Configurează'}
+              </button>
+            </div>
+            
+            <div style={{
+              padding: '12px',
+              backgroundColor: 'white',
+              borderRadius: '8px',
+              border: '1px solid var(--border-light)'
+            }}>
+              <strong>Titlu actual:</strong> <span style={{ color: 'var(--accent-blue)' }}>{currentTitle}</span>
+            </div>
+
+            {showTitleConfig && (
+              <div style={{ marginTop: '16px' }}>
+                <div style={{ marginBottom: '16px' }}>
+                  <label className="text-subtle" style={{ display: 'block', marginBottom: '8px' }}>
+                    Numele Familiei
+                  </label>
+                  <input
+                    type="text"
+                    value={configFamilyName}
+                    onChange={(e) => setConfigFamilyName(e.target.value)}
+                    className="input-field"
+                    placeholder="ex: Popescu"
+                    style={{ fontSize: '14px' }}
+                  />
+                  <p className="text-subtle" style={{ fontSize: '12px', marginTop: '4px' }}>
+                    Pentru mai mulți copii: "Albumul familiei [numele]"
+                  </p>
+                </div>
+
+                <div style={{ marginBottom: '16px' }}>
+                  <label className="text-subtle" style={{ display: 'block', marginBottom: '8px' }}>
+                    Numele Copilului Principal
+                  </label>
+                  <input
+                    type="text"
+                    value={configChildName}
+                    onChange={(e) => setConfigChildName(e.target.value)}
+                    className="input-field"
+                    placeholder="ex: Maria"
+                    style={{ fontSize: '14px' }}
+                  />
+                  <p className="text-subtle" style={{ fontSize: '12px', marginTop: '4px' }}>
+                    Pentru un singur copil: "Albumul [numele copilului]"
+                  </p>
+                </div>
+
+                <div style={{
+                  padding: '12px',
+                  backgroundColor: '#EFF6FF',
+                  borderRadius: '8px',
+                  border: '1px solid #DBEAFE',
+                  marginBottom: '16px'
+                }}>
+                  <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '8px', color: '#1E40AF' }}>
+                    ℹ️ Logica titlului:
+                  </h4>
+                  <ul style={{ fontSize: '12px', color: '#374151', margin: 0, paddingLeft: '16px' }}>
+                    <li>Un copil → "Albumul [numele copilului]"</li>
+                    <li>Mai mulți copii → "Albumul familiei [numele familiei]"</li>
+                    <li>Când se adaugă al doilea copil, titlul se schimbă automat la familia</li>
+                  </ul>
+                </div>
+
+                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                  <button
+                    onClick={() => setShowTitleConfig(false)}
+                    style={{
+                      padding: '8px 16px',
+                      border: '1px solid var(--border-light)',
+                      borderRadius: '8px',
+                      backgroundColor: 'white',
+                      color: 'var(--text-primary)',
+                      cursor: 'pointer',
+                      fontSize: '14px'
+                    }}
+                  >
+                    Anulează
+                  </button>
+                  <button
+                    onClick={handleTitleConfigSave}
+                    disabled={titleConfigLoading}
+                    className="btn-primary"
+                    style={{ fontSize: '14px' }}
+                  >
+                    {titleConfigLoading ? 'Salvez...' : 'Salvează'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
           </div>
         )}

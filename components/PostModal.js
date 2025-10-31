@@ -271,13 +271,17 @@ export default function PostModal({
   const [editDate, setEditDate] = useState(null)
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
   const [editLoading, setEditLoading] = useState(false)
-  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [currentImageIndex, setCurrentImageIndexInternal] = useState(0)
+  
+  const setCurrentImageIndex = setCurrentImageIndexInternal
   const [isInitializing, setIsInitializing] = useState(true)
+  const [isProgrammaticScroll, setIsProgrammaticScroll] = useState(false)
   const { showSuccess, showError } = useToast()
   const { t } = useLanguage()
   const modalRef = useRef(null)
   const scrollContainerRef = useRef(null)
   const scrollTimeoutRef = useRef(null)
+  const multiPhotoScrollRef = useRef(null)
 
   // Handle click on overlay to close modal
   const handleOverlayClick = (e) => {
@@ -297,7 +301,6 @@ export default function PostModal({
 
   // Edit functionality
   const handleEdit = () => {
-    console.log('Edit button clicked, current post:', currentPost)
     setEditTitle(currentPost.title || '')
     setEditDescription(getCleanDescription(currentPost) || '')
     
@@ -318,28 +321,15 @@ export default function PostModal({
       }
     }
     
-    console.log('Setting edit modal state:', {
-      title: currentPost.title || '',
-      description: getCleanDescription(currentPost) || '',
-      hashtags: hashtagsArray
-    })
-    
     setEditHashtags(hashtagsArray)
     setEditHashtagInput('')
     setEditDate(currentPost.created_at ? new Date(currentPost.created_at) : null)
     setShowEditModal(true)
-    console.log('Edit modal should now be visible')
   }
 
   const handleEditSave = async () => {
     setEditLoading(true)
     try {
-      console.log('Saving post with data:', {
-        postId: currentPost.id,
-        title: editTitle,
-        description: editDescription,
-        hashtags: editHashtags.map(tag => `#${tag}`).join(' ')
-      })
 
       // Preserve existing file_urls for multi-photo posts
       const updateData = {
@@ -351,26 +341,17 @@ export default function PostModal({
       }
 
       // CRITICAL: Preserve file_urls for multi-photo posts
-      console.log('Current post data:', currentPost)
-      console.log('Post type:', currentPost.type)
-      console.log('file_urls field:', currentPost.file_urls)
-      console.log('Description:', currentPost.description)
-      
       // Check if this is ANY kind of multi-photo post
       const multiUrls = getMultiPhotoUrls(currentPost)
-      console.log('Detected multi-photo URLs:', multiUrls)
       
       // Always preserve file_urls if it exists, regardless of post type
       if (currentPost.file_urls !== undefined && currentPost.file_urls !== null) {
         updateData.file_urls = currentPost.file_urls
-        console.log('Preserving file_urls:', currentPost.file_urls)
       } else if (multiUrls && multiUrls.length > 1) {
         // If we detected multi-photo URLs from ANY source, preserve them
         updateData.file_urls = multiUrls
-        console.log('Extracted and preserving file_urls from multi-photo data:', multiUrls)
       } else if (currentPost.description && currentPost.description.includes('__MULTI_PHOTO_URLS__:')) {
         // If description contains multi-photo data, don't modify it
-        console.log('DETECTED multi-photo data in description - preserving original description')
         updateData.description = currentPost.description
       }
 
@@ -381,7 +362,6 @@ export default function PostModal({
       })
 
       const result = await response.json()
-      console.log('Update response:', result)
 
       if (response.ok) {
         // Use the response from the server to ensure we have the latest data
@@ -393,7 +373,6 @@ export default function PostModal({
           description: editDescription,
           hashtags: editHashtags.map(tag => `#${tag}`), // Keep as array to match database format
         }
-        console.log('Updated post state:', updatedPost)
         setCurrentPost(updatedPost)
         setShowEditModal(false)
         showSuccess(t('success'))
@@ -467,12 +446,16 @@ export default function PostModal({
     }, 100)
   }, [isInitializing, currentIdx, allPosts, onNavigate])
 
+  // Handle post/index changes
   useEffect(() => {
     setCurrentPost(selectedPost)
     setCurrentIdx(currentIndex)
     setCurrentImageIndex(0) // Reset image index when post changes
     setIsDescriptionExpanded(false) // Reset description expansion when changing posts
-    
+  }, [selectedPost, currentIndex])
+
+  // Handle mobile layout changes separately
+  useEffect(() => {
     // Scroll to correct position immediately
     if (isMobile) {
       setIsInitializing(true)
@@ -481,7 +464,7 @@ export default function PostModal({
         requestAnimationFrame(() => {
           const scrollContainer = document.querySelector('.mobile-scroll-container')
           if (scrollContainer) {
-            const targetTop = currentIndex * window.innerHeight
+            const targetTop = currentIdx * window.innerHeight
             scrollContainer.style.scrollBehavior = 'auto'
             scrollContainer.scrollTop = targetTop
             // Re-enable smooth scrolling
@@ -497,7 +480,23 @@ export default function PostModal({
     } else {
       setIsInitializing(false)
     }
-  }, [selectedPost, currentIndex, isMobile])
+  }, [isMobile, currentIdx])
+
+  // Direct scroll to image
+  const scrollToImage = (index) => {
+    if (multiPhotoScrollRef.current) {
+      const imageWidth = multiPhotoScrollRef.current.offsetWidth
+      multiPhotoScrollRef.current.scrollTo({
+        left: index * imageWidth,
+        behavior: 'smooth'
+      })
+    }
+  }
+
+  // Sync scroll position when currentImageIndex changes
+  useEffect(() => {
+    scrollToImage(currentImageIndex)
+  }, [currentImageIndex])
 
   useEffect(() => {
     const handleKeyPress = (e) => {
@@ -506,23 +505,35 @@ export default function PostModal({
       if (e.key === 'Escape') {
         onClose()
       } else if (e.key === 'ArrowLeft') {
-        // Check if this is a multi-photo post and we can navigate images
-        if (multiPhotoUrls && multiPhotoUrls.length > 1 && currentImageIndex > 0) {
-          e.preventDefault()
+        e.preventDefault()
+        console.log('⬅️ LEFT ARROW pressed')
+        // Navigate to previous photo within the same post (only if multi-photo)
+        if (multiPhotoUrls && multiPhotoUrls.length > 1) {
+          console.log('⬅️ Multi-photo post: navigating to previous photo')
           navigateToImage('prev')
-        } else if (currentIdx > 0) {
-          // Navigate to previous post
-          navigateToPost(currentIdx - 1)
+        } else {
+          console.log('⬅️ Single photo post, no photo navigation')
         }
       } else if (e.key === 'ArrowRight') {
-        // Check if this is a multi-photo post and we can navigate images
-        if (multiPhotoUrls && multiPhotoUrls.length > 1 && currentImageIndex < multiPhotoUrls.length - 1) {
-          e.preventDefault()
+        e.preventDefault()
+        console.log('➡️ RIGHT ARROW pressed')
+        // Navigate to next photo within the same post (only if multi-photo)
+        if (multiPhotoUrls && multiPhotoUrls.length > 1) {
+          console.log('➡️ Multi-photo post: navigating to next photo')
           navigateToImage('next')
-        } else if (currentIdx < allPosts.length - 1) {
-          // Navigate to next post
-          navigateToPost(currentIdx + 1)
+        } else {
+          console.log('➡️ Single photo post, no photo navigation')
         }
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        // Navigate to previous post (with wrapping)
+        const newIdx = currentIdx > 0 ? currentIdx - 1 : allPosts.length - 1
+        navigateToPost(newIdx)
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        // Navigate to next post (with wrapping)
+        const newIdx = currentIdx < allPosts.length - 1 ? currentIdx + 1 : 0
+        navigateToPost(newIdx)
       }
     }
     
@@ -542,7 +553,7 @@ export default function PostModal({
       document.body.style.width = originalWidth
       document.removeEventListener('keydown', handleKeyPress)
     }
-  }, [currentIdx, allPosts, onNavigate, onClose])
+  }, [currentIdx, allPosts, onNavigate, onClose, currentImageIndex])
 
 
   // Navigation helper function
@@ -563,26 +574,20 @@ export default function PostModal({
 
   const navigateToImage = (direction) => {
     const multiPhotoUrls = getCurrentMultiPhotoUrls()
-    if (!multiPhotoUrls || multiPhotoUrls.length <= 1) return
+    
+    if (!multiPhotoUrls || multiPhotoUrls.length <= 1) {
+      return
+    }
 
     let newIndex = currentImageIndex
-    if (direction === 'next' && currentImageIndex < multiPhotoUrls.length - 1) {
-      newIndex = currentImageIndex + 1
-    } else if (direction === 'prev' && currentImageIndex > 0) {
-      newIndex = currentImageIndex - 1
+    if (direction === 'next') {
+      newIndex = currentImageIndex < multiPhotoUrls.length - 1 ? currentImageIndex + 1 : 0
+    } else if (direction === 'prev') {
+      newIndex = currentImageIndex > 0 ? currentImageIndex - 1 : multiPhotoUrls.length - 1
     }
     
+    console.log(`🔄 ${direction}: ${currentImageIndex} -> ${newIndex}`)
     setCurrentImageIndex(newIndex)
-    
-    // Add smooth scroll animation
-    const multiPhotoContainer = document.querySelector('.multi-photo-container')
-    if (multiPhotoContainer) {
-      const imageWidth = multiPhotoContainer.offsetWidth
-      multiPhotoContainer.scrollTo({
-        left: newIndex * imageWidth,
-        behavior: 'smooth'
-      })
-    }
   }
 
   const handleDelete = async () => {
@@ -1511,25 +1516,7 @@ export default function PostModal({
                           // Smooth transitions for scroll position
                           transition: 'scroll-left 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
                         }}
-                        onScroll={(e) => {
-                          const container = e.target
-                          const scrollLeft = container.scrollLeft
-                          const imageWidth = container.offsetWidth
-                          const newIndex = Math.round(scrollLeft / imageWidth)
-                          
-                          if (newIndex !== currentImageIndex) {
-                            setCurrentImageIndex(newIndex)
-                          }
-                        }}
-                        ref={(ref) => {
-                          if (ref) {
-                            const imageWidth = ref.offsetWidth
-                            ref.scrollTo({
-                              left: currentImageIndex * imageWidth,
-                              behavior: 'smooth'
-                            })
-                          }
-                        }}
+                        ref={multiPhotoScrollRef}
                       >
                         {multiPhotoUrls.map((url, index) => (
                           <img
@@ -1561,42 +1548,45 @@ export default function PostModal({
                             className="modal-carousel-nav-arrow modal-carousel-nav-prev"
                             onClick={(e) => {
                               e.stopPropagation()
-                              const container = e.target.parentElement.parentElement.querySelector('.multi-photo-container')
-                              console.log('Previous arrow clicked, container:', container)
-                              if (container) {
-                                const imageWidth = container.clientWidth
-                                const currentScroll = container.scrollLeft
-                                const currentIndex = Math.round(currentScroll / imageWidth)
-                                const prevIndex = Math.max(0, currentIndex - 1)
-                                console.log('Scrolling from', currentIndex, 'to', prevIndex)
-                                container.scrollTo({
-                                  left: prevIndex * imageWidth,
-                                  behavior: 'smooth'
-                                })
-                              }
+                              navigateToImage('prev')
                             }}
                             style={{
                               position: 'absolute',
                               bottom: '60px',
                               left: '20px',
-                              width: '40px',
-                              height: '40px',
+                              width: '44px',
+                              height: '44px',
                               borderRadius: '50%',
-                              background: 'rgba(0, 0, 0, 0.6)',
+                              background: 'rgba(0, 0, 0, 0.8)',
                               border: 'none',
                               color: 'white',
-                              fontSize: '18px',
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              opacity: 0.7,
-                              transition: 'opacity 0.2s ease, transform 0.2s ease',
+                              opacity: currentImageIndex > 0 ? 0.9 : 0.4,
+                              transition: 'all 0.3s ease',
                               zIndex: 30,
-                              backdropFilter: 'blur(10px)'
+                              backdropFilter: 'blur(15px)',
+                              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)',
+                              pointerEvents: currentImageIndex > 0 ? 'auto' : 'none'
+                            }}
+                            onMouseOver={(e) => {
+                              if (currentImageIndex > 0) {
+                                e.target.style.opacity = '1'
+                                e.target.style.transform = 'scale(1.1)'
+                              }
+                            }}
+                            onMouseOut={(e) => {
+                              if (currentImageIndex > 0) {
+                                e.target.style.opacity = '0.9'
+                                e.target.style.transform = 'scale(1)'
+                              }
                             }}
                           >
-                            ←
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                              <path d="m15 18-6-6 6-6"/>
+                            </svg>
                           </button>
                           
                           {/* Next Arrow */}
@@ -1604,42 +1594,45 @@ export default function PostModal({
                             className="modal-carousel-nav-arrow modal-carousel-nav-next"
                             onClick={(e) => {
                               e.stopPropagation()
-                              const container = e.target.parentElement.parentElement.querySelector('.multi-photo-container')
-                              console.log('Next arrow clicked, container:', container)
-                              if (container) {
-                                const imageWidth = container.clientWidth
-                                const currentScroll = container.scrollLeft
-                                const currentIndex = Math.round(currentScroll / imageWidth)
-                                const nextIndex = Math.min(multiPhotoUrls.length - 1, currentIndex + 1)
-                                console.log('Scrolling from', currentIndex, 'to', nextIndex)
-                                container.scrollTo({
-                                  left: nextIndex * imageWidth,
-                                  behavior: 'smooth'
-                                })
-                              }
+                              navigateToImage('next')
                             }}
                             style={{
                               position: 'absolute',
                               bottom: '60px',
                               right: '20px',
-                              width: '40px',
-                              height: '40px',
+                              width: '44px',
+                              height: '44px',
                               borderRadius: '50%',
-                              background: 'rgba(0, 0, 0, 0.6)',
+                              background: 'rgba(0, 0, 0, 0.8)',
                               border: 'none',
                               color: 'white',
-                              fontSize: '18px',
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              opacity: 0.7,
-                              transition: 'opacity 0.2s ease, transform 0.2s ease',
+                              opacity: currentImageIndex < multiPhotoUrls.length - 1 ? 0.9 : 0.4,
+                              transition: 'all 0.3s ease',
                               zIndex: 30,
-                              backdropFilter: 'blur(10px)'
+                              backdropFilter: 'blur(15px)',
+                              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)',
+                              pointerEvents: currentImageIndex < multiPhotoUrls.length - 1 ? 'auto' : 'none'
+                            }}
+                            onMouseOver={(e) => {
+                              if (currentImageIndex < multiPhotoUrls.length - 1) {
+                                e.target.style.opacity = '1'
+                                e.target.style.transform = 'scale(1.1)'
+                              }
+                            }}
+                            onMouseOut={(e) => {
+                              if (currentImageIndex < multiPhotoUrls.length - 1) {
+                                e.target.style.opacity = '0.9'
+                                e.target.style.transform = 'scale(1)'
+                              }
                             }}
                           >
-                            →
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                              <path d="m9 18 6-6-6-6"/>
+                            </svg>
                           </button>
                         </>
                       )}
@@ -1668,6 +1661,7 @@ export default function PostModal({
                               onClick={(e) => {
                                 e.stopPropagation()
                                 setCurrentImageIndex(index)
+                                scrollToImage(index)
                               }}
                               style={{
                                 width: index === currentImageIndex ? '24px' : '8px',

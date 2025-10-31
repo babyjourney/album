@@ -4,6 +4,7 @@ import { useLanguage } from '../contexts/LanguageContext'
 
 export default function HeaderIsland({ 
   childName = "Child", 
+  albumTitle = "Family Album",
   postCount = 0, 
   onCreatePost,
   onPhotoUpload, 
@@ -55,7 +56,7 @@ export default function HeaderIsland({
           fontSize: window.innerWidth <= 768 ? '20px' : '28px',
           marginBottom: '2px'
         }}>
-          Albumul lui {childName}
+          {albumTitle}
         </h1>
         <p className="text-subtle" style={{ 
           marginTop: '2px',
@@ -314,7 +315,7 @@ export default function HeaderIsland({
       {!hasEditorAccess && !onSearchChange && (
         <div className="card" style={{ marginBottom: '32px', textAlign: 'center' }}>
           <div style={{ fontSize: '32px', marginBottom: '12px' }}>👶</div>
-          <h3 className="text-section-title" style={{ marginBottom: '8px' }}>Bun venit în Albumul lui {childName}!</h3>
+          <h3 className="text-section-title" style={{ marginBottom: '8px' }}>Bun venit în {albumTitle}!</h3>
           <p className="text-body">
             Vizionați amintiri prețioase. Pentru a adăuga fotografii noi și a crea postări, folosiți PIN-ul de editor când vă conectați.
           </p>

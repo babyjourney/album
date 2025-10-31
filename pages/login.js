@@ -8,6 +8,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [isMobile, setIsMobile] = useState(false)
+  const [albumTitle, setAlbumTitle] = useState('Family Album')
   const router = useRouter()
 
   useEffect(() => {
@@ -40,6 +41,19 @@ export default function Login() {
     const result = await loginWithPin(pin)
 
     if (result.success) {
+      // Fetch album title for the family
+      if (result.user?.familyId) {
+        try {
+          const titleResponse = await fetch(`/api/album-settings/get-title?familyId=${result.user.familyId}`)
+          const titleResult = await titleResponse.json()
+          
+          if (titleResponse.ok) {
+            setAlbumTitle(titleResult.title)
+          }
+        } catch (error) {
+          console.error('Error fetching album title:', error)
+        }
+      }
       router.push('/dashboard')
     } else {
       setError(result.error)
@@ -129,7 +143,7 @@ export default function Login() {
               letterSpacing: isMobile ? '-0.25px' : '-0.5px',
               lineHeight: '1.2'
             }}>
-              Family Album
+              {albumTitle}
             </h1>
             
             <p style={{
@@ -147,10 +161,26 @@ export default function Login() {
             </p>
           </div>
 
-          <form onSubmit={handlePinLogin} style={{ marginBottom: '32px' }}>
+          <form onSubmit={handlePinLogin} style={{ marginBottom: '32px' }} autoComplete="on">
+            {/* Hidden username field for password managers */}
+            <input
+              type="text"
+              name="username"
+              autoComplete="username"
+              value="family-album-user"
+              readOnly
+              style={{ 
+                position: 'absolute',
+                left: '-9999px',
+                opacity: 0,
+                pointerEvents: 'none'
+              }}
+              tabIndex="-1"
+            />
+            
             {/* Modern PIN input */}
             <div style={{ marginBottom: '24px' }}>
-              <label style={{
+              <label htmlFor="pin" style={{
                 display: 'block',
                 fontSize: '14px',
                 fontWeight: '600',
@@ -163,9 +193,11 @@ export default function Login() {
               <div style={{ position: 'relative' }}>
                 <input
                   id="pin"
-                  type="text"
+                  name="password"
+                  type="password"
                   inputMode="numeric"
                   pattern="[0-9]*"
+                  autoComplete="current-password"
                   value={pin}
                   onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
                   style={{

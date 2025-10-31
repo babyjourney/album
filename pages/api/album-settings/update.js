@@ -5,7 +5,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Metoda nu este permisă' })
   }
 
-  const { familyId, isMultiChild } = req.body
+  const { familyId, isMultiChild, familyName, primaryChildName } = req.body
 
   if (!familyId || typeof isMultiChild !== 'boolean') {
     return res.status(400).json({ error: 'Câmpuri obligatorii lipsă sau invalide' })
@@ -17,6 +17,8 @@ export default async function handler(req, res) {
       .upsert({
         family_id: familyId,
         is_multi_child: isMultiChild,
+        family_name: familyName || null,
+        primary_child_name: primaryChildName || null,
         updated_at: new Date().toISOString()
       }, {
         onConflict: 'family_id'

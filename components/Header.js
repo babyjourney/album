@@ -3,7 +3,7 @@ import { useRouter } from 'next/router'
 import { clearSession } from '../lib/pinAuth'
 import { useLanguage } from '../contexts/LanguageContext'
 
-export default function Header({ familyName, role }) {
+export default function Header({ familyName, role, albumTitle }) {
   const [loading, setLoading] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const { language, changeLanguage, t } = useLanguage()
