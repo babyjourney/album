@@ -273,7 +273,7 @@ export default function Login() {
                     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)'
                   }}
-                  placeholder="07XXXXXXXX"
+                  placeholder="061234567"
                   required
                   onFocus={(e) => {
                     e.target.style.borderColor = '#667eea'

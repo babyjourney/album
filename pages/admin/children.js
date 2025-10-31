@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/router'
 import { supabase } from '../../lib/supabaseClient'
 import imageCompression from 'browser-image-compression'
 import { useLanguage } from '../../contexts/LanguageContext'
+import { isAdminAuthenticated, clearAdminSession } from '../../lib/adminAuth'
 
 export default function AdminDashboard() {
   const { language, t } = useLanguage()
+  const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [children, setChildren] = useState([])
   const [albumSettings, setAlbumSettings] = useState(null)
@@ -50,11 +53,12 @@ export default function AdminDashboard() {
   }, [selectedFamilyId])
 
   const checkAuth = () => {
-    // Skip authentication for admin dashboard since it's a separate tool
+    // Check if admin is authenticated
+    if (!isAdminAuthenticated()) {
+      router.push('/admin/login')
+      return
+    }
     setLoading(false)
-    
-    // If you want to add simple password protection later, you can add it here
-    // For now, allow direct access to admin dashboard
   }
 
   const fetchAllFamilies = async () => {
@@ -315,9 +319,9 @@ export default function AdminDashboard() {
     }
 
     // Validate phone number format (Romanian format)
-    const phoneRegex = /^(\+40|0040|0)[7-9][0-9]{8}$/
+    const phoneRegex = /^(0)?[67][0-9]{7}$/
     if (!phoneRegex.test(phoneNumber.replace(/\s/g, ''))) {
-      setSetupError('Numărul de telefon nu este valid (format: 07XXXXXXXX sau +407XXXXXXXX)')
+      setSetupError('Numărul de telefon nu este valid (format: 061234567 sau 61234567)')
       return
     }
 
@@ -362,6 +366,36 @@ export default function AdminDashboard() {
             setSetupError(`Eroare la salvarea pozei de profil: ${updateError.message}`)
           } else {
             console.log('Profile picture URL saved successfully:', updateData)
+            
+            // Create a post in the album for the family profile picture
+            try {
+              const postResponse = await fetch('/api/posts/create', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  familyId: data.id,
+                  type: 'image',
+                  title: `Poza de profil - ${familyName.trim()}`,
+                  description: `Prima poză de profil a familiei ${familyName.trim()}`,
+                  fileUrl: profilePictureUrl,
+                  category: 'family',
+                  hashtags: '#familia #profil'
+                })
+              })
+
+              const postResult = await postResponse.json()
+              
+              if (!postResponse.ok) {
+                console.warn('Failed to create album post for profile picture:', postResult.error)
+              } else {
+                console.log('Profile picture post created successfully:', postResult.post.id)
+              }
+            } catch (postError) {
+              console.warn('Error creating album post for profile picture:', postError)
+              // Don't fail the family creation for this
+            }
           }
         } catch (uploadError) {
           console.error('Profile picture upload failed:', uploadError)
@@ -403,6 +437,11 @@ export default function AdminDashboard() {
     setProfilePicture(null)
     setProfilePreview('')
     setShowFamilySetup(false)
+  }
+
+  const handleLogout = () => {
+    clearAdminSession()
+    router.push('/admin/login')
   }
 
   // Album title configuration functions
@@ -460,12 +499,46 @@ export default function AdminDashboard() {
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-gray)' }}>      
       <div className="main-container" style={{ paddingTop: '40px' }}>
         <div className="card" style={{ marginBottom: '24px' }}>
-          <h1 className="text-page-title" style={{ marginBottom: '8px' }}>
-            Administrare Album
-          </h1>
-          <p className="text-subtle">
-            Gestionează albumele de familie, setările pentru mai mulți copii și profilurile copiilor.
-          </p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <h1 className="text-page-title" style={{ marginBottom: '8px' }}>
+                Administrare Album
+              </h1>
+              <p className="text-subtle">
+                Gestionează albumele de familie, setările pentru mai mulți copii și profilurile copiilor.
+              </p>
+            </div>
+            <button
+              onClick={handleLogout}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#DC2626',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+              onMouseOver={(e) => {
+                e.target.style.backgroundColor = '#B91C1C'
+              }}
+              onMouseOut={(e) => {
+                e.target.style.backgroundColor = '#DC2626'
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                <polyline points="16,17 21,12 16,7"/>
+                <line x1="21" x2="9" y1="12" y2="12"/>
+              </svg>
+              Logout
+            </button>
+          </div>
         </div>
 
         {/* Family Selection */}
@@ -537,11 +610,11 @@ export default function AdminDashboard() {
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
                   className="input-field"
-                  placeholder="Introduceți numărul de telefon (ex: 0712345678)"
+                  placeholder="Introduceți numărul de telefon (ex: 061234567)"
                   required
                 />
                 <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>
-                  Format acceptat: 07XXXXXXXX sau +407XXXXXXXX
+                  Format acceptat: 061234567 sau 61234567
                 </div>
               </div>
 

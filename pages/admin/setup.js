@@ -1,14 +1,24 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/router'
 import { supabase } from '../../lib/supabaseClient'
 import imageCompression from 'browser-image-compression'
+import { isAdminAuthenticated, clearAdminSession } from '../../lib/adminAuth'
 
 export default function AdminSetup() {
+  const router = useRouter()
   const [familyName, setFamilyName] = useState('')
   const [profilePicture, setProfilePicture] = useState(null)
   const [profilePreview, setProfilePreview] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(null)
+
+  useEffect(() => {
+    // Check if admin is authenticated
+    if (!isAdminAuthenticated()) {
+      router.push('/admin/login')
+    }
+  }, [router])
 
   const generateUniquePin = async (length) => {
     const column = length === 4 ? 'viewer_pin' : 'editor_pin'
@@ -140,6 +150,36 @@ export default function AdminSetup() {
         if (updateError) {
           console.error('Error updating profile picture URL:', updateError)
           // Don't throw error here, just log it as the family was already created
+        } else {
+          // Create a post in the album for the family profile picture
+          try {
+            const postResponse = await fetch('/api/posts/create', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                familyId: data.id,
+                type: 'image',
+                title: `Poza de profil - ${familyName.trim()}`,
+                description: `Prima poză de profil a familiei ${familyName.trim()}`,
+                fileUrl: profilePictureUrl,
+                category: 'family',
+                hashtags: '#familia #profil'
+              })
+            })
+
+            const postResult = await postResponse.json()
+            
+            if (!postResponse.ok) {
+              console.warn('Failed to create album post for profile picture:', postResult.error)
+            } else {
+              console.log('Profile picture post created successfully:', postResult.post.id)
+            }
+          } catch (postError) {
+            console.warn('Error creating album post for profile picture:', postError)
+            // Don't fail the family creation for this
+          }
         }
       }
 

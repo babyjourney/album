@@ -1,18 +1,31 @@
 import { supabase } from '../../../lib/supabaseClient'
+import { requireEditor } from '../../../lib/authMiddleware'
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const { familyId, title, description, category, hashtags, selectedChildren, imageUrls, customDate } = req.body
+  const { title, description, category, hashtags, selectedChildren, imageUrls, customDate } = req.body
 
-  if (!familyId) {
-    return res.status(400).json({ error: 'Family ID is required' })
-  }
+  // Use authenticated family ID
+  const familyId = req.auth.familyId
 
   if (!imageUrls || !Array.isArray(imageUrls) || imageUrls.length === 0) {
     return res.status(400).json({ error: 'At least one image URL is required' })
+  }
+
+  // Input validation
+  if (title && title.length > 200) {
+    return res.status(400).json({ error: 'Titlul nu poate depăși 200 de caractere' })
+  }
+
+  if (description && description.length > 2000) {
+    return res.status(400).json({ error: 'Descrierea nu poate depăși 2000 de caractere' })
+  }
+
+  if (imageUrls.length > 10) {
+    return res.status(400).json({ error: 'Maximum 10 imagini per postare' })
   }
 
   try {
@@ -122,3 +135,6 @@ export default async function handler(req, res) {
     res.status(500).json({ error: 'Internal server error' })
   }
 }
+
+// Export with authentication middleware
+export default requireEditor(handler)

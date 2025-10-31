@@ -16,6 +16,10 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Numărul de telefon este obligatoriu' })
   }
 
+  // Remove any spaces and validate formats first
+  const cleanPin = pin.toString().replace(/\s/g, '')
+  const cleanPhone = phoneNumber.toString().replace(/\s/g, '')
+
   // Get client identifier for rate limiting (include phone number for better tracking)
   const clientId = rateLimiter.getClientId(req, cleanPhone)
   
@@ -33,19 +37,15 @@ export default async function handler(req, res) {
       blockedUntil: blockStatus.blockedUntil
     })
   }
-
-  // Remove any spaces and validate PIN format
-  const cleanPin = pin.toString().replace(/\s/g, '')
-  const cleanPhone = phoneNumber.toString().replace(/\s/g, '')
   
   if (!/^\d{4}$|^\d{8}$/.test(cleanPin)) {
     return res.status(400).json({ error: 'PIN-ul trebuie să aibă 4 sau 8 cifre' })
   }
 
-  // Validate phone number format
-  const phoneRegex = /^(\+40|0040|0)[7-9][0-9]{8}$/
+  // Validate phone number format (Romanian format: 068327082 or 68327082)
+  const phoneRegex = /^(0)?[67][0-9]{7}$/
   if (!phoneRegex.test(cleanPhone)) {
-    return res.status(400).json({ error: 'Numărul de telefon nu este valid' })
+    return res.status(400).json({ error: 'Numărul de telefon nu este valid (format: 061234567 sau 61234567)' })
   }
 
   try {

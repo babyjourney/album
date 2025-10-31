@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useToast } from '../contexts/ToastContext'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useOnClickOutside } from '../hooks/useOnClickOutside'
+import { authenticatedFetch } from '../lib/pinAuth'
 import InstagramCarousel from './InstagramCarousel'
 import DatePicker from './DatePicker'
 
@@ -355,9 +356,8 @@ export default function PostModal({
         updateData.description = currentPost.description
       }
 
-      const response = await fetch('/api/posts/update', {
+      const response = await authenticatedFetch('/api/posts/update', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updateData)
       })
 
@@ -596,11 +596,8 @@ export default function PostModal({
     }
 
     try {
-      const response = await fetch('/api/photos/delete', {
+      const response = await authenticatedFetch('/api/photos/delete', {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           photoId: currentPost.id,
           fileUrl: currentPost.file_url

@@ -1,5 +1,6 @@
-1. env local si de scos din supabase.js -- loading
+1. env local si de scos din supabase.js 
 2. limitare la parole - 3 incercari - 10 minute cooldown, dupa acele 10 minute, alte 3 incercari - 24h cooldown
 3. la login de adaugat inca ceva pe langa pin, precum nr tel, adresa email, nume, prenume
 4. securizare panel admin
+
 5. sterge toate debugurile din consola

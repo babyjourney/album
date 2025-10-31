@@ -1,6 +1,7 @@
 import { supabase } from '../../../lib/supabaseClient'
+import { requireEditor, verifyFamilyOwnership } from '../../../lib/authMiddleware'
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== 'DELETE') {
     return res.status(405).json({ error: 'Metoda nu este permisă' })
   }
@@ -12,11 +13,22 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Delete from database
+    // Verify the photo belongs to the authenticated family
+    const ownershipCheck = await verifyFamilyOwnership(req.auth.familyId, 'photos', photoId)
+    
+    if (!ownershipCheck.isOwner) {
+      return res.status(403).json({ 
+        error: ownershipCheck.error || 'Nu aveți permisiunea să ștergeți această fotografie',
+        code: 'FORBIDDEN'
+      })
+    }
+
+    // Delete from database - now with family verification
     const { error: dbError } = await supabase
       .from('photos')
       .delete()
       .eq('id', photoId)
+      .eq('family_id', req.auth.familyId) // Double-check family ownership
 
     if (dbError) {
       throw dbError
@@ -47,3 +59,6 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Ștergerea fotografiei a eșuat' })
   }
 }
+
+// Export with authentication middleware
+export default requireEditor(handler)

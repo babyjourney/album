@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
-import { getSession, isAuthenticated, isEditor } from '../lib/pinAuth'
+import { getSession, isAuthenticated, isEditor, authenticatedFetch } from '../lib/pinAuth'
+import { supabase } from '../lib/supabaseClient'
 import HeaderIsland from '../components/HeaderIsland'
 import InstagramFeed from '../components/InstagramFeed'
 import PostModal from '../components/PostModal'
@@ -34,6 +35,7 @@ export default function Dashboard() {
   })
   const [isMobile, setIsMobile] = useState(false)
   const [albumTitle, setAlbumTitle] = useState('Family Album')
+  const [familyProfilePicture, setFamilyProfilePicture] = useState('')
   const router = useRouter()
 
   useEffect(() => {
@@ -55,7 +57,7 @@ export default function Dashboard() {
     const userSession = getSession()
     setSession(userSession)
     
-    // Fetch album title
+    // Fetch album title and family profile picture
     if (userSession?.familyId) {
       try {
         const response = await fetch(`/api/album-settings/get-title?familyId=${userSession.familyId}`)
@@ -66,6 +68,21 @@ export default function Dashboard() {
         }
       } catch (error) {
         console.error('Error fetching album title:', error)
+      }
+
+      // Fetch family profile picture
+      try {
+        const { data, error } = await supabase
+          .from('families')
+          .select('profile_picture_url')
+          .eq('id', userSession.familyId)
+          .single()
+
+        if (!error && data?.profile_picture_url) {
+          setFamilyProfilePicture(data.profile_picture_url)
+        }
+      } catch (error) {
+        console.error('Error fetching family profile picture:', error)
       }
     }
     
@@ -181,15 +198,12 @@ export default function Dashboard() {
         childName={session.familyName}
         albumTitle={albumTitle}
         postCount={postCount}
+        childImage={familyProfilePicture || "/api/placeholder/80/80"}
         onCreatePost={async (postData) => {
           // Handle text post creation directly from header
-          const response = await fetch('/api/posts/create', {
+          const response = await authenticatedFetch('/api/posts/create', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
             body: JSON.stringify({
-              familyId: session.familyId,
               type: 'text',
               title: '',
               description: postData.text,
@@ -365,7 +379,7 @@ export default function Dashboard() {
         isOpen={showProfilePicture}
         onClose={() => setShowProfilePicture(false)}
         childName={session?.familyName}
-        childImage="/api/placeholder/80/80"
+        childImage={familyProfilePicture || "/api/placeholder/80/80"}
       />
 
       {/* Floating Slideshow Button */}

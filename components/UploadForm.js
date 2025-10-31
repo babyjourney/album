@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import imageCompression from 'browser-image-compression'
 import { supabase } from '../lib/supabaseClient'
+import { authenticatedFetch } from '../lib/pinAuth'
 import { useToast } from '../contexts/ToastContext'
 import { useOnClickOutside } from '../hooks/useOnClickOutside'
 import { useLanguage } from '../contexts/LanguageContext'
@@ -203,13 +204,9 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
       }
 
       // Save multi-photo post via API
-      const response = await fetch('/api/posts/create-multi', {
+      const response = await authenticatedFetch('/api/posts/create-multi', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
-          familyId,
           title: title.trim(),
           description: description.trim(),
           imageUrls,
@@ -228,11 +225,8 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
 
       // Handle child associations for multi-photo posts
       if (albumSettings?.is_multi_child && selectedChildren.length > 0) {
-        const childResponse = await fetch('/api/child-posts/create', {
+        const childResponse = await authenticatedFetch('/api/child-posts/create', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
           body: JSON.stringify({
             photoId: result.post.id,
             childIds: selectedChildren

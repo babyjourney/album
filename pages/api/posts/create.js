@@ -1,14 +1,27 @@
 import { supabase } from '../../../lib/supabaseClient'
+import { requireEditor } from '../../../lib/authMiddleware'
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Metoda nu este permisă' })
   }
 
-  const { familyId, type, title, description, fileUrl, category, hashtags, customDate } = req.body
+  const { type, title, description, fileUrl, category, hashtags, customDate } = req.body
 
-  if (!familyId || !type || (!description && !fileUrl)) {
+  // Use authenticated family ID instead of accepting it from request
+  const familyId = req.auth.familyId
+
+  if (!type || (!description && !fileUrl)) {
     return res.status(400).json({ error: 'Câmpuri obligatorii lipsă' })
+  }
+
+  // Input validation and sanitization
+  if (title && title.length > 200) {
+    return res.status(400).json({ error: 'Titlul nu poate depăși 200 de caractere' })
+  }
+
+  if (description && description.length > 2000) {
+    return res.status(400).json({ error: 'Descrierea nu poate depăși 2000 de caractere' })
   }
 
   // Validate post type
@@ -82,3 +95,6 @@ export default async function handler(req, res) {
     })
   }
 }
+
+// Export with authentication middleware
+export default requireEditor(handler)

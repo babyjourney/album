@@ -1,11 +1,10 @@
 import { supabase } from '../../../lib/supabaseClient'
+import { requireEditor, verifyFamilyOwnership } from '../../../lib/authMiddleware'
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== 'PUT') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
-
-  console.log('Update request received:', req.body)
 
   const { postId, title, description, hashtags, file_urls, customDate } = req.body
 
@@ -13,9 +12,26 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Post ID is required' })
   }
 
+  // Input validation
+  if (title && title.length > 200) {
+    return res.status(400).json({ error: 'Titlul nu poate depăși 200 de caractere' })
+  }
+
+  if (description && description.length > 2000) {
+    return res.status(400).json({ error: 'Descrierea nu poate depăși 2000 de caractere' })
+  }
+
   try {
-    console.log('Attempting to update post:', { postId, title, description, hashtags, file_urls })
+    // Verify the post belongs to the authenticated family
+    const ownershipCheck = await verifyFamilyOwnership(req.auth.familyId, 'photos', postId)
     
+    if (!ownershipCheck.isOwner) {
+      return res.status(403).json({ 
+        error: ownershipCheck.error || 'Nu aveți permisiunea să modificați această postare',
+        code: 'FORBIDDEN'
+      })
+    }
+
     // Prepare update data
     const updateData = {
       title: title || null,
@@ -163,3 +179,6 @@ export default async function handler(req, res) {
     res.status(500).json({ error: 'Internal server error: ' + error.message })
   }
 }
+
+// Export with authentication middleware
+export default requireEditor(handler)
