@@ -1,8 +1,14 @@
 // supabase.js - Supabase configuration and functions
 
-// Supabase configuration
-const SUPABASE_URL = 'https://muvwkhnbfdatotzjwluu.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11dndraG5iZmRhdG90emp3bHV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI4NTcwODgsImV4cCI6MjA2ODQzMzA4OH0.hAUYw2jEjWOdSri6KBolX8BXmp80vOxWysNv6VYe5Io';
+// Supabase configuration - get from environment variables
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+// Validate environment variables
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    console.error('❌ Missing Supabase environment variables');
+    throw new Error('Missing required Supabase environment variables. Please check your .env.local file.');
+}
 
 // Import Supabase client
 import { createClient } from 'https://cdn.skypack.dev/@supabase/supabase-js@2';
