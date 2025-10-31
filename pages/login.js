@@ -9,6 +9,8 @@ export default function Login() {
   const [error, setError] = useState('')
   const [isMobile, setIsMobile] = useState(false)
   const [albumTitle, setAlbumTitle] = useState('Family Album')
+  const [rateLimitInfo, setRateLimitInfo] = useState(null)
+  const [cooldownTimer, setCooldownTimer] = useState(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -20,6 +22,44 @@ export default function Login() {
     window.addEventListener('resize', checkMobile)
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
+
+  // Cooldown timer effect
+  useEffect(() => {
+    if (rateLimitInfo && rateLimitInfo.blockedUntil) {
+      const updateTimer = () => {
+        const now = Date.now()
+        const timeRemaining = rateLimitInfo.blockedUntil - now
+        
+        if (timeRemaining <= 0) {
+          setRateLimitInfo(null)
+          setCooldownTimer(null)
+          setError('')
+        } else {
+          setCooldownTimer(formatTimeRemaining(timeRemaining))
+        }
+      }
+      
+      updateTimer()
+      const interval = setInterval(updateTimer, 1000)
+      
+      return () => clearInterval(interval)
+    }
+  }, [rateLimitInfo])
+
+  // Format time remaining for display
+  const formatTimeRemaining = (milliseconds) => {
+    const hours = Math.floor(milliseconds / (60 * 60 * 1000))
+    const minutes = Math.floor((milliseconds % (60 * 60 * 1000)) / (60 * 1000))
+    const seconds = Math.floor((milliseconds % (60 * 1000)) / 1000)
+
+    if (hours > 0) {
+      return `${hours}h ${minutes}m ${seconds}s`
+    } else if (minutes > 0) {
+      return `${minutes}m ${seconds}s`
+    } else {
+      return `${seconds}s`
+    }
+  }
 
   const checkUser = () => {
     if (isAuthenticated()) {
@@ -41,6 +81,11 @@ export default function Login() {
     const result = await loginWithPin(pin)
 
     if (result.success) {
+      // Clear any rate limiting info on success
+      setRateLimitInfo(null)
+      setCooldownTimer(null)
+      setError('')
+      
       // Fetch album title for the family
       if (result.user?.familyId) {
         try {
@@ -56,6 +101,18 @@ export default function Login() {
       }
       router.push('/dashboard')
     } else {
+      // Handle rate limiting and errors
+      if (result.rateLimited) {
+        setRateLimitInfo({
+          level: result.level,
+          blockedUntil: result.blockedUntil,
+          timeRemaining: result.timeRemaining
+        })
+      } else {
+        setRateLimitInfo(null)
+        setCooldownTimer(null)
+      }
+      
       setError(result.error)
       setLoading(false)
     }
@@ -305,7 +362,58 @@ export default function Login() {
               </div>
             </div>
 
-            {error && (
+            {/* Rate Limiting Alert */}
+            {rateLimitInfo && cooldownTimer && (
+              <div style={{
+                padding: '16px',
+                background: 'rgba(245, 158, 11, 0.1)',
+                border: '1px solid rgba(245, 158, 11, 0.2)',
+                borderRadius: '12px',
+                marginBottom: '24px',
+                animation: 'shake 0.5s ease-in-out'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  marginBottom: '8px'
+                }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                  </svg>
+                  <span style={{
+                    fontSize: '14px',
+                    color: '#D97706',
+                    fontWeight: '600'
+                  }}>
+                    {rateLimitInfo.level === 1 ? 'Cooldown 10 minute' : 'Cooldown 24 ore'}
+                  </span>
+                </div>
+                <div style={{
+                  fontSize: '13px',
+                  color: '#92400E',
+                  marginLeft: '24px'
+                }}>
+                  Timp rămas: <strong>{cooldownTimer}</strong>
+                </div>
+                <div style={{
+                  fontSize: '12px',
+                  color: '#A16207',
+                  marginLeft: '24px',
+                  marginTop: '4px'
+                }}>
+                  {rateLimitInfo.level === 1 
+                    ? 'După 10 minute veți avea încă 3 încercări'
+                    : 'Restricție de 24 ore activă din cauza încercărilor multiple'
+                  }
+                </div>
+              </div>
+            )}
+
+            {/* Regular Error Alert */}
+            {error && !rateLimitInfo && (
               <div style={{
                 padding: '16px',
                 background: 'rgba(248, 113, 113, 0.1)',
@@ -337,11 +445,11 @@ export default function Login() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || (rateLimitInfo && cooldownTimer)}
               style={{
                 width: '100%',
                 padding: isMobile ? '16px 20px' : '18px 24px',
-                background: loading 
+                background: (loading || (rateLimitInfo && cooldownTimer))
                   ? 'rgba(156, 163, 175, 0.5)' 
                   : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                 color: 'white',
@@ -386,6 +494,19 @@ export default function Login() {
                     animation: 'spin 1s linear infinite'
                   }} />
                   Opening Album...
+                </div>
+              ) : (rateLimitInfo && cooldownTimer) ? (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
+                }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12,6 12,12 16,14"/>
+                  </svg>
+                  Blocat ({cooldownTimer})
                 </div>
               ) : (
                 <div style={{
