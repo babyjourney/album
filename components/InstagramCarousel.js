@@ -18,6 +18,12 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
   const SNAP_THRESHOLD = 0.3 // 30% of container width
   const VELOCITY_THRESHOLD = 0.5 // minimum velocity for quick swipe
 
+  // Helper function to detect if URL is a video
+  const isVideoUrl = (url) => {
+    const videoExtensions = ['.mp4', '.mov', '.avi', '.webm', '.ogg']
+    return videoExtensions.some(ext => url.toLowerCase().includes(ext))
+  }
+
   // Track viewport height changes for mobile browser UI
   useEffect(() => {
     const handleResize = () => {
@@ -300,10 +306,10 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
         // Enhanced mobile performance
         transform: 'translateZ(0)', // Force hardware acceleration
         willChange: 'auto',
-        '-webkit-overflow-scrolling': 'touch',
-        '-webkit-transform': 'translateZ(0)',
-        '-webkit-perspective': '1000',
-        '-webkit-backface-visibility': 'hidden'
+        WebkitOverflowScrolling: 'touch',
+        WebkitTransform: 'translateZ(0)',
+        WebkitPerspective: '1000px',
+        WebkitBackfaceVisibility: 'hidden'
       }}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
@@ -334,22 +340,58 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
               overflow: 'hidden'
             }}
           >
-            <img
-              src={url}
-              alt={`${post?.title || 'Post'} - ${imgIndex + 1}/${images.length}`}
-              style={{ 
-                maxWidth: '100%',
-                maxHeight: '100%',
-                objectFit: 'contain',
-                transform: 'translateZ(0)',
-                backfaceVisibility: 'hidden',
-                // Clean simple appearance
-                ...(isDragging && imgIndex !== index && {
-                  opacity: '0.9'
-                })
-              }}
-              onDragStart={(e) => e.preventDefault()}
-            />
+{isVideoUrl(url) ? (
+              <video
+                src={url}
+                controls
+                playsInline
+                preload="metadata"
+                webkit-playsinline="true"
+                crossOrigin="anonymous"
+                style={{ 
+                  maxWidth: '100%',
+                  maxHeight: '100%',
+                  objectFit: 'contain',
+                  transform: 'translateZ(0)',
+                  backfaceVisibility: 'hidden',
+                  // Clean simple appearance
+                  ...(isDragging && imgIndex !== index && {
+                    opacity: '0.9'
+                  })
+                }}
+                onDragStart={(e) => e.preventDefault()}
+                onError={(e) => {
+                  console.error('Video failed to load:', url)
+                  console.error('Video error event:', e)
+                  // Show a fallback instead of hiding completely
+                  e.target.style.background = '#f0f0f0'
+                  e.target.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666;">⚠️ Video încărcare eșuată</div>'
+                }}
+                onLoadStart={() => console.log('Video load started:', url)}
+                onCanPlay={() => console.log('Video can play:', url)}
+              >
+                <source src={url} type="video/mp4" />
+                <source src={url} type="video/quicktime" />
+                <p>Browserul nu suportă redarea video-ului.</p>
+              </video>
+            ) : (
+              <img
+                src={url}
+                alt={`${post?.title || 'Post'} - ${imgIndex + 1}/${images.length}`}
+                style={{ 
+                  maxWidth: '100%',
+                  maxHeight: '100%',
+                  objectFit: 'contain',
+                  transform: 'translateZ(0)',
+                  backfaceVisibility: 'hidden',
+                  // Clean simple appearance
+                  ...(isDragging && imgIndex !== index && {
+                    opacity: '0.9'
+                  })
+                }}
+                onDragStart={(e) => e.preventDefault()}
+              />
+            )}
           </div>
         ))}
       </div>

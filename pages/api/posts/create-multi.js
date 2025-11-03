@@ -25,8 +25,18 @@ async function handler(req, res) {
   }
 
   if (imageUrls.length > 10) {
-    return res.status(400).json({ error: 'Maximum 10 imagini per postare' })
+    return res.status(400).json({ error: 'Maximum 10 fișiere per postare' })
   }
+
+  // Helper function to detect if URL is a video
+  const isVideoUrl = (url) => {
+    const videoExtensions = ['.mp4', '.mov', '.avi', '.webm', '.ogg']
+    return videoExtensions.some(ext => url.toLowerCase().includes(ext))
+  }
+
+  // Determine the overall type of the post
+  const hasVideo = imageUrls.some(url => isVideoUrl(url))
+  const postFileType = hasVideo ? 'video' : 'image'
 
   try {
     // Parse hashtags from string to array like the regular upload API
@@ -40,8 +50,8 @@ async function handler(req, res) {
     const basePostData = {
       family_id: familyId,
       title: title?.trim() || '',
-      file_url: imageUrls[0], // Primary image for backward compatibility
-      file_type: 'image'
+      file_url: imageUrls[0], // Primary file for backward compatibility
+      file_type: postFileType // Set correct type based on content
     }
 
     // Add optional fields

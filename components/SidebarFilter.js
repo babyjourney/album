@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Search, Filter, X, Hash, Settings, Plus } from 'lucide-react'
 import FilterIsland from './FilterIsland'
 import { useLanguage } from '../contexts/LanguageContext'
-import { getCategories } from '../lib/categoriesData'
+import { getCategories, getCategoriesSync } from '../lib/categoriesData'
 import CategoryManager from './CategoryManager'
 import { useOnClickOutside } from '../hooks/useOnClickOutside'
 
@@ -72,7 +72,17 @@ export default function SidebarFilter({
 
   // Load categories
   useEffect(() => {
-    setCategories(getCategories())
+    const loadCategories = async () => {
+      try {
+        const cats = await getCategories()
+        setCategories(cats)
+      } catch (error) {
+        console.error('Error loading categories:', error)
+        // Fallback to cached/default categories
+        setCategories(getCategoriesSync())
+      }
+    }
+    loadCategories()
   }, [])
 
   const hasActiveFilters = filters.category !== 'all' || filters.hashtag || filters.date

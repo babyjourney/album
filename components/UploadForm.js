@@ -32,7 +32,17 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
 
   // Load categories on mount
   useEffect(() => {
-    setCategories(getCategories())
+    const loadCategories = async () => {
+      try {
+        const cats = await getCategories()
+        setCategories(cats)
+      } catch (error) {
+        console.error('Error loading categories:', error)
+        // Keep default categories if API fails
+        setCategories(getCategories().catch(() => []))
+      }
+    }
+    loadCategories()
   }, [])
 
   // Handle hashtag input
@@ -114,7 +124,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
 
       // Check if we've reached the 10-file limit
       if (processedFiles.length >= 10) {
-        const warningMessage = `Maximum 10 imagini sunt permise per postare. Restul imaginilor nu vor fi adăugate.`
+        const warningMessage = `Maximum 10 fișiere sunt permise per postare. Restul fișierelor nu vor fi adăugate.`
         showError(warningMessage)
         break
       }
@@ -127,28 +137,34 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
         continue
       }
 
-      // Only allow images for multi-photo posts
-      if (!selectedFile.type.startsWith('image/')) {
-        const errorMessage = `Pentru postări multiple sunt permise doar imagini. ${selectedFile.name} nu este o imagine.`
+      // Allow images and videos for multi-media posts
+      if (!selectedFile.type.startsWith('image/') && !selectedFile.type.startsWith('video/')) {
+        const errorMessage = `Pentru postări multiple sunt permise doar imagini și video-uri. ${selectedFile.name} nu este o imagine sau video.`
         setError(errorMessage)
         showError(errorMessage)
         continue
       }
 
       try {
-        const options = {
-          maxSizeMB: 2,
-          maxWidthOrHeight: 2048,
-          useWebWorker: true,
-          fileType: selectedFile.type,
-          initialQuality: 0.8,
-          alwaysKeepResolution: false
+        // Only compress images, not videos
+        if (selectedFile.type.startsWith('image/')) {
+          const options = {
+            maxSizeMB: 2,
+            maxWidthOrHeight: 2048,
+            useWebWorker: true,
+            fileType: selectedFile.type,
+            initialQuality: 0.8,
+            alwaysKeepResolution: false
+          }
+          
+          const compressedFile = await imageCompression(selectedFile, options)
+          processedFiles.push(compressedFile)
+        } else {
+          // Add videos without compression
+          processedFiles.push(selectedFile)
         }
-        
-        const compressedFile = await imageCompression(selectedFile, options)
-        processedFiles.push(compressedFile)
       } catch (error) {
-        console.error('Compression failed for', selectedFile.name, error)
+        console.error('Processing failed for', selectedFile.name, error)
         processedFiles.push(selectedFile)
       }
     }
@@ -529,13 +545,13 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
 
         <div style={{ marginBottom: '16px' }}>
           <label className="text-subtle" style={{ display: 'block', marginBottom: '8px' }}>
-            {t('images')}
+            Imagini și Video-uri
           </label>
           <input
             id="file-upload"
             type="file"
             onChange={handleFileChange}
-            accept="image/*"
+            accept="image/*,video/*"
             multiple={true}
             className="input-field"
             style={{ 
@@ -549,8 +565,8 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
           />
           <p className="text-subtle" style={{ marginTop: '4px', fontSize: '12px' }}>
             {files.length >= 10 
-              ? 'Limită atinsă: Maximum 10 imagini per postare.' 
-              : 'Formate acceptate: JPG, PNG, GIF. Maximum 10 imagini per postare. Selectează mai multe imagini deodată.'
+              ? 'Limită atinsă: Maximum 10 fișiere per postare.' 
+              : 'Formate acceptate: JPG, PNG, GIF, MP4, MOV, AVI. Maximum 10 fișiere per postare. Selectează mai multe fișiere deodată.'
             }
           </p>
           
@@ -564,7 +580,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
               borderRadius: '12px',
               color: '#15803D'
             }}>
-              ✅ {files.length} {files.length === 1 ? 'imagine selectată' : 'imagini selectate'} din maximum 10
+              ✅ {files.length} {files.length === 1 ? 'fișier selectat' : 'fișiere selectate'} din maximum 10
               <div style={{ 
                 display: 'grid', 
                 gridTemplateColumns: 'repeat(auto-fill, minmax(60px, 1fr))', 
@@ -578,10 +594,30 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
                     height: '60px',
                     borderRadius: '8px',
                     backgroundColor: '#E5E7EB',
-                    backgroundImage: `url(${URL.createObjectURL(file)})`,
+                    backgroundImage: file.type.startsWith('image/') ? `url(${URL.createObjectURL(file)})` : 'none',
                     backgroundSize: 'cover',
-                    backgroundPosition: 'center'
+                    backgroundPosition: 'center',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
                   }}>
+                    {/* Video icon for video files */}
+                    {file.type.startsWith('video/') && (
+                      <div style={{
+                        color: '#6B7280',
+                        fontSize: '24px',
+                        background: 'rgba(255, 255, 255, 0.9)',
+                        borderRadius: '50%',
+                        width: '32px',
+                        height: '32px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        ▶
+                      </div>
+                    )}
+                    
                     {/* Remove button */}
                     <button
                       type="button"
@@ -606,7 +642,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
                         justifyContent: 'center',
                         boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
                       }}
-                      title="Elimină imaginea"
+                      title={`Elimină ${file.type.startsWith('video/') ? 'video-ul' : 'imaginea'}`}
                     >
                       ×
                     </button>

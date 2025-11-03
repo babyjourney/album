@@ -1515,26 +1515,67 @@ export default function PostModal({
                         }}
                         ref={multiPhotoScrollRef}
                       >
-                        {multiPhotoUrls.map((url, index) => (
-                          <img
-                            key={index}
-                            src={url}
-                            alt={`${currentPost.title || 'Post'} - ${index + 1}/${multiPhotoUrls.length}`}
-                            style={{ 
-                              minWidth: '100%',
-                              width: '100%',
-                              height: '100%',
-                              objectFit: 'contain',
-                              scrollSnapAlign: 'start',
-                              // Enhanced image rendering
-                              transform: 'translateZ(0)', // Hardware acceleration
-                              willChange: 'transform',
-                              transition: 'opacity 0.3s ease-out, transform 0.3s ease-out',
-                              backfaceVisibility: 'hidden', // Prevent flicker
-                              imageRendering: 'auto'
-                            }}
-                          />
-                        ))}
+{multiPhotoUrls.map((url, index) => {
+                          const isVideo = url.toLowerCase().includes('.mp4') || 
+                                         url.toLowerCase().includes('.mov') || 
+                                         url.toLowerCase().includes('.avi') || 
+                                         url.toLowerCase().includes('.webm') || 
+                                         url.toLowerCase().includes('.ogg')
+                          
+                          return isVideo ? (
+                            <video
+                              key={index}
+                              src={url}
+                              controls
+                              playsInline
+                              preload="metadata"
+                              webkit-playsinline="true"
+                              crossOrigin="anonymous"
+                              style={{ 
+                                minWidth: '100%',
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'contain',
+                                scrollSnapAlign: 'start',
+                                transform: 'translateZ(0)',
+                                willChange: 'transform',
+                                transition: 'opacity 0.3s ease-out, transform 0.3s ease-out',
+                                backfaceVisibility: 'hidden'
+                              }}
+                              onError={(e) => {
+                                console.error('Video failed to load:', url)
+                                console.error('Video error event:', e)
+                                // Show a fallback instead of hiding completely
+                                e.target.style.background = '#f0f0f0'
+                                e.target.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666; font-size: 24px;">⚠️ Video încărcare eșuată</div>'
+                              }}
+                              onLoadStart={() => console.log('Video load started:', url)}
+                              onCanPlay={() => console.log('Video can play:', url)}
+                            >
+                              <source src={url} type="video/mp4" />
+                              <source src={url} type="video/quicktime" />
+                              <p>Browserul nu suportă redarea video-ului.</p>
+                            </video>
+                          ) : (
+                            <img
+                              key={index}
+                              src={url}
+                              alt={`${currentPost.title || 'Post'} - ${index + 1}/${multiPhotoUrls.length}`}
+                              style={{ 
+                                minWidth: '100%',
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'contain',
+                                scrollSnapAlign: 'start',
+                                transform: 'translateZ(0)',
+                                willChange: 'transform',
+                                transition: 'opacity 0.3s ease-out, transform 0.3s ease-out',
+                                backfaceVisibility: 'hidden',
+                                imageRendering: 'auto'
+                              }}
+                            />
+                          )
+                        })}
                       </div>
                       
                       {/* Desktop Navigation Arrows */}

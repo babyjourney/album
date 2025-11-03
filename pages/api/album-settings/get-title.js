@@ -48,35 +48,16 @@ export default async function handler(req, res) {
     // Generate title based on logic
     let albumTitle = 'Family Album'
     
-    if (settings && settings.is_multi_child) {
-      // Multi-child mode: always use family name
-      if (settings.family_name) {
-        albumTitle = `Albumul familiei "${settings.family_name}"`
-      } else {
-        albumTitle = `Albumul familiei "${family.name}"`
-      }
+    // New logic: 1 child = "Albumul lui Child", 2+ children = "Albumul familiei Family"
+    if (!children || children.length === 0) {
+      // No children - use family name
+      albumTitle = `Albumul familiei ${family.name}`
+    } else if (children.length === 1) {
+      // One child - use child's name
+      albumTitle = `Albumul lui ${children[0].name}`
     } else {
-      // Single child mode: check number of children
-      if (!children || children.length === 0) {
-        // No children - use family name or primary child name from settings
-        if (settings && settings.primary_child_name) {
-          albumTitle = `Albumul "${settings.primary_child_name}"`
-        } else if (settings && settings.family_name) {
-          albumTitle = `Albumul familiei "${settings.family_name}"`
-        } else {
-          albumTitle = `Albumul familiei "${family.name}"`
-        }
-      } else if (children.length === 1) {
-        // One child - use child's name
-        albumTitle = `Albumul "${children[0].name}"`
-      } else {
-        // Multiple children but single-child mode - switch to family name
-        if (settings && settings.family_name) {
-          albumTitle = `Albumul familiei "${settings.family_name}"`
-        } else {
-          albumTitle = `Albumul familiei "${family.name}"`
-        }
-      }
+      // Multiple children - use family name
+      albumTitle = `Albumul familiei ${family.name}`
     }
 
     return res.status(200).json({
@@ -84,8 +65,7 @@ export default async function handler(req, res) {
       title: albumTitle,
       childrenCount: children ? children.length : 0,
       isMultiChild: settings ? settings.is_multi_child : false,
-      familyName: settings ? settings.family_name : family.name,
-      primaryChildName: settings ? settings.primary_child_name : null
+      familyName: family.name
     })
 
   } catch (error) {

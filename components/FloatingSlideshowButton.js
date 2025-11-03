@@ -40,8 +40,11 @@ export default function FloatingSlideshowButton({ familyId }) {
           const hasFile = (photo.fileUrl && photo.fileUrl.trim() !== '') || 
                           (photo.file_url && photo.file_url.trim() !== '')
           
-          const passes = isNotTextPost && hasFile
-          console.log('Photo passes filter:', passes, 'isNotTextPost:', isNotTextPost, 'hasFile:', hasFile)
+          // For debugging - also accept posts without explicit type
+          const typeOK = !photo.type || photo.type !== 'text'
+          
+          const passes = typeOK && hasFile
+          console.log('Photo passes filter:', passes, 'typeOK:', typeOK, 'hasFile:', hasFile)
           return passes
         })
         console.log('Filtered memories:', mediaMemories.length, mediaMemories)

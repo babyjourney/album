@@ -23,11 +23,17 @@ export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate })
     }
   }, [isOpen])
 
-  const loadCategories = () => {
-    setCategories(getCategories())
+  const loadCategories = async () => {
+    try {
+      const cats = await getCategories()
+      setCategories(cats)
+    } catch (error) {
+      console.error('Error loading categories:', error)
+      showError('Eroare la încărcarea categoriilor')
+    }
   }
 
-  const handleAddCategory = () => {
+  const handleAddCategory = async () => {
     if (!newCategory.value.trim() || !newCategory.label.trim()) {
       showError(t('error'))
       return
@@ -46,25 +52,30 @@ export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate })
         emoji: newCategory.emoji
       }
       
-      const updatedCategories = addCategory(categoryToAdd)
+      const updatedCategories = await addCategory(categoryToAdd)
       setCategories(updatedCategories)
       setNewCategory({ value: '', label: '', emoji: '📝' })
       setIsAdding(false)
       onCategoriesUpdate?.(updatedCategories)
       showSuccess(t('success'))
     } catch (error) {
-      showError(t('error'))
+      console.error('Add category error:', error)
+      if (error.message.includes('migration')) {
+        showError('Sistemul de categorii necesită migrare. Contactează administratorul.')
+      } else {
+        showError(t('error'))
+      }
     }
   }
 
-  const handleUpdateCategory = (categoryValue) => {
+  const handleUpdateCategory = async (categoryValue) => {
     if (!editingCategory.label.trim()) {
       showError('Numele categoriei nu poate fi gol')
       return
     }
 
     try {
-      const updatedCategories = updateCategory(categoryValue, editingCategory)
+      const updatedCategories = await updateCategory(categoryValue, editingCategory)
       setCategories(updatedCategories)
       setEditingCategory(null)
       onCategoriesUpdate?.(updatedCategories)
@@ -74,10 +85,10 @@ export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate })
     }
   }
 
-  const handleDeleteCategory = (categoryValue) => {
+  const handleDeleteCategory = async (categoryValue) => {
     if (window.confirm(t('confirmDeleteText'))) {
       try {
-        const updatedCategories = deleteCategory(categoryValue)
+        const updatedCategories = await deleteCategory(categoryValue)
         setCategories(updatedCategories)
         onCategoriesUpdate?.(updatedCategories)
         showSuccess(t('success'))
@@ -87,10 +98,10 @@ export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate })
     }
   }
 
-  const handleResetToDefaults = () => {
+  const handleResetToDefaults = async () => {
     if (window.confirm(t('confirmResetCategories'))) {
       try {
-        const defaultCategories = resetToDefaults()
+        const defaultCategories = await resetToDefaults()
         setCategories(defaultCategories)
         onCategoriesUpdate?.(defaultCategories)
         showSuccess('Categoriile au fost resetate la valorile implicite!')

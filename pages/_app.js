@@ -1,13 +1,20 @@
 import '../styles/globals.css'
 import { ToastProvider } from '../contexts/ToastContext'
 import { LanguageProvider } from '../contexts/LanguageContext'
+import '../lib/cleanOldCategories' // Clean old global categories on app load
+import Head from 'next/head'
 
 export default function App({ Component, pageProps }) {
   return (
-    <LanguageProvider>
-      <ToastProvider>
-        <Component {...pageProps} />
-      </ToastProvider>
-    </LanguageProvider>
+    <>
+      <Head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+      </Head>
+      <LanguageProvider>
+        <ToastProvider>
+          <Component {...pageProps} />
+        </ToastProvider>
+      </LanguageProvider>
+    </>
   )
 }
