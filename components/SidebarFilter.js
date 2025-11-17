@@ -101,10 +101,10 @@ export default function SidebarFilter({
             width: '56px',
             height: '56px',
             borderRadius: '50%',
-            background: hasActiveFilters ? 'var(--accent-blue)' : 'white',
+            background: hasActiveFilters ? 'var(--accent-blue)' : 'var(--bg-secondary)',
             color: hasActiveFilters ? 'white' : 'var(--text-primary)',
             border: hasActiveFilters ? 'none' : '1px solid var(--border-light)',
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+            boxShadow: 'var(--shadow-lg)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -123,7 +123,7 @@ export default function SidebarFilter({
             style={{
               position: 'fixed',
               inset: 0,
-              background: 'rgba(0, 0, 0, 0.5)',
+              background: 'var(--overlay)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -133,7 +133,7 @@ export default function SidebarFilter({
             <div 
               onClick={(e) => e.stopPropagation()}
               style={{
-                background: 'white',
+                background: 'var(--bg-secondary)',
                 borderRadius: '20px',
                 padding: '20px',
                 width: '90%',
@@ -152,7 +152,8 @@ export default function SidebarFilter({
                 <h3 style={{
                   fontSize: '14px',
                   fontWeight: '600',
-                  margin: 0
+                  margin: 0,
+                  color: 'var(--text-primary)'
                 }}>
 {t('searchAndFilters')}
                 </h3>
@@ -195,7 +196,9 @@ export default function SidebarFilter({
                       border: '1px solid var(--border-light)',
                       borderRadius: '12px',
                       fontSize: '16px',
-                      outline: 'none'
+                      outline: 'none',
+                      backgroundColor: 'var(--bg-secondary)',
+                      color: 'var(--text-primary)'
                     }}
                   />
                 </div>
@@ -226,7 +229,7 @@ export default function SidebarFilter({
           top: '80px',
           width: '48px',
           height: '48px',
-          background: 'white',
+          background: 'var(--bg-secondary)',
           border: '1px solid var(--border-light)',
           borderRadius: '12px',
           cursor: 'pointer',
@@ -234,16 +237,16 @@ export default function SidebarFilter({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+          boxShadow: 'var(--shadow-md)',
           transition: 'all 0.3s ease'
         }}
         onMouseOver={(e) => {
-          e.target.style.background = '#f8f9fa'
-          e.target.style.transform = 'scale(1.05)'
+          e.currentTarget.style.background = 'var(--bg-gray)'
+          e.currentTarget.style.transform = 'scale(1.05)'
         }}
         onMouseOut={(e) => {
-          e.target.style.background = 'white'
-          e.target.style.transform = 'scale(1)'
+          e.currentTarget.style.background = 'var(--bg-secondary)'
+          e.currentTarget.style.transform = 'scale(1)'
         }}
       >
         <Filter size={20} color={hasActiveFilters ? '#3b82f6' : 'var(--text-secondary)'} />
@@ -274,9 +277,9 @@ export default function SidebarFilter({
             top: '80px',
             width: '280px',
             height: 'calc(100vh - 120px)',
-            background: 'rgba(255, 255, 255, 0.95)',
+            background: 'var(--bg-secondary)',
             backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255, 255, 255, 0.3)',
+            border: '1px solid var(--border-light)',
             borderRadius: '12px',
             padding: '12px',
             zIndex: 150,
@@ -341,7 +344,9 @@ export default function SidebarFilter({
                 borderRadius: '8px',
                 fontSize: '14px',
                 outline: 'none',
-                boxSizing: 'border-box'
+                boxSizing: 'border-box',
+                backgroundColor: 'var(--bg-secondary)',
+                color: 'var(--text-primary)'
               }}
             />
           </div>
@@ -394,7 +399,7 @@ export default function SidebarFilter({
                   fontSize: '10px',
                   border: '1px solid var(--border-light)',
                   borderRadius: '8px',
-                  background: (filters.category || 'all') === cat.value ? 'var(--accent-blue)' : 'white',
+                  background: (filters.category || 'all') === cat.value ? 'var(--accent-blue)' : 'var(--bg-secondary)',
                   color: (filters.category || 'all') === cat.value ? 'white' : 'var(--text-primary)',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
@@ -428,7 +433,8 @@ export default function SidebarFilter({
               borderRadius: '8px',
               fontSize: '11px',
               outline: 'none',
-              background: 'white'
+              background: 'var(--bg-secondary)',
+              color: 'var(--text-primary)'
             }}
           />
         </div>
@@ -467,7 +473,9 @@ export default function SidebarFilter({
                 borderRadius: '8px',
                 fontSize: '11px',
                 outline: 'none',
-                boxSizing: 'border-box'
+                boxSizing: 'border-box',
+                backgroundColor: 'var(--bg-secondary)',
+                color: 'var(--text-primary)'
               }}
             />
           </div>
@@ -493,7 +501,8 @@ export default function SidebarFilter({
               borderRadius: '8px',
               fontSize: '11px',
               outline: 'none',
-              background: 'white'
+              background: 'var(--bg-secondary)',
+              color: 'var(--text-primary)'
             }}
           >
             <option value="newest">{t('newest')}</option>

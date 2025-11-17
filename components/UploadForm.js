@@ -23,6 +23,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
   const [albumSettings, setAlbumSettings] = useState(null)
   const [customDate, setCustomDate] = useState(null)
   const [categories, setCategories] = useState([])
+  const [coverIndex, setCoverIndex] = useState(0)
   const { showSuccess, showError } = useToast()
   const { t } = useLanguage()
   const modalRef = useRef(null)
@@ -172,6 +173,11 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
     setFiles(processedFiles)
     setLoading(false)
     
+    // Reset cover index if files were removed or reordered
+    if (coverIndex >= processedFiles.length) {
+      setCoverIndex(0)
+    }
+    
     // Reset file input to allow selecting more files
     const fileInput = document.getElementById('file-upload')
     if (fileInput) {
@@ -219,18 +225,26 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
         imageUrls.push(publicUrlData.publicUrl)
       }
 
+      // Prepare request data
+      const requestData = {
+        title: title.trim(),
+        description: description.trim(),
+        imageUrls,
+        category: category,
+        hashtags: hashtags.map(tag => `#${tag}`).join(' '),
+        selectedChildren,
+        customDate
+      }
+
+      // Only include coverIndex if there are multiple files
+      if (imageUrls.length > 1) {
+        requestData.coverIndex = coverIndex
+      }
+
       // Save multi-photo post via API
       const response = await authenticatedFetch('/api/posts/create-multi', {
         method: 'POST',
-        body: JSON.stringify({
-          title: title.trim(),
-          description: description.trim(),
-          imageUrls,
-          category: category,
-          hashtags: hashtags.map(tag => `#${tag}`).join(' '),
-          selectedChildren,
-          customDate
-        })
+        body: JSON.stringify(requestData)
       })
 
       const result = await response.json()
@@ -266,6 +280,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
       setFiles([])
       setCompressionInfo(null)
       setSelectedChildren([])
+      setCoverIndex(0)
       
       showSuccess(successMessage)
       
@@ -395,7 +410,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
             border: '1px solid var(--border-light)',
             borderRadius: '12px',
             padding: '8px 12px',
-            backgroundColor: 'white',
+            backgroundColor: 'var(--bg-secondary)',
             minHeight: '44px',
             display: 'flex',
             flexWrap: 'wrap',
@@ -494,7 +509,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
                     cursor: 'pointer',
                     padding: '8px',
                     borderRadius: '8px',
-                    backgroundColor: selectedChildren.includes(child.id) ? 'var(--accent-blue)' : 'white',
+                    backgroundColor: selectedChildren.includes(child.id) ? 'var(--accent-blue)' : 'var(--bg-secondary)',
                     color: selectedChildren.includes(child.id) ? 'white' : 'var(--text-primary)',
                     border: '1px solid var(--border-light)',
                     transition: 'all 0.2s ease-in-out'
@@ -604,7 +619,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
                     {/* Video icon for video files */}
                     {file.type.startsWith('video/') && (
                       <div style={{
-                        color: '#6B7280',
+                        color: 'var(--text-secondary)',
                         fontSize: '24px',
                         background: 'rgba(255, 255, 255, 0.9)',
                         borderRadius: '50%',
@@ -618,12 +633,42 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
                       </div>
                     )}
                     
+                    {/* Cover selection indicator */}
+                    {index === coverIndex && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '4px',
+                        left: '4px',
+                        width: '16px',
+                        height: '16px',
+                        borderRadius: '50%',
+                        backgroundColor: 'var(--accent-green)',
+                        color: 'white',
+                        fontSize: '10px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+                        fontWeight: 'bold'
+                      }}
+                      title="Cover/Thumbnail"
+                      >
+                        ★
+                      </div>
+                    )}
+                    
                     {/* Remove button */}
                     <button
                       type="button"
                       onClick={() => {
                         const newFiles = files.filter((_, i) => i !== index)
                         setFiles(newFiles)
+                        // Adjust cover index if needed
+                        if (index === coverIndex && index === files.length - 1) {
+                          setCoverIndex(Math.max(0, index - 1))
+                        } else if (index < coverIndex) {
+                          setCoverIndex(coverIndex - 1)
+                        }
                       }}
                       style={{
                         position: 'absolute',
@@ -667,6 +712,99 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
               </div>
             </div>
           )}
+
+          {/* Cover Selection - Only show when multiple files */}
+          {files.length > 1 && (
+            <div style={{ 
+              marginTop: '12px', 
+              padding: '12px', 
+              backgroundColor: 'var(--bg-gray)', 
+              border: '1px solid var(--border-light)',
+              borderRadius: '12px'
+            }}>
+              <div style={{ marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                📸 Alege thumbnail-ul/cover-ul pentru această postare:
+              </div>
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', 
+                gap: '8px' 
+              }}>
+                {files.map((file, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => setCoverIndex(index)}
+                    style={{
+                      position: 'relative',
+                      width: '80px',
+                      height: '80px',
+                      borderRadius: '8px',
+                      backgroundColor: 'var(--bg-gray)',
+                      backgroundImage: file.type.startsWith('image/') ? `url(${URL.createObjectURL(file)})` : 'none',
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: index === coverIndex ? '3px solid var(--accent-green)' : '2px solid transparent',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease'
+                    }}
+                    title={`Selectează ca thumbnail ${index === coverIndex ? '(selectat)' : ''}`}
+                  >
+                    {/* Video icon for video files */}
+                    {file.type.startsWith('video/') && (
+                      <div style={{
+                        color: 'var(--text-secondary)',
+                        fontSize: '28px',
+                        background: 'rgba(255, 255, 255, 0.9)',
+                        borderRadius: '50%',
+                        width: '40px',
+                        height: '40px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        ▶
+                      </div>
+                    )}
+                    
+                    {/* Cover selection indicator */}
+                    {index === coverIndex && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '4px',
+                        right: '4px',
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '50%',
+                        backgroundColor: 'var(--accent-green)',
+                        color: 'white',
+                        fontSize: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
+                        fontWeight: 'bold'
+                      }}
+                      >
+                        ✓
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+              <p style={{ 
+                marginTop: '8px', 
+                fontSize: '12px', 
+                color: '#6B7280',
+                lineHeight: '1.4'
+              }}>
+                Thumbnail-ul selectat va fi afișat în grid ca poza principală a postării. Poți selecta orice imagine sau video.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Error Message */}
@@ -692,7 +830,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
         flexShrink: 0,
         display: 'flex',
         justifyContent: 'flex-end',
-        background: 'white',
+        background: 'var(--bg-secondary)',
         minHeight: '70px'
       }}>
         <button

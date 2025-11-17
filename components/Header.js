@@ -2,11 +2,14 @@ import { useState } from 'react'
 import { useRouter } from 'next/router'
 import { clearSession } from '../lib/pinAuth'
 import { useLanguage } from '../contexts/LanguageContext'
+import { useTheme } from '../contexts/ThemeContext'
 
 export default function Header({ familyName, role, albumTitle }) {
   const [loading, setLoading] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [showSettingsModal, setShowSettingsModal] = useState(false)
   const { language, changeLanguage, t } = useLanguage()
+  const { currentTheme, changeTheme, themes } = useTheme()
   const router = useRouter()
   
   const isSkillsPage = router.pathname === '/skills'
@@ -29,8 +32,13 @@ export default function Header({ familyName, role, albumTitle }) {
 
   return (
     <header style={{
-      background: 'white',
-      borderBottom: '1px solid var(--border-light)'
+      background: 'var(--bg-secondary)',
+      borderBottom: '1px solid var(--border-light)',
+      position: 'sticky',
+      top: 0,
+      zIndex: 100,
+      backdropFilter: 'blur(8px)',
+      backgroundColor: 'var(--bg-secondary)'
     }}>
       <div style={{ maxWidth: '935px', margin: '0 auto', padding: '0 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '60px' }}>
@@ -54,44 +62,49 @@ export default function Header({ familyName, role, albumTitle }) {
                 boxShadow: '0 2px 4px rgba(59, 130, 246, 0.3)'
               }}
               onMouseOver={(e) => {
-                e.target.style.background = '#2563eb'
-                e.target.style.transform = 'scale(1.05)'
+                e.currentTarget.style.background = '#2563eb'
+                e.currentTarget.style.transform = 'scale(1.05)'
               }}
               onMouseOut={(e) => {
-                e.target.style.background = 'var(--accent-blue)'
-                e.target.style.transform = 'scale(1)'
+                e.currentTarget.style.background = 'var(--accent-blue)'
+                e.currentTarget.style.transform = 'scale(1)'
               }}
               title={t('home')}
             >
               🏠
             </button>
             
-            {/* Language Toggle Button */}
+            {/* Settings Button */}
             <button
-              onClick={() => changeLanguage(language === 'ro' ? 'ru' : 'ro')}
+              onClick={() => setShowSettingsModal(true)}
               style={{
-                padding: '6px 12px',
-                borderRadius: '6px',
+                width: '36px',
+                height: '36px',
+                borderRadius: '8px',
                 border: '1px solid var(--border-light)',
-                background: 'white',
-                color: 'var(--text-primary)',
-                fontSize: '14px',
-                fontWeight: '500',
+                background: 'var(--bg-secondary)',
+                color: 'var(--text-secondary)',
                 cursor: 'pointer',
                 outline: 'none',
                 transition: 'all 0.2s ease-in-out',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '4px'
+                justifyContent: 'center'
               }}
               onMouseOver={(e) => {
-                e.target.style.background = 'var(--bg-gray)'
+                e.currentTarget.style.background = 'var(--bg-gray)'
+                e.currentTarget.style.color = 'var(--text-primary)'
               }}
               onMouseOut={(e) => {
-                e.target.style.background = 'white'
+                e.currentTarget.style.background = 'var(--bg-secondary)'
+                e.currentTarget.style.color = 'var(--text-secondary)'
               }}
+              title="Настройки / Setări"
             >
-              {language === 'ro' ? '🇷🇴 RO' : '🇷🇺 RU'}
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
             </button>
           </div>
 
@@ -104,7 +117,7 @@ export default function Header({ familyName, role, albumTitle }) {
                   padding: '8px 16px',
                   borderRadius: '20px',
                   border: '1px solid var(--border-light)',
-                  background: 'white',
+                  background: 'var(--bg-secondary)',
                   color: 'var(--text-primary)',
                   fontSize: '14px',
                   fontWeight: '500',
@@ -112,10 +125,10 @@ export default function Header({ familyName, role, albumTitle }) {
                   transition: 'all 0.2s ease-in-out'
                 }}
                 onMouseOver={(e) => {
-                  e.target.style.background = 'var(--bg-gray)'
+                  e.currentTarget.style.background = 'var(--bg-gray)'
                 }}
                 onMouseOut={(e) => {
-                  e.target.style.background = 'white'
+                  e.currentTarget.style.background = 'var(--bg-secondary)'
                 }}
               >
                 {t('album')}
@@ -127,7 +140,7 @@ export default function Header({ familyName, role, albumTitle }) {
                   padding: '8px 16px',
                   borderRadius: '20px',
                   border: '1px solid var(--border-light)',
-                  background: 'white',
+                  background: 'var(--bg-secondary)',
                   color: 'var(--text-primary)',
                   fontSize: '14px',
                   fontWeight: '500',
@@ -135,10 +148,10 @@ export default function Header({ familyName, role, albumTitle }) {
                   transition: 'all 0.2s ease-in-out'
                 }}
                 onMouseOver={(e) => {
-                  e.target.style.background = 'var(--bg-gray)'
+                  e.currentTarget.style.background = 'var(--bg-gray)'
                 }}
                 onMouseOut={(e) => {
-                  e.target.style.background = 'white'
+                  e.currentTarget.style.background = 'var(--bg-secondary)'
                 }}
               >
                 {t('skills')}
@@ -156,7 +169,7 @@ export default function Header({ familyName, role, albumTitle }) {
                 padding: '10px',
                 borderRadius: '50%',
                 border: '1px solid var(--border-light)',
-                background: 'white',
+                background: 'var(--bg-secondary)',
                 color: 'var(--text-primary)',
                 fontSize: '16px',
                 cursor: loading ? 'not-allowed' : 'pointer',
@@ -169,12 +182,12 @@ export default function Header({ familyName, role, albumTitle }) {
               }}
               onMouseOver={(e) => {
                 if (!loading) {
-                  e.target.style.background = 'var(--bg-gray)'
+                  e.currentTarget.style.background = 'var(--bg-gray)'
                 }
               }}
               onMouseOut={(e) => {
                 if (!loading) {
-                  e.target.style.background = 'white'
+                  e.currentTarget.style.background = 'var(--bg-secondary)'
                 }
               }}
             >
@@ -195,6 +208,221 @@ export default function Header({ familyName, role, albumTitle }) {
         </div>
       </div>
 
+      {/* Settings Modal */}
+      {showSettingsModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.6)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          backdropFilter: 'blur(4px)',
+          padding: '20px'
+        }}>
+          <div style={{
+            background: 'var(--bg-secondary)',
+            borderRadius: '16px',
+            padding: '24px',
+            maxWidth: '400px',
+            width: '100%',
+            maxHeight: '80vh',
+            overflowY: 'auto',
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.2)',
+            transform: 'scale(1)',
+            animation: 'modalAppear 0.2s ease-out',
+            margin: 'auto'
+          }}>
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{
+                width: '64px',
+                height: '64px',
+                background: 'linear-gradient(135deg, #e0e7ff, #3b82f6)',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 16px',
+                fontSize: '24px'
+              }}>
+                ⚙️
+              </div>
+              <h3 style={{
+                fontSize: '20px',
+                fontWeight: '600',
+                color: 'var(--text-primary)',
+                marginBottom: '8px',
+                textAlign: 'center'
+              }}>
+                Настройки / Setări
+              </h3>
+              <p style={{
+                fontSize: '14px',
+                color: 'var(--text-secondary)',
+                lineHeight: '1.5',
+                textAlign: 'center'
+              }}>
+                Персонализируйте ваш опыт / Personalizează experiența
+              </p>
+            </div>
+
+            {/* Language Selection */}
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: 'var(--text-primary)',
+                marginBottom: '12px'
+              }}>
+                🌍 Язык / Limbă
+              </label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {[
+                  { code: 'ro', label: '🇷🇴 Română', name: 'Română' },
+                  { code: 'ru', label: '🇷🇺 Русский', name: 'Русский' },
+                  { code: 'en', label: '🇺🇸 English', name: 'English' }
+                ].map((lang) => (
+                  <button
+                    key={lang.code}
+                    onClick={() => changeLanguage(lang.code)}
+                    style={{
+                      flex: 1,
+                      padding: '12px 8px',
+                      border: language === lang.code ? '2px solid var(--accent-blue)' : '1px solid var(--border-light)',
+                      background: language === lang.code ? 'var(--accent-blue-light)' : 'var(--bg-secondary)',
+                      color: language === lang.code ? 'var(--accent-blue)' : 'var(--text-primary)',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: '500',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      textAlign: 'center'
+                    }}
+                    onMouseOver={(e) => {
+                      if (language !== lang.code) {
+                        e.currentTarget.style.background = 'var(--bg-gray)'
+                        e.currentTarget.style.borderColor = '#9ca3af'
+                      }
+                    }}
+                    onMouseOut={(e) => {
+                      if (language !== lang.code) {
+                        e.currentTarget.style.background = 'var(--bg-secondary)'
+                        e.currentTarget.style.borderColor = '#d1d5db'
+                      }
+                    }}
+                  >
+                    <div>{lang.label}</div>
+                    <div style={{ fontSize: '11px', opacity: 0.8 }}>{lang.name}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Theme Selection */}
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: 'var(--text-primary)',
+                marginBottom: '12px'
+              }}>
+                🎨 Тема / Temă
+              </label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {Object.values(themes).map((theme) => (
+                  <button
+                    key={theme.name}
+                    onClick={() => changeTheme(theme.name)}
+                    style={{
+                      padding: '12px 16px',
+                      border: currentTheme === theme.name ? '2px solid var(--accent-blue)' : '1px solid var(--border-light)',
+                      background: currentTheme === theme.name ? 'var(--accent-blue-light)' : 'var(--bg-secondary)',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      width: '100%',
+                      textAlign: 'left'
+                    }}
+                    onMouseOver={(e) => {
+                      if (currentTheme !== theme.name) {
+                        e.currentTarget.style.background = 'var(--bg-gray)'
+                        e.currentTarget.style.borderColor = 'var(--border-primary)'
+                      }
+                    }}
+                    onMouseOut={(e) => {
+                      if (currentTheme !== theme.name) {
+                        e.currentTarget.style.background = 'var(--bg-secondary)'
+                        e.currentTarget.style.borderColor = 'var(--border-light)'
+                      }
+                    }}
+                  >
+                    <div style={{
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '4px',
+                      background: theme.colors['--bg-primary'],
+                      border: '1px solid rgba(0, 0, 0, 0.1)',
+                      flexShrink: 0
+                    }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span>{theme.icon}</span>
+                        <span style={{ color: 'var(--text-primary)' }}>{theme.label}</span>
+                      </div>
+                    </div>
+                    {currentTheme === theme.name && (
+                      <div style={{
+                        color: 'var(--accent-blue)',
+                        fontSize: '16px'
+                      }}>
+                        ✓
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Close Button */}
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <button
+                onClick={() => setShowSettingsModal(false)}
+                style={{
+                  padding: '12px 32px',
+                  border: '1px solid var(--border-light)',
+                  background: 'var(--bg-secondary)',
+                  color: 'var(--text-primary)',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.background = 'var(--bg-gray)'
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.background = 'var(--bg-secondary)'
+                }}
+              >
+                Готово / Gata
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Logout Confirmation Modal */}
       {showConfirmModal && (
         <div style={{
@@ -208,7 +436,7 @@ export default function Header({ familyName, role, albumTitle }) {
           backdropFilter: 'blur(4px)'
         }}>
           <div style={{
-            background: 'white',
+            background: 'var(--bg-secondary)',
             borderRadius: '16px',
             padding: '32px',
             maxWidth: '400px',
@@ -234,14 +462,14 @@ export default function Header({ familyName, role, albumTitle }) {
               <h3 style={{
                 fontSize: '20px',
                 fontWeight: '600',
-                color: '#111827',
+                color: 'var(--text-primary)',
                 marginBottom: '8px'
               }}>
                 {t('confirmSignOut')}
               </h3>
               <p style={{
                 fontSize: '14px',
-                color: '#6b7280',
+                color: 'var(--text-secondary)',
                 lineHeight: '1.5'
               }}>
                 {t('signOutConfirmText')}
@@ -257,9 +485,9 @@ export default function Header({ familyName, role, albumTitle }) {
                 onClick={handleCancelSignOut}
                 style={{
                   padding: '12px 24px',
-                  border: '1px solid #d1d5db',
-                  background: 'white',
-                  color: '#374151',
+                  border: '1px solid var(--border-light)',
+                  background: 'var(--bg-secondary)',
+                  color: 'var(--text-primary)',
                   borderRadius: '8px',
                   fontSize: '14px',
                   fontWeight: '500',
@@ -268,10 +496,10 @@ export default function Header({ familyName, role, albumTitle }) {
                   minWidth: '100px'
                 }}
                 onMouseOver={(e) => {
-                  e.target.style.background = '#f9fafb'
+                  e.currentTarget.style.background = 'var(--bg-gray)'
                 }}
                 onMouseOut={(e) => {
-                  e.target.style.background = 'white'
+                  e.currentTarget.style.background = 'var(--bg-secondary)'
                 }}
               >
                 {t('cancel')}
@@ -297,12 +525,12 @@ export default function Header({ familyName, role, albumTitle }) {
                 }}
                 onMouseOver={(e) => {
                   if (!loading) {
-                    e.target.style.background = '#b91c1c'
+                    e.currentTarget.style.background = '#b91c1c'
                   }
                 }}
                 onMouseOut={(e) => {
                   if (!loading) {
-                    e.target.style.background = '#dc2626'
+                    e.currentTarget.style.background = '#dc2626'
                   }
                 }}
               >

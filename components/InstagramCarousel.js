@@ -364,8 +364,8 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
                   console.error('Video failed to load:', url)
                   console.error('Video error event:', e)
                   // Show a fallback instead of hiding completely
-                  e.target.style.background = '#f0f0f0'
-                  e.target.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666;">⚠️ Video încărcare eșuată</div>'
+                  e.target.style.background = 'var(--bg-gray)'
+                  e.target.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-secondary);">⚠️ Video încărcare eșuată</div>'
                 }}
                 onLoadStart={() => console.log('Video load started:', url)}
                 onCanPlay={() => console.log('Video can play:', url)}
@@ -414,7 +414,7 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
                 width: '44px',
                 height: '44px',
                 borderRadius: '50%',
-                background: 'rgba(0, 0, 0, 0.5)',
+                background: 'var(--overlay)',
                 border: 'none',
                 color: 'white',
                 fontSize: '18px',
@@ -427,11 +427,11 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
                 backdropFilter: 'blur(8px)'
               }}
               onMouseOver={(e) => {
-                e.target.style.background = 'rgba(0, 0, 0, 0.7)'
+                e.target.style.background = 'var(--overlay)'
                 e.target.style.transform = 'translateY(-50%) scale(1.1)'
               }}
               onMouseOut={(e) => {
-                e.target.style.background = 'rgba(0, 0, 0, 0.5)'
+                e.target.style.background = 'var(--overlay)'
                 e.target.style.transform = 'translateY(-50%) scale(1)'
               }}
             >
@@ -454,7 +454,7 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
                 width: '44px',
                 height: '44px',
                 borderRadius: '50%',
-                background: 'rgba(0, 0, 0, 0.5)',
+                background: 'var(--overlay)',
                 border: 'none',
                 color: 'white',
                 fontSize: '18px',
@@ -467,11 +467,11 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
                 backdropFilter: 'blur(8px)'
               }}
               onMouseOver={(e) => {
-                e.target.style.background = 'rgba(0, 0, 0, 0.7)'
+                e.target.style.background = 'var(--overlay)'
                 e.target.style.transform = 'translateY(-50%) scale(1.1)'
               }}
               onMouseOut={(e) => {
-                e.target.style.background = 'rgba(0, 0, 0, 0.5)'
+                e.target.style.background = 'var(--overlay)'
                 e.target.style.transform = 'translateY(-50%) scale(1)'
               }}
             >
@@ -494,7 +494,7 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
             gap: '4px',
             zIndex: 30, // Higher z-index
             padding: '6px 12px',
-            background: 'rgba(0, 0, 0, 0.7)', // Match post counter style
+            background: 'var(--overlay)', // Match post counter style
             borderRadius: '16px',
             backdropFilter: 'blur(10px)',
             border: '1px solid rgba(255, 255, 255, 0.1)',

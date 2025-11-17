@@ -6,7 +6,7 @@ async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const { postId, title, description, hashtags, file_urls, customDate } = req.body
+  const { postId, title, description, hashtags, file_urls, customDate, coverIndex } = req.body
 
   if (!postId) {
     return res.status(400).json({ error: 'Post ID is required' })
@@ -38,6 +38,11 @@ async function handler(req, res) {
       description: description || null,
       hashtags: hashtags || null,
       updated_at: new Date().toISOString()
+    }
+
+    // Handle cover index if provided
+    if (coverIndex !== undefined) {
+      updateData.cover_index = coverIndex
     }
 
     // Handle custom date if provided
@@ -102,6 +107,10 @@ async function handler(req, res) {
         // Convert new file_urls to old format in description
         const cleanDescription = description || ''
         updateData.description = cleanDescription + '\n__MULTI_PHOTO_URLS__:' + JSON.stringify(file_urls)
+        // Also append cover index in old format
+        if (coverIndex !== undefined) {
+          updateData.description += '\n__COVER_INDEX__:' + coverIndex
+        }
         // Remove file_urls from update since column doesn't exist
         delete updateData.file_urls
         console.log('Converting file_urls to old format in description')
@@ -138,7 +147,12 @@ async function handler(req, res) {
         if (file_urls !== undefined) {
           const oldFormatUpdate = { ...updateData }
           delete oldFormatUpdate.file_urls
+          delete oldFormatUpdate.cover_index // Remove from update as it will be in description
           oldFormatUpdate.description = (description || '') + '\n__MULTI_PHOTO_URLS__:' + JSON.stringify(file_urls)
+          // Add cover index in old format
+          if (coverIndex !== undefined) {
+            oldFormatUpdate.description += '\n__COVER_INDEX__:' + coverIndex
+          }
           
           console.log('Retrying with old format data:', oldFormatUpdate)
           

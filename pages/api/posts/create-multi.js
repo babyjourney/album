@@ -6,7 +6,7 @@ async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const { title, description, category, hashtags, selectedChildren, imageUrls, customDate } = req.body
+  const { title, description, category, hashtags, selectedChildren, imageUrls, customDate, coverIndex } = req.body
 
   // Use authenticated family ID
   const familyId = req.auth.familyId
@@ -66,15 +66,33 @@ async function handler(req, res) {
     //   basePostData.custom_date = customDate
     // }
 
-    // Try new schema first, fallback to old schema if columns don't exist
+    // Validate cover index - only use it if explicitly provided and valid
+    let validCoverIndex = 0
+    if (coverIndex !== undefined && coverIndex !== null && coverIndex >= 0 && coverIndex < imageUrls.length) {
+      validCoverIndex = parseInt(coverIndex)
+    }
+
+    // Update base post data to use selected cover as primary URL
+    if (validCoverIndex > 0 && validCoverIndex < imageUrls.length) {
+      basePostData.file_url = imageUrls[validCoverIndex]
+    }
+
+    // Try multiple schema approaches to ensure compatibility
     let createdPost
+    let useOldFormat = false
+    
     try {
-      // Try with new schema columns
+      // First try: New schema with file_urls and cover_index
       const newSchemaData = {
         ...basePostData,
         description: description?.trim() || '',
-        type: 'multi-photo',
+        type: 'image',
         file_urls: imageUrls
+      }
+
+      // Only add cover_index if it's been provided and is valid
+      if (coverIndex !== undefined && coverIndex !== null) {
+        newSchemaData.cover_index = validCoverIndex
       }
       
       const { data: post, error: postError } = await supabase
@@ -86,35 +104,67 @@ async function handler(req, res) {
       if (postError) {
         // If error mentions column, throw to trigger fallback
         if (postError.message && (postError.message.includes('column') || postError.message.includes('does not exist'))) {
-          throw new Error('New columns not available')
+          throw new Error('New schema not available: ' + postError.message)
         }
         // Other errors should be thrown normally
         console.error('Error creating multi-photo post:', postError)
-        return res.status(500).json({ error: 'Failed to create post' })
+        return res.status(500).json({ error: 'Failed to create post: ' + postError.message })
       }
 
       createdPost = post
       console.log('Successfully created multi-photo post with new schema')
-    } catch (schemaError) {
-      // Fallback to old schema with URLs in description
-      console.log('Using old schema fallback for multi-photo post')
-      const oldSchemaData = {
-        ...basePostData,
-        description: (description?.trim() || '') + '\n__MULTI_PHOTO_URLS__:' + JSON.stringify(imageUrls)
-      }
       
-      const { data: post, error: postError } = await supabase
-        .from('photos')
-        .insert(oldSchemaData)
-        .select()
-        .single()
+    } catch (schemaError) {
+      console.log('New schema failed, trying without file_urls column:', schemaError.message)
+      useOldFormat = true
+    }
 
-      if (postError) {
-        console.error('Error creating multi-photo post with old schema:', postError)
-        return res.status(500).json({ error: 'Failed to create post' })
+    // Second try: Schema without file_urls (fallback)
+    if (useOldFormat) {
+      try {
+        const mediumSchemaData = {
+          ...basePostData,
+          description: description?.trim() || '',
+          type: 'image'
+        }
+        
+        const { data: post, error: postError } = await supabase
+          .from('photos')
+          .insert(mediumSchemaData)
+          .select()
+          .single()
+
+        if (postError) {
+          throw new Error('Medium schema failed: ' + postError.message)
+        }
+
+        createdPost = post
+        console.log('Successfully created multi-photo post with medium schema (no file_urls)')
+        
+      } catch (mediumError) {
+        console.log('Medium schema also failed, trying old schema fallback:', mediumError.message)
+        
+        // Third try: Old schema with URLs in description
+        const oldSchemaData = {
+          ...basePostData,
+          description: (description?.trim() || '') + '\n__MULTI_PHOTO_URLS__:' + JSON.stringify(imageUrls) + 
+            (coverIndex !== undefined && coverIndex !== null ? '\n__COVER_INDEX__:' + validCoverIndex : '')
+        }
+        
+        const { data: post, error: postError } = await supabase
+          .from('photos')
+          .insert(oldSchemaData)
+          .select()
+          .single()
+
+        if (postError) {
+          console.error('Error creating multi-photo post with old schema:', postError)
+          throw new Error('All schema approaches failed: ' + postError.message)
+        }
+
+        createdPost = post
+        console.log('Successfully created multi-photo post with old schema fallback')
       }
-
-      createdPost = post
     }
 
     // Handle child associations if multi-child is enabled
@@ -141,8 +191,21 @@ async function handler(req, res) {
       post: createdPost
     })
   } catch (error) {
-    console.error('Error in create multi-photo API:', error)
-    res.status(500).json({ error: 'Internal server error' })
+    console.error('Error in create multi-photo API:', {
+      message: error.message,
+      stack: error.stack,
+      details: error.details,
+      code: error.code,
+      requestBody: req.body
+    })
+    
+    // Return more specific error message for debugging
+    const errorMessage = error.message || 'Internal server error'
+    res.status(500).json({ 
+      error: `Multi-photo post creation failed: ${errorMessage}`,
+      details: error.details,
+      hint: error.hint
+    })
   }
 }
 

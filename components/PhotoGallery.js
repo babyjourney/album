@@ -56,6 +56,41 @@ export default function PhotoGallery({ familyId, refreshTrigger, readOnly = fals
     }
   }
 
+  // Helper function to get the cover image URL for a post
+  const getCoverImageUrl = (photo) => {
+    // For multi-photo posts, use cover_index to select the cover image
+    if (photo.file_urls && Array.isArray(photo.file_urls) && photo.file_urls.length > 1) {
+      const coverIndex = photo.cover_index || 0
+      if (coverIndex >= 0 && coverIndex < photo.file_urls.length) {
+        return photo.file_urls[coverIndex]
+      }
+      return photo.file_urls[0] // Fallback to first image
+    }
+    
+    // For legacy multi-photo posts stored in description
+    if (photo.description && photo.description.includes('__MULTI_PHOTO_URLS__')) {
+      try {
+        const urlsMatch = photo.description.match(/__MULTI_PHOTO_URLS__:(.*?)(?:\n|$)/)
+        const coverMatch = photo.description.match(/__COVER_INDEX__:(\d+)/)
+        
+        if (urlsMatch) {
+          const urls = JSON.parse(urlsMatch[1])
+          const coverIndex = coverMatch ? parseInt(coverMatch[1]) : 0
+          
+          if (Array.isArray(urls) && urls.length > 0) {
+            const validIndex = (coverIndex >= 0 && coverIndex < urls.length) ? coverIndex : 0
+            return urls[validIndex]
+          }
+        }
+      } catch (error) {
+        console.error('Error parsing legacy multi-photo URLs:', error)
+      }
+    }
+    
+    // For single posts, return the file_url
+    return photo.file_url
+  }
+
   const handleDeletePhoto = async (photoId, fileUrl) => {
     if (!confirm('Are you sure you want to delete this photo?')) {
       return
@@ -239,35 +274,35 @@ export default function PhotoGallery({ familyId, refreshTrigger, readOnly = fals
               >
                 {/* Post content area */}
                 {photo.type === 'text' ? (
-                  <div className="image-container bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center p-6">
+                  <div className="image-container bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center p-6" style={{background: 'var(--bg-gray)'}}>
                     <div className="text-center">
                       <div className="text-3xl mb-3">💭</div>
-                      <p className="body-small text-gray-700 line-clamp-4 break-words">
+                      <p className="body-small text-gray-700 line-clamp-4 break-words" style={{color: 'var(--text-primary)'}}>
                         {photo.description || 'Text post'}
                       </p>
                     </div>
                   </div>
                 ) : (
                   <div className="image-container">
-                    {(photo.file_type === 'image' || photo.type === 'image') ? (
+                    {(photo.file_type === 'image' || photo.type === 'image' || (photo.file_urls && Array.isArray(photo.file_urls) && photo.file_urls.length > 1)) ? (
                       <img
-                        src={photo.file_url}
+                        src={getCoverImageUrl(photo)}
                         alt={photo.title || 'Image'}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                         onError={(e) => {
-                          console.error('Image failed to load:', photo.file_url)
+                          console.error('Image failed to load:', getCoverImageUrl(photo))
                           e.target.style.display = 'none'
                         }}
                       />
                     ) : (photo.file_type === 'video' || photo.type === 'video') ? (
-                      <div className="flex items-center justify-center w-full h-full bg-gray-900 text-white">
+                      <div className="flex items-center justify-center w-full h-full" style={{backgroundColor: 'var(--bg-gray)', color: 'var(--text-primary)'}}>
                         <div className="text-center">
                           <div className="text-3xl mb-2">▶️</div>
                           <div className="body-small font-medium">Video</div>
                         </div>
                       </div>
                     ) : (
-                      <div className="flex items-center justify-center w-full h-full bg-gray-100 text-gray-600">
+                      <div className="flex items-center justify-center w-full h-full" style={{backgroundColor: 'var(--bg-gray)', color: 'var(--text-secondary)'}}>
                         <div className="text-center">
                           <div className="text-3xl mb-2">📄</div>
                           <div className="body-small">File</div>
@@ -278,25 +313,25 @@ export default function PhotoGallery({ familyId, refreshTrigger, readOnly = fals
                 )}
                 
                 {/* Post metadata */}
-                <div className="p-4">
+                <div className="p-4" style={{backgroundColor: 'var(--bg-secondary)'}}>
                   <div className="flex items-start justify-between mb-2">
-                    <h3 className="body-medium font-semibold text-gray-900 line-clamp-1">
+                    <h3 className="body-medium font-semibold line-clamp-1" style={{color: 'var(--text-primary)'}}>
                       {photo.title || (photo.type === 'text' ? 'Text Post' : 'Untitled')}
                     </h3>
                     {photo.category && (
-                      <span className="body-small text-gray-500 bg-gray-100 px-2 py-1 rounded-full ml-2 whitespace-nowrap">
+                      <span className="body-small px-2 py-1 rounded-full ml-2 whitespace-nowrap" style={{color: 'var(--text-secondary)', backgroundColor: 'var(--bg-gray)'}}>
                         {photo.category}
                       </span>
                     )}
                   </div>
                   
                   {photo.description && photo.type !== 'text' && (
-                    <p className="body-small text-gray-600 line-clamp-2 mb-2">
+                    <p className="body-small line-clamp-2 mb-2" style={{color: 'var(--text-secondary)'}}>
                       {photo.description}
                     </p>
                   )}
                   
-                  <div className="body-small text-gray-400">
+                  <div className="body-small" style={{color: 'var(--text-subtle)'}}>
                     {new Date(photo.created_at).toLocaleDateString(language === 'ru' ? 'ru-RU' : 'ro-RO', {
                       month: 'short',
                       day: 'numeric',
@@ -311,8 +346,8 @@ export default function PhotoGallery({ familyId, refreshTrigger, readOnly = fals
         
         {/* Show results count when filtering */}
         {photos.length > 0 && selectedCategory !== 'all' && (
-          <div className="text-center mt-6 pt-6 border-t border-gray-100">
-            <p className="body-small text-gray-500">
+          <div className="text-center mt-6 pt-6" style={{borderTop: '1px solid var(--border-light)'}}>
+            <p className="body-small" style={{color: 'var(--text-secondary)'}}>
               Showing {filteredAndSortedPhotos.length} posts in "{CATEGORIES.find(cat => cat.value === selectedCategory)?.label}"
             </p>
           </div>
@@ -322,19 +357,19 @@ export default function PhotoGallery({ familyId, refreshTrigger, readOnly = fals
       {selectedPhoto && (
         <div className="overlay flex items-center justify-center p-4 z-50">
           <div className="modal">
-            <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+            <div className="p-6 flex items-center justify-between" style={{borderBottom: '1px solid var(--border-light)'}}>
               <div className="flex-1">
                 <div className="flex items-center space-x-3 mb-2">
                   <h3 className="heading-3">
                     {selectedPhoto.title || (selectedPhoto.type === 'text' ? 'Text Post' : 'Untitled')}
                   </h3>
                   {selectedPhoto.category && (
-                    <span className="body-small text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                    <span className="body-small px-3 py-1 rounded-full" style={{color: 'var(--text-secondary)', backgroundColor: 'var(--bg-gray)'}}>
                       {selectedPhoto.category}
                     </span>
                   )}
                 </div>
-                <p className="body-small text-gray-500">
+                <p className="body-small" style={{color: 'var(--text-secondary)'}}>
                   {new Date(selectedPhoto.created_at).toLocaleDateString(language === 'ru' ? 'ru-RU' : 'ro-RO', {
                     weekday: 'long',
                     year: 'numeric',

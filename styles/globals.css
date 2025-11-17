@@ -15,8 +15,8 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: #ffffff;
-  color: #262626;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   line-height: 1.5;
   min-height: 100vh;
 }
@@ -103,41 +103,48 @@ a:focus:not(:focus-visible) {
   font-size: 28px;
   font-weight: 600;
   line-height: 1.2;
-  color: #262626;
+  color: var(--text-primary);
 }
 
 .text-section-title {
   font-size: 20px;
   font-weight: 600;
   line-height: 1.3;
-  color: #262626;
+  color: var(--text-primary);
 }
 
 .text-body {
   font-size: 16px;
   font-weight: 400;
   line-height: 1.5;
-  color: #262626;
+  color: var(--text-primary);
 }
 
 .text-subtle {
   font-size: 14px;
   font-weight: 400;
   line-height: 1.4;
-  color: #8e8e8e;
+  color: var(--text-secondary);
 }
 
-/* Apple/Instagram Color System */
+/* Default Theme Variables - Will be overridden by ThemeProvider */
 :root {
-  --bg-primary: #ffffff;
-  --bg-content: #ffffff;
-  --bg-gray: #fafafa;
-  --text-primary: #262626;
-  --text-secondary: #8e8e8e;
-  --accent-blue: #0095f6;
-  --border-light: #dbdbdb;
-  --overlay-dark: rgba(0, 0, 0, 0.65);
-  --shadow-soft: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+  --bg-primary: #fafafa;
+  --bg-secondary: #ffffff;
+  --bg-gray: #f3f4f6;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --text-subtle: #9ca3af;
+  --border-light: #e5e7eb;
+  --border-primary: #d1d5db;
+  --accent-blue: #3b82f6;
+  --accent-blue-light: #eff6ff;
+  --accent-red: #ef4444;
+  --accent-green: #10b981;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --overlay: rgba(0, 0, 0, 0.5);
 }
 
 /* Spacing System - 4px Grid */
@@ -202,7 +209,7 @@ a:focus:not(:focus-visible) {
 
 /* Card System */
 .card {
-  background: var(--bg-content);
+  background: var(--bg-secondary);
   border-radius: 20px;
   padding: 20px;
   border: 1px solid var(--border-light);
@@ -211,7 +218,7 @@ a:focus:not(:focus-visible) {
 
 .card:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-lg);
 }
 
 /* Interactive Category Pills */
@@ -234,8 +241,8 @@ a:focus:not(:focus-visible) {
 }
 
 .category-pill--unselected:hover {
-  background: #e5e7eb;
-  border-color: #d1d5db;
+  background: var(--bg-gray);
+  border-color: var(--border-primary);
 }
 
 .category-pill--selected {
@@ -288,18 +295,19 @@ a:focus:not(:focus-visible) {
   font-size: 14px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   transition: all 0.2s ease-in-out;
-  background: var(--bg-gray);
+  background: var(--bg-secondary);
   color: var(--text-primary);
 }
 
 .input-field:focus {
   outline: none;
   border-color: var(--accent-blue);
-  background: white;
+  background: var(--bg-secondary);
+  box-shadow: 0 0 0 3px var(--accent-blue-light);
 }
 
 .input-field:hover {
-  border-color: #a3a3a3;
+  border-color: var(--border-primary);
 }
 
 .input-field::placeholder {
@@ -311,7 +319,7 @@ a:focus:not(:focus-visible) {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background-color: var(--overlay-dark);
+  background-color: var(--overlay);
   z-index: 50;
   display: flex;
   align-items: center;
@@ -320,9 +328,9 @@ a:focus:not(:focus-visible) {
 }
 
 .modal-content {
-  background: var(--bg-content);
+  background: var(--bg-secondary);
   border-radius: 20px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-lg);
   max-height: 90vh;
   overflow: hidden;
   width: 100%;
@@ -402,8 +410,8 @@ a:focus:not(:focus-visible) {
   
   /* More subtle shadows and borders on mobile */
   .card {
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important; /* More subtle shadow */
-    border: 1px solid #f0f0f0 !important; /* Lighter border */
+    box-shadow: var(--shadow-sm) !important;
+    border: 1px solid var(--border-light) !important;
   }
   
   /* Reduced spacing for mobile headers */
@@ -423,9 +431,9 @@ a:focus:not(:focus-visible) {
   
   /* Subtle floating buttons on mobile */
   .floating-button {
-    width: 48px !important; /* Slightly smaller */
+    width: 48px !important;
     height: 48px !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12) !important; /* More subtle shadow */
+    box-shadow: var(--shadow-md) !important;
   }
 
   /* Skills page mobile responsiveness */

@@ -70,7 +70,9 @@ export default function HeaderIsland({
       {hasEditorAccess && (
         <div className="card" style={{ 
           marginBottom: window.innerWidth <= 768 ? '16px' : '24px',
-          padding: window.innerWidth <= 768 ? '12px' : '20px'
+          padding: window.innerWidth <= 768 ? '12px' : '20px',
+          backgroundColor: 'var(--bg-secondary)',
+          borderColor: 'var(--border-light)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             {/* User Avatar - Clickable */}
@@ -136,12 +138,12 @@ export default function HeaderIsland({
                   transition: 'all 0.15s ease-in-out'
                 }}
                 onMouseOver={(e) => {
-                  e.target.style.backgroundColor = '#F3F4F6'
-                  e.target.style.color = 'var(--accent-blue)'
+                  e.currentTarget.style.backgroundColor = 'var(--bg-gray)'
+                  e.currentTarget.style.color = 'var(--accent-blue)'
                 }}
                 onMouseOut={(e) => {
-                  e.target.style.backgroundColor = 'transparent'
-                  e.target.style.color = 'var(--text-secondary)'
+                  e.currentTarget.style.backgroundColor = 'transparent'
+                  e.currentTarget.style.color = 'var(--text-secondary)'
                 }}
                 title="Încarcă fotografie"
               >
@@ -165,12 +167,12 @@ export default function HeaderIsland({
                   transition: 'all 0.15s ease-in-out'
                 }}
                 onMouseOver={(e) => {
-                  e.target.style.backgroundColor = '#F3F4F6'
-                  e.target.style.color = 'var(--accent-blue)'
+                  e.currentTarget.style.backgroundColor = 'var(--bg-gray)'
+                  e.currentTarget.style.color = 'var(--accent-blue)'
                 }}
                 onMouseOut={(e) => {
-                  e.target.style.backgroundColor = 'transparent'
-                  e.target.style.color = 'var(--text-secondary)'
+                  e.currentTarget.style.backgroundColor = 'transparent'
+                  e.currentTarget.style.color = 'var(--text-secondary)'
                 }}
                 title="Încarcă video"
               >

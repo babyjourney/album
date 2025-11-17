@@ -468,6 +468,238 @@ export const translations = {
     
     // Error messages
     photoDeleteFailed: 'Не удалось удалить фотографию'
+  },
+  en: {
+    // Header
+    home: 'Home',
+    signOut: 'Sign Out',
+    confirmSignOut: 'Confirm Sign Out',
+    signOutConfirmText: 'Are you sure you want to sign out? You will need to authenticate again to access the album.',
+    cancel: 'Cancel',
+    disconnect: 'Sign Out',
+    album: 'Album',
+    skills: 'Skills',
+    
+    // Post creation/editing
+    createPost: 'Create Post',
+    editPost: 'Edit Post',
+    postCreationFailed: 'Post creation failed',
+    postCreationFailedRetry: 'Post creation failed. Please try again.',
+    
+    // Upload
+    upload: 'Upload',
+    uploadPhoto: 'Upload Photo',
+    uploadTitle: 'Enter a title for your photo',
+    
+    // General
+    date: 'Date',
+    category: 'Category',
+    download: 'Download',
+    edit: 'Edit',
+    delete: 'Delete',
+    save: 'Save',
+    
+    // Date picker
+    selectDate: 'Select Date',
+    postDate: 'Post Date',
+    day: 'Day',
+    month: 'Month',
+    year: 'Year',
+    
+    // Categories
+    family: 'Family',
+    travel: 'Travel',
+    first: 'First Time',
+    siblings: 'Siblings',
+    events: 'Events',
+    school: 'School',
+    
+    // Filters and search
+    searchAndFilters: 'Search and Filters',
+    filtersAndSearch: 'Filters and Search',
+    search: 'Search',
+    categories: 'Categories',
+    hashtag: 'Hashtag',
+    sorting: 'Sorting',
+    all: 'All',
+    newest: 'Newest',
+    oldest: 'Oldest',
+    titleAZ: 'Title A-Z',
+    titleZA: 'Title Z-A',
+    clearAllFilters: 'Clear All Filters',
+    manage: 'Manage',
+    title: 'Title',
+    
+    // Children filter
+    filterByChild: 'Filter by Child',
+    allPosts: 'All Posts',
+    
+    // Category management
+    categoryManagement: 'Category Management',
+    resetToDefaults: 'Reset to Defaults',
+    addNewCategory: 'Add New Category',
+    confirmResetCategories: 'Are you sure you want to reset to default categories? All custom categories will be deleted.',
+    categoriesResetSuccess: 'Categories have been reset to default values!',
+    
+    // Placeholders and inputs
+    searchPlaceholder: 'Search in posts...',
+    hashtagPlaceholder: 'hashtag',
+    titlePlaceholder: 'Enter a title for your photo',
+    hashtagInputPlaceholder: 'Type a tag and press space...',
+    searchInDescriptions: 'Search in descriptions, titles or hashtags...',
+    
+    // Navigation and pages
+    dashboard: 'Dashboard',
+    skillsTracker: 'Skills Tracker',
+    
+    // Skills
+    skills: 'Skills',
+    skillName: 'Skill Name',
+    skillDescription: 'Skill Description',
+    addSkill: 'Add Skill',
+    editSkill: 'Edit Skill',
+    deleteSkill: 'Delete Skill',
+    skillLevel: 'Skill Level',
+    beginner: 'Beginner',
+    intermediate: 'Intermediate',
+    advanced: 'Advanced',
+    expert: 'Expert',
+    
+    // Post actions
+    viewPost: 'View Post',
+    editPost: 'Edit Post',
+    deletePost: 'Delete Post',
+    confirmDelete: 'Confirm Delete',
+    confirmDeleteText: 'Are you sure you want to delete this post? This action cannot be undone.',
+    
+    // Form actions
+    save: 'Save',
+    cancel: 'Cancel',
+    confirm: 'Confirm',
+    close: 'Close',
+    back: 'Back',
+    next: 'Next',
+    previous: 'Previous',
+    
+    // Upload and creation
+    uploadPhotos: 'Upload Photos',
+    createTextPost: 'Create Text Post',
+    selectFiles: 'Select Files',
+    dragAndDrop: 'Drag and drop files here',
+    
+    // Dates and time
+    today: 'Today',
+    yesterday: 'Yesterday',
+    thisWeek: 'This Week',
+    thisMonth: 'This Month',
+    
+    // Messages and notifications
+    success: 'Success',
+    error: 'Error',
+    warning: 'Warning',
+    info: 'Information',
+    loading: 'Loading...',
+    saving: 'Saving...',
+    uploading: 'Uploading...',
+    processing: 'Processing...',
+    
+    // Modal titles
+    uploadModal: 'Upload Photos',
+    editPostModal: 'Edit Post',
+    deletePostModal: 'Delete Post',
+    profileModal: 'User Profile',
+    settingsModal: 'Settings',
+    
+    // Status messages
+    noPostsFound: 'No posts found',
+    noCategoriesFound: 'No categories found',
+    noSkillsFound: 'No skills found',
+    emptyAlbum: 'Album is empty',
+    
+    // Photo count
+    photo: 'photo',
+    photos: 'photos',
+    onePhoto: '1 photo',
+    multiplePhotos: '{count} photos',
+    
+    // Post editing
+    addDescription: 'Add a description...',
+    postDescription: 'Post description...',
+    hashtagInputHelp: 'Type a word and press space to create a tag',
+    addHashtag: 'Add hashtag...',
+    shareSpecialMoment: 'Share a special moment...',
+
+    // Skill categories and specific skills
+    physicalSkills: 'Physical Skills',
+    cognitiveSkills: 'Cognitive Skills', 
+    languageSkills: 'Language and Communication',
+    socialSkills: 'Social and Emotional Skills',
+    selfCareSkills: 'Self Care',
+    creativeSkills: 'Creative Skills',
+    digitalSkills: 'Digital Skills',
+    
+    // Individual skills
+    grossMotor: 'Gross Motor Skills',
+    fineMotor: 'Fine Motor Skills',
+    balanceCoordination: 'Balance and Coordination',
+    runningJumping: 'Running and Jumping',
+    handEyeCoordination: 'Hand-Eye Coordination',
+    memoryRecall: 'Memory and Recall',
+    problemSolving: 'Problem Solving',
+    logicalThinking: 'Logical Thinking',
+    attentionFocus: 'Attention and Focus',
+    mathConcepts: 'Math Concepts',
+    verbalCommunication: 'Verbal Communication',
+    readingSkills: 'Reading Skills',
+    writingSkills: 'Writing Skills',
+    listeningSkills: 'Listening Skills',
+    vocabularyDevelopment: 'Vocabulary Development',
+    sharingCooperation: 'Sharing and Cooperation',
+    empathyUnderstanding: 'Empathy and Understanding',
+    emotionRegulation: 'Emotion Regulation',
+    makingFriends: 'Making Friends',
+    conflictResolution: 'Conflict Resolution',
+    personalHygiene: 'Personal Hygiene',
+    dressingCare: 'Dressing and Care',
+    independentEating: 'Independent Eating',
+    timeManagement: 'Time Management',
+    responsibilityChores: 'Responsibility and Chores',
+    drawingPainting: 'Drawing and Painting',
+    musicRhythm: 'Music and Rhythm',
+    danceMovement: 'Dance and Movement',
+    imaginativePlay: 'Imaginative Play',
+    storytelling: 'Storytelling',
+    basicComputer: 'Basic Computer Skills',
+    digitalSafety: 'Digital Safety',
+    educationalApps: 'Educational Apps',
+    technologyAwareness: 'Technology Awareness',
+    onlineLearning: 'Online Learning',
+    
+    // UI Elements
+    seeMore: 'see more',
+    seeLess: 'see less',
+    more: 'more',
+    tags: 'Tags',
+    description: 'Description',
+    images: 'Images',
+    loading: 'Loading...',
+    failedToLoad: 'Failed to load',
+    newestFirst: 'Newest first',
+    oldestFirst: 'Oldest first',
+    titleAtoZ: 'Title A-Z',
+    photoGallery: 'Photo Gallery',
+    
+    // Admin and children management
+    pinEditor: 'PIN Editor',
+    fullAccess: 'Full Access',
+    addChild: 'Add Child',
+    addNewChild: 'Add New Child',
+    adding: 'Adding...',
+    fullAccessDescription: 'Full access to upload photos, manage skills and edit content',
+    addFirstChild: 'Add the first child to start using multi-child functionality.',
+    
+    // Error messages
+    photoDeleteFailed: 'Failed to delete photo'
   }
 }
 

@@ -91,7 +91,7 @@ export default function ChildrenFilter({
               padding: window.innerWidth <= 768 ? '6px 12px' : '8px 16px',
               borderRadius: window.innerWidth <= 768 ? '16px' : '20px',
               border: '1px solid var(--border-light)',
-              backgroundColor: !selectedChildId ? 'var(--accent-blue)' : 'white',
+              backgroundColor: !selectedChildId ? 'var(--accent-blue)' : 'var(--bg-secondary)',
               color: !selectedChildId ? 'white' : 'var(--text-primary)',
               cursor: 'pointer',
               fontSize: window.innerWidth <= 768 ? '12px' : '14px',
@@ -105,7 +105,7 @@ export default function ChildrenFilter({
             }}
             onMouseOut={(e) => {
               if (selectedChildId) {
-                e.target.style.backgroundColor = 'white'
+                e.target.style.backgroundColor = 'var(--bg-secondary)'
               }
             }}
           >
@@ -125,7 +125,7 @@ export default function ChildrenFilter({
                 padding: window.innerWidth <= 768 ? '6px 12px' : '8px 16px',
                 borderRadius: window.innerWidth <= 768 ? '16px' : '20px',
                 border: '1px solid var(--border-light)',
-                backgroundColor: selectedChildId === child.id ? 'var(--accent-blue)' : 'white',
+                backgroundColor: selectedChildId === child.id ? 'var(--accent-blue)' : 'var(--bg-secondary)',
                 color: selectedChildId === child.id ? 'white' : 'var(--text-primary)',
                 cursor: 'pointer',
                 fontSize: window.innerWidth <= 768 ? '12px' : '14px',
@@ -139,7 +139,7 @@ export default function ChildrenFilter({
               }}
               onMouseOut={(e) => {
                 if (selectedChildId !== child.id) {
-                  e.target.style.backgroundColor = 'white'
+                  e.target.style.backgroundColor = 'var(--bg-secondary)'
                 }
               }}
             >

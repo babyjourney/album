@@ -9,7 +9,7 @@ import DatePicker from './DatePicker'
 // Helper function to get multi-photo URLs
 const getMultiPhotoUrls = (post) => {
   // First check for proper file_urls field (new format)
-  if (post.type === 'multi-photo' && post.file_urls) {
+  if (post.file_urls) {
     // If file_urls is already an array, return it
     if (Array.isArray(post.file_urls)) {
       return post.file_urls
@@ -42,7 +42,7 @@ const getCleanDescription = (post) => {
   if (!post.description) return ''
   
   // If this is a new format multi-photo post, just return the description as-is
-  if (post.type === 'multi-photo' && post.file_urls) {
+  if (post.file_urls && Array.isArray(post.file_urls) && post.file_urls.length > 1) {
     return post.description
   }
   
@@ -99,7 +99,7 @@ function MobileActionMenu({ currentPost, isTextPost, onDownload, onDelete, onEdi
           position: 'absolute',
           bottom: '70px',
           right: '0',
-          background: 'rgba(255, 255, 255, 0.95)',
+          background: 'var(--bg-secondary)',
           backdropFilter: 'blur(20px)',
           borderRadius: '16px',
           padding: '8px',
@@ -130,10 +130,10 @@ function MobileActionMenu({ currentPost, isTextPost, onDownload, onDelete, onEdi
                 transition: 'background 0.2s ease'
               }}
               onMouseOver={(e) => {
-                e.target.style.background = 'rgba(0, 149, 246, 0.1)'
+                e.currentTarget.style.background = 'rgba(0, 149, 246, 0.1)'
               }}
               onMouseOut={(e) => {
-                e.target.style.background = 'transparent'
+                e.currentTarget.style.background = 'transparent'
               }}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -168,10 +168,10 @@ function MobileActionMenu({ currentPost, isTextPost, onDownload, onDelete, onEdi
               transition: 'background 0.2s ease'
             }}
             onMouseOver={(e) => {
-              e.target.style.background = 'rgba(156, 163, 175, 0.1)'
+              e.currentTarget.style.background = 'rgba(156, 163, 175, 0.1)'
             }}
             onMouseOut={(e) => {
-              e.target.style.background = 'transparent'
+              e.currentTarget.style.background = 'transparent'
             }}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -203,10 +203,10 @@ function MobileActionMenu({ currentPost, isTextPost, onDownload, onDelete, onEdi
               transition: 'background 0.2s ease'
             }}
             onMouseOver={(e) => {
-              e.target.style.background = 'rgba(220, 38, 38, 0.1)'
+              e.currentTarget.style.background = 'rgba(220, 38, 38, 0.1)'
             }}
             onMouseOut={(e) => {
-              e.target.style.background = 'transparent'
+              e.currentTarget.style.background = 'transparent'
             }}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -270,6 +270,7 @@ export default function PostModal({
   const [editHashtags, setEditHashtags] = useState([])
   const [editHashtagInput, setEditHashtagInput] = useState('')
   const [editDate, setEditDate] = useState(null)
+  const [editCoverIndex, setEditCoverIndex] = useState(0)
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
   const [editLoading, setEditLoading] = useState(false)
   const [currentImageIndex, setCurrentImageIndexInternal] = useState(0)
@@ -325,6 +326,24 @@ export default function PostModal({
     setEditHashtags(hashtagsArray)
     setEditHashtagInput('')
     setEditDate(currentPost.created_at ? new Date(currentPost.created_at) : null)
+    
+    // Set cover index for multi-photo posts
+    let coverIndex = 0
+    if (currentPost.cover_index !== undefined) {
+      coverIndex = currentPost.cover_index
+    } else if (currentPost.description && currentPost.description.includes('__COVER_INDEX__:')) {
+      // Parse from old format
+      try {
+        const coverMatch = currentPost.description.match(/__COVER_INDEX__:(\d+)/)
+        if (coverMatch) {
+          coverIndex = parseInt(coverMatch[1]) || 0
+        }
+      } catch (e) {
+        coverIndex = 0
+      }
+    }
+    setEditCoverIndex(coverIndex)
+    
     setShowEditModal(true)
   }
 
@@ -338,7 +357,8 @@ export default function PostModal({
         title: editTitle,
         description: editDescription,
         hashtags: editHashtags.map(tag => `#${tag}`), // Send as array, not joined string
-        customDate: editDate
+        customDate: editDate,
+        coverIndex: editCoverIndex
       }
 
       // CRITICAL: Preserve file_urls for multi-photo posts
@@ -912,7 +932,7 @@ export default function PostModal({
                 fontSize: '14px',
                 fontWeight: '600',
                 marginBottom: '4px',
-                color: 'rgba(255, 255, 255, 0.95)', 
+                color: 'var(--text-primary)', 
                 lineHeight: '1.3',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
@@ -975,7 +995,7 @@ export default function PostModal({
                     }}
                     style={{
                       padding: '1px 6px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.2)', 
+                      backgroundColor: 'var(--bg-gray)', 
                       color: 'rgba(255, 255, 255, 0.9)', 
                       borderRadius: '10px',
                       fontSize: '10px',
@@ -983,7 +1003,7 @@ export default function PostModal({
                       border: '1px solid rgba(255, 255, 255, 0.1)',
                       cursor: 'pointer',
                       transition: 'all 0.2s ease',
-                      background: 'rgba(255, 255, 255, 0.2)',
+                      background: 'var(--bg-gray)',
                       lineHeight: '2',
                       height: 'auto',
                       minHeight: 'unset',
@@ -991,12 +1011,12 @@ export default function PostModal({
                       verticalAlign: 'baseline'
                     }}
                     onTouchStart={(e) => {
-                      e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.4)'
-                      e.target.style.transform = 'scale(0.95)'
+                      e.currentTarget.style.backgroundColor = 'var(--bg-secondary)'
+                      e.currentTarget.style.transform = 'scale(0.95)'
                     }}
                     onTouchEnd={(e) => {
-                      e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'
-                      e.target.style.transform = 'scale(1)'
+                      e.currentTarget.style.backgroundColor = 'var(--bg-gray)'
+                      e.currentTarget.style.transform = 'scale(1)'
                     }}
                   >
                     {hashtag.startsWith('#') ? hashtag : `#${hashtag}`}
@@ -1192,6 +1212,109 @@ export default function PostModal({
                   label={t('postDate')}
                 />
               </div>
+
+              {/* Cover Selection - Mobile */}
+              {(() => {
+                const multiUrls = getMultiPhotoUrls(currentPost)
+                if (multiUrls && multiUrls.length > 1) {
+                  return (
+                    <div style={{ marginBottom: '20px' }}>
+                      <label style={{ 
+                        display: 'block', 
+                        marginBottom: '8px', 
+                        fontSize: '14px', 
+                        fontWeight: '500' 
+                      }}>
+                        📸 Cover/Thumbnail
+                      </label>
+                      <div style={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(60px, 1fr))', 
+                        gap: '8px',
+                        padding: '12px',
+                        backgroundColor: '#F3F4F6',
+                        borderRadius: '8px',
+                        border: '1px solid #D1D5DB'
+                      }}>
+                        {multiUrls.map((url, index) => {
+                          const isVideo = url.toLowerCase().includes('.mp4') || 
+                                         url.toLowerCase().includes('.mov') || 
+                                         url.toLowerCase().includes('.webm') ||
+                                         url.toLowerCase().includes('.avi')
+                          
+                          return (
+                            <button
+                              key={index}
+                              type="button"
+                              onClick={() => setEditCoverIndex(index)}
+                              style={{
+                                position: 'relative',
+                                width: '60px',
+                                height: '60px',
+                                borderRadius: '6px',
+                                backgroundColor: '#E5E7EB',
+                                backgroundImage: !isVideo ? `url(${url})` : 'none',
+                                backgroundSize: 'cover',
+                                backgroundPosition: 'center',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                border: index === editCoverIndex ? '2px solid #10B981' : '1px solid #D1D5DB',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease'
+                              }}
+                            >
+                              {isVideo && (
+                                <div style={{
+                                  color: '#6B7280',
+                                  fontSize: '20px',
+                                  background: 'var(--bg-secondary)',
+                                  borderRadius: '50%',
+                                  width: '30px',
+                                  height: '30px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center'
+                                }}>
+                                  ▶
+                                </div>
+                              )}
+                              
+                              {index === editCoverIndex && (
+                                <div style={{
+                                  position: 'absolute',
+                                  top: '2px',
+                                  right: '2px',
+                                  width: '16px',
+                                  height: '16px',
+                                  borderRadius: '50%',
+                                  backgroundColor: '#10B981',
+                                  color: 'white',
+                                  fontSize: '10px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontWeight: 'bold'
+                                }}>
+                                  ✓
+                                </div>
+                              )}
+                            </button>
+                          )
+                        })}
+                      </div>
+                      <p style={{ 
+                        marginTop: '4px', 
+                        fontSize: '12px', 
+                        color: '#6B7280' 
+                      }}>
+                        Selectează care imagine/video să fie afișat ca thumbnail în grid.
+                      </p>
+                    </div>
+                  )
+                }
+                return null
+              })()}
 
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
                 <button
@@ -1611,14 +1734,14 @@ export default function PostModal({
                             }}
                             onMouseOver={(e) => {
                               if (currentImageIndex > 0) {
-                                e.target.style.opacity = '1'
-                                e.target.style.transform = 'scale(1.1)'
+                                e.currentTarget.style.opacity = '1'
+                                e.currentTarget.style.transform = 'scale(1.1)'
                               }
                             }}
                             onMouseOut={(e) => {
                               if (currentImageIndex > 0) {
-                                e.target.style.opacity = '0.9'
-                                e.target.style.transform = 'scale(1)'
+                                e.currentTarget.style.opacity = '0.9'
+                                e.currentTarget.style.transform = 'scale(1)'
                               }
                             }}
                           >
@@ -1657,14 +1780,14 @@ export default function PostModal({
                             }}
                             onMouseOver={(e) => {
                               if (currentImageIndex < multiPhotoUrls.length - 1) {
-                                e.target.style.opacity = '1'
-                                e.target.style.transform = 'scale(1.1)'
+                                e.currentTarget.style.opacity = '1'
+                                e.currentTarget.style.transform = 'scale(1.1)'
                               }
                             }}
                             onMouseOut={(e) => {
                               if (currentImageIndex < multiPhotoUrls.length - 1) {
-                                e.target.style.opacity = '0.9'
-                                e.target.style.transform = 'scale(1)'
+                                e.currentTarget.style.opacity = '0.9'
+                                e.currentTarget.style.transform = 'scale(1)'
                               }
                             }}
                           >
@@ -1705,7 +1828,7 @@ export default function PostModal({
                                 width: index === currentImageIndex ? '24px' : '8px',
                                 height: '8px',
                                 borderRadius: '4px',
-                                backgroundColor: index === currentImageIndex ? '#FFFFFF' : 'rgba(255, 255, 255, 0.5)',
+                                backgroundColor: index === currentImageIndex ? 'var(--bg-secondary)' : 'var(--bg-gray)',
                                 cursor: 'pointer',
                                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                                 boxShadow: index === currentImageIndex 
@@ -1763,7 +1886,7 @@ export default function PostModal({
         {/* Info Section - Compact sidebar */}
         <div style={{
           width: '400px',
-          background: 'rgba(255, 255, 255, 0.98)',
+          background: 'var(--bg-secondary)',
           backdropFilter: 'blur(20px)',
           display: 'flex',
           flexDirection: 'column',
@@ -1892,14 +2015,14 @@ export default function PostModal({
                         transition: 'all 0.2s ease-in-out'
                       }}
                       onMouseOver={(e) => {
-                        e.target.style.backgroundColor = 'var(--accent-blue)'
-                        e.target.style.color = 'white'
-                        e.target.style.transform = 'translateY(-1px)'
+                        e.currentTarget.style.backgroundColor = 'var(--accent-blue)'
+                        e.currentTarget.style.color = 'white'
+                        e.currentTarget.style.transform = 'translateY(-1px)'
                       }}
                       onMouseOut={(e) => {
-                        e.target.style.backgroundColor = 'rgba(0, 149, 246, 0.1)'
-                        e.target.style.color = 'var(--accent-blue)'
-                        e.target.style.transform = 'translateY(0)'
+                        e.currentTarget.style.backgroundColor = 'rgba(0, 149, 246, 0.1)'
+                        e.currentTarget.style.color = 'var(--accent-blue)'
+                        e.currentTarget.style.transform = 'translateY(0)'
                       }}
                     >
                       {hashtag.startsWith('#') ? hashtag : `#${hashtag}`}
@@ -2068,6 +2191,112 @@ export default function PostModal({
                 label={t('postDate')}
               />
             </div>
+
+            {/* Cover Selection - Desktop */}
+            {(() => {
+              const multiUrls = getMultiPhotoUrls(currentPost)
+              if (multiUrls && multiUrls.length > 1) {
+                return (
+                  <div style={{ marginBottom: '24px' }}>
+                    <label style={{
+                      display: 'block',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: 'var(--text-primary)',
+                      marginBottom: '8px'
+                    }}>
+                      📸 Cover/Thumbnail
+                    </label>
+                    <div style={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', 
+                      gap: '8px',
+                      padding: '16px',
+                      backgroundColor: '#F9FAFB',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-light)'
+                    }}>
+                      {multiUrls.map((url, index) => {
+                        const isVideo = url.toLowerCase().includes('.mp4') || 
+                                       url.toLowerCase().includes('.mov') || 
+                                       url.toLowerCase().includes('.webm') ||
+                                       url.toLowerCase().includes('.avi')
+                        
+                        return (
+                          <button
+                            key={index}
+                            type="button"
+                            onClick={() => setEditCoverIndex(index)}
+                            style={{
+                              position: 'relative',
+                              width: '80px',
+                              height: '80px',
+                              borderRadius: '8px',
+                              backgroundColor: '#E5E7EB',
+                              backgroundImage: !isVideo ? `url(${url})` : 'none',
+                              backgroundSize: 'cover',
+                              backgroundPosition: 'center',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              border: index === editCoverIndex ? '3px solid var(--accent-blue)' : '2px solid transparent',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            {isVideo && (
+                              <div style={{
+                                color: '#6B7280',
+                                fontSize: '24px',
+                                background: 'rgba(255, 255, 255, 0.9)',
+                                borderRadius: '50%',
+                                width: '32px',
+                                height: '32px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}>
+                                ▶
+                              </div>
+                            )}
+                            
+                            {index === editCoverIndex && (
+                              <div style={{
+                                position: 'absolute',
+                                top: '4px',
+                                right: '4px',
+                                width: '20px',
+                                height: '20px',
+                                borderRadius: '50%',
+                                backgroundColor: 'var(--accent-blue)',
+                                color: 'white',
+                                fontSize: '12px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontWeight: 'bold',
+                                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
+                              }}>
+                                ✓
+                              </div>
+                            )}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    <p style={{ 
+                      marginTop: '8px', 
+                      fontSize: '12px', 
+                      color: '#6B7280',
+                      lineHeight: '1.4'
+                    }}>
+                      Selectează care imagine/video să fie afișat ca thumbnail în grid. Aceasta va fi poza principală a postării în galeria foto.
+                    </p>
+                  </div>
+                )
+              }
+              return null
+            })()}
 
             {/* Buttons */}
             <div style={{

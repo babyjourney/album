@@ -190,7 +190,7 @@ export default function Skills() {
       <div
         key={skill.id}
         style={{
-          background: '#fff',
+          background: 'var(--bg-secondary)',
           borderRadius: '12px',
           padding: '16px',
           marginBottom: '12px',
@@ -209,7 +209,7 @@ export default function Skills() {
           borderRadius: '8px',
           overflow: 'hidden',
           flexShrink: 0,
-          background: '#f8fafc'
+          background: 'var(--bg-gray)'
         }}>
           <img
             src={getSkillImage(skill.id, category)}
@@ -232,7 +232,7 @@ export default function Skills() {
             <h3 style={{ 
               fontWeight: '500', 
               fontSize: '15px',
-              color: '#374151',
+              color: 'var(--text-primary)',
               margin: 0,
               marginBottom: '2px'
             }}>
@@ -245,21 +245,21 @@ export default function Skills() {
             <div style={{
               flex: 1,
               height: '4px',
-              background: '#f1f5f9',
+              background: 'var(--bg-gray)',
               borderRadius: '4px',
               overflow: 'hidden'
             }}>
               <div style={{
                 width: `${progress}%`,
                 height: '100%',
-                background: progress < 50 ? '#f59e0b' : '#10b981',
+                background: progress < 50 ? 'var(--accent-red)' : 'var(--accent-green)',
                 borderRadius: '4px',
                 transition: 'width 0.3s ease'
               }}></div>
             </div>
             <span style={{ 
               fontSize: '13px',
-              color: '#6b7280',
+              color: 'var(--text-secondary)',
               minWidth: '32px'
             }}>
               {progress}%
@@ -277,8 +277,8 @@ export default function Skills() {
                 padding: '4px 8px',
                 borderRadius: '6px',
                 border: 'none',
-                background: progress <= 0 ? '#f3f4f6' : '#fef3c7',
-                color: progress <= 0 ? '#9ca3af' : '#d97706',
+                background: progress <= 0 ? 'var(--bg-gray)' : 'var(--accent-blue-light)',
+                color: progress <= 0 ? 'var(--text-subtle)' : 'var(--accent-blue)',
                 cursor: progress <= 0 || isUpdating ? 'not-allowed' : 'pointer',
                 fontSize: '12px',
                 fontWeight: '500',
@@ -294,8 +294,8 @@ export default function Skills() {
                 padding: '4px 8px',
                 borderRadius: '6px',
                 border: 'none',
-                background: progress >= 100 ? '#f3f4f6' : '#dcfce7',
-                color: progress >= 100 ? '#9ca3af' : '#16a34a',
+                background: progress >= 100 ? 'var(--bg-gray)' : 'var(--accent-blue-light)',
+                color: progress >= 100 ? 'var(--text-subtle)' : 'var(--accent-green)',
                 cursor: progress >= 100 || isUpdating ? 'not-allowed' : 'pointer',
                 fontSize: '12px',
                 fontWeight: '500',
@@ -349,14 +349,14 @@ export default function Skills() {
               <h1 style={{
                 fontSize: '24px',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--text-primary)',
                 marginBottom: '4px'
               }}>
 {session.familyName} - {t('skills')}
               </h1>
               <p style={{ 
                 fontSize: '14px',
-                color: '#9ca3af'
+                color: 'var(--text-subtle)'
               }}>
 {t('skillsTracker')}
               </p>
@@ -392,7 +392,7 @@ export default function Skills() {
           <div style={{ 
             marginBottom: '20px',
             padding: '16px',
-            background: '#f9fafb',
+            background: 'var(--bg-gray)',
             borderRadius: '8px',
             display: 'flex',
             justifyContent: 'space-between',
@@ -401,7 +401,7 @@ export default function Skills() {
             <div>
               <span style={{ 
                 fontSize: '14px',
-                color: '#6b7280'
+                color: 'var(--text-secondary)'
               }}>
 {selectedCategory === 'all' ? t('all') : getSkillCategories(t)[selectedCategory]?.name}
               </span>
@@ -410,14 +410,14 @@ export default function Skills() {
               <div style={{
                 width: '100px',
                 height: '6px',
-                background: '#e5e7eb',
+                background: 'var(--border-light)',
                 borderRadius: '4px',
                 overflow: 'hidden'
               }}>
                 <div style={{
                   width: `${getOverallProgress(selectedCategory)}%`,
                   height: '100%',
-                  background: '#10b981',
+                  background: 'var(--accent-green)',
                   borderRadius: '4px',
                   transition: 'width 0.3s ease'
                 }}></div>
@@ -425,7 +425,7 @@ export default function Skills() {
               <span style={{ 
                 fontSize: '14px',
                 fontWeight: '500',
-                color: '#374151',
+                color: 'var(--text-primary)',
                 minWidth: '32px'
               }}>
                 {getOverallProgress(selectedCategory)}%
@@ -449,8 +449,8 @@ export default function Skills() {
                   fontSize: '13px',
                   fontWeight: '500',
                   cursor: 'pointer',
-                  background: selectedCategory === 'all' ? '#3b82f6' : '#f3f4f6',
-                  color: selectedCategory === 'all' ? 'white' : '#6b7280'
+                  background: selectedCategory === 'all' ? 'var(--accent-blue)' : 'var(--bg-gray)',
+                  color: selectedCategory === 'all' ? 'white' : 'var(--text-secondary)'
                 }}
               >
 {t('all')}
@@ -466,8 +466,8 @@ export default function Skills() {
                     fontSize: '13px',
                     fontWeight: '500',
                     cursor: 'pointer',
-                    background: selectedCategory === category ? '#3b82f6' : '#f3f4f6',
-                    color: selectedCategory === category ? 'white' : '#6b7280'
+                    background: selectedCategory === category ? 'var(--accent-blue)' : 'var(--bg-gray)',
+                    color: selectedCategory === category ? 'white' : 'var(--text-secondary)'
                   }}
                 >
                   {skillCategories[category].name}
@@ -507,9 +507,9 @@ export default function Skills() {
             textAlign: 'center', 
             marginTop: '24px',
             padding: '12px',
-            background: '#f9fafb',
+            background: 'var(--bg-gray)',
             borderRadius: '8px',
-            color: '#6b7280',
+            color: 'var(--text-secondary)',
             fontSize: '13px'
           }}>
 {t('info')}: {t('edit')} PIN

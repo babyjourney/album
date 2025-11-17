@@ -304,8 +304,8 @@ export default function Dashboard() {
                 borderRadius: '10px'
               }}
               onMouseOver={(e) => {
-                e.target.style.backgroundColor = '#F3F4F6'
-                e.target.style.color = '#DC2626'
+                e.target.style.backgroundColor = 'var(--bg-gray)'
+                e.target.style.color = 'var(--accent-red)'
               }}
               onMouseOut={(e) => {
                 e.target.style.backgroundColor = 'transparent'
@@ -345,8 +345,8 @@ export default function Dashboard() {
                 borderRadius: '10px'
               }}
               onMouseOver={(e) => {
-                e.target.style.backgroundColor = '#F3F4F6'
-                e.target.style.color = '#DC2626'
+                e.target.style.backgroundColor = 'var(--bg-gray)'
+                e.target.style.color = 'var(--accent-red)'
               }}
               onMouseOut={(e) => {
                 e.target.style.backgroundColor = 'transparent'
