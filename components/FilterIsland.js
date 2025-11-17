@@ -13,7 +13,8 @@ const SORT_OPTIONS = [
 export default function FilterIsland({ 
   isVisible,
   filters,
-  onFiltersChange
+  onFiltersChange,
+  onCategoryAdded
 }) {
   const [localHashtag, setLocalHashtag] = useState(filters.hashtag || '')
   const [categories, setCategories] = useState([])
@@ -21,8 +22,22 @@ export default function FilterIsland({
 
   // Load categories on mount
   useEffect(() => {
-    const loadedCategories = getCategories()
-    setCategories([{ value: 'all', label: 'Toate' }, ...loadedCategories])
+    const loadCategories = async () => {
+      try {
+        const loadedCategories = await getCategories()
+        setCategories([{ value: 'all', label: 'Toate' }, ...loadedCategories])
+      } catch (error) {
+        console.error('Error loading categories:', error)
+        // Fallback to default categories if API fails
+        setCategories([
+          { value: 'all', label: 'Toate' },
+          { value: 'memories', label: 'Amintiri' },
+          { value: 'milestones', label: 'Etape importante' },
+          { value: 'everyday', label: 'Zilnic' }
+        ])
+      }
+    }
+    loadCategories()
   }, [])
 
   // Debounced live hashtag filtering
@@ -272,6 +287,9 @@ export default function FilterIsland({
         onClose={() => setShowCategoryManager(false)}
         onCategoriesUpdate={(updatedCategories) => {
           setCategories([{ value: 'all', label: 'Toate' }, ...updatedCategories])
+          if (onCategoryAdded) {
+            onCategoryAdded()
+          }
         }}
       />
     </div>

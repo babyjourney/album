@@ -155,22 +155,23 @@ export default function InstagramFeed({ familyId, searchQuery, refreshTrigger, o
         key={post.id}
         className="instagram-card"
         style={{ 
-          background: 'white',
+          background: 'var(--bg-secondary)',
           borderRadius: '24px',
           overflow: 'hidden',
           cursor: 'pointer',
           transition: 'all 0.2s ease-in-out',
-          border: '1px solid var(--border-light)',
+          border: '1px solid var(--border-medium)',
+          boxShadow: '0 2px 8px var(--shadow-light), 0 1px 3px var(--shadow-medium)',
           position: 'relative'
         }}
         onClick={() => onPostClick(post, filteredPosts, index)}
         onMouseOver={(e) => {
           e.currentTarget.style.transform = 'scale(1.02)'
-          e.currentTarget.style.boxShadow = '0 12px 24px rgba(0, 0, 0, 0.15)'
+          e.currentTarget.style.boxShadow = '0 8px 24px var(--shadow-medium), 0 4px 12px var(--shadow-light)'
         }}
         onMouseOut={(e) => {
           e.currentTarget.style.transform = 'scale(1)'
-          e.currentTarget.style.boxShadow = 'none'
+          e.currentTarget.style.boxShadow = '0 2px 8px var(--shadow-light), 0 1px 3px var(--shadow-medium)'
         }}
       >
         {/* Full-screen Media */}
@@ -552,14 +553,14 @@ export default function InstagramFeed({ familyId, searchQuery, refreshTrigger, o
               position: 'absolute',
               top: '12px',
               left: '12px',
-              background: 'rgba(255, 255, 255, 0.95)',
+              background: 'var(--overlay)',
               backdropFilter: 'blur(10px)',
               padding: '6px 12px',
               borderRadius: '16px',
               fontSize: '11px',
               fontWeight: '600',
-              color: 'var(--text-primary)',
-              border: '1px solid rgba(255, 255, 255, 0.5)'
+              color: 'white',
+              border: '1px solid rgba(255, 255, 255, 0.2)'
             }}>
               {post.category === 'memories' ? 'Amintiri' :
                post.category === 'milestones' ? 'Etape importante' :
@@ -575,11 +576,10 @@ export default function InstagramFeed({ familyId, searchQuery, refreshTrigger, o
 
         {/* Compact Footer with all info */}
         <div style={{ 
-          background: 'white',
+          background: 'var(--bg-secondary)',
           padding: '12px',
           borderTop: '1px solid var(--border-light)',
-          margin: '0 8px 8px 8px',
-          borderRadius: '0 0 16px 16px'
+          borderRadius: '0 0 24px 24px'
         }}>
           {post.title && (
             <h3 style={{ 

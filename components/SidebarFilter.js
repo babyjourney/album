@@ -43,6 +43,7 @@ export default function SidebarFilter({
   filters,
   onFiltersChange,
   selectedChildId,
+  onCategoryAdded,
   onChildFilterChange
 }) {
   const [isMobile, setIsMobile] = useState(false)
@@ -209,6 +210,7 @@ export default function SidebarFilter({
                 isVisible={true}
                 filters={filters}
                 onFiltersChange={onFiltersChange}
+                onCategoryAdded={onCategoryAdded}
               />
             </div>
           </div>

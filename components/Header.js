@@ -212,15 +212,14 @@ export default function Header({ familyName, role, albumTitle }) {
       {showSettingsModal && (
         <div style={{
           position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
+          inset: 0,
+          width: '100vw',
+          height: '100vh',
           background: 'rgba(0, 0, 0, 0.6)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 1000,
+          zIndex: 99999,
           backdropFilter: 'blur(4px)',
           padding: '20px'
         }}>
@@ -230,45 +229,13 @@ export default function Header({ familyName, role, albumTitle }) {
             padding: '24px',
             maxWidth: '400px',
             width: '100%',
-            maxHeight: '80vh',
-            overflowY: 'auto',
+            maxHeight: 'calc(100vh - 40px)',
+            overflow: 'hidden',
             boxShadow: '0 20px 60px rgba(0, 0, 0, 0.2)',
             transform: 'scale(1)',
             animation: 'modalAppear 0.2s ease-out',
             margin: 'auto'
           }}>
-            <div style={{ marginBottom: '24px' }}>
-              <div style={{
-                width: '64px',
-                height: '64px',
-                background: 'linear-gradient(135deg, #e0e7ff, #3b82f6)',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 16px',
-                fontSize: '24px'
-              }}>
-                ⚙️
-              </div>
-              <h3 style={{
-                fontSize: '20px',
-                fontWeight: '600',
-                color: 'var(--text-primary)',
-                marginBottom: '8px',
-                textAlign: 'center'
-              }}>
-                Настройки / Setări
-              </h3>
-              <p style={{
-                fontSize: '14px',
-                color: 'var(--text-secondary)',
-                lineHeight: '1.5',
-                textAlign: 'center'
-              }}>
-                Персонализируйте ваш опыт / Personalizează experiența
-              </p>
-            </div>
 
             {/* Language Selection */}
             <div style={{ marginBottom: '24px' }}>
@@ -428,12 +395,15 @@ export default function Header({ familyName, role, albumTitle }) {
         <div style={{
           position: 'fixed',
           inset: 0,
-          background: 'rgba(0, 0, 0, 0.6)',
+          width: '100vw',
+          height: '100vh',
+          background: 'rgba(0, 0, 0, 0.7)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 50,
-          backdropFilter: 'blur(4px)'
+          zIndex: 10000,
+          backdropFilter: 'blur(4px)',
+          padding: '20px'
         }}>
           <div style={{
             background: 'var(--bg-secondary)',

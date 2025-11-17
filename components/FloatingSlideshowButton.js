@@ -82,7 +82,7 @@ export default function FloatingSlideshowButton({ familyId }) {
           position: 'fixed',
           bottom: '20px',
           right: '20px',
-          zIndex: 100
+          zIndex: 10
         }}
       >
         <button

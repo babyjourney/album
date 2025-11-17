@@ -319,12 +319,13 @@ a:focus:not(:focus-visible) {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background-color: var(--overlay);
-  z-index: 50;
+  background-color: rgba(0, 0, 0, 0.6);
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 20px;
+  backdrop-filter: blur(4px);
 }
 
 .modal-content {
@@ -434,7 +435,29 @@ a:focus:not(:focus-visible) {
     width: 48px !important;
     height: 48px !important;
     box-shadow: var(--shadow-md) !important;
+    z-index: 10 !important;
   }
+
+/* Global floating button z-index override */
+button[style*="position: fixed"] {
+  z-index: 10 !important;
+}
+
+/* Prevent scrolling in all modals */
+.modal-overlay,
+[style*="position: fixed"][style*="inset: 0"],
+[style*="position: fixed"][style*="top: 0"][style*="left: 0"][style*="right: 0"][style*="bottom: 0"] {
+  overflow: hidden !important;
+}
+
+.modal-content,
+.modal,
+[class*="modal"],
+[style*="maxHeight"],
+[style*="overflowY"] {
+  overflow: hidden !important;
+  max-height: calc(100vh - 40px) !important;
+}
 
   /* Skills page mobile responsiveness */
   .skills-grid {
@@ -813,13 +836,26 @@ a:focus:not(:focus-visible) {
     background: rgba(0, 0, 0, 0.8) !important;
     transform: translateY(-50%) scale(1.1) !important;
   }
-  
-  /* Modal carousel arrows */
-  .modal-carousel-nav-arrow:hover {
-    opacity: 1 !important;
-    background: rgba(0, 0, 0, 0.8) !important;
-    transform: scale(1.1) !important;
-  }
+}
+
+/* Instagram Card Styling */
+.instagram-card {
+  background: var(--bg-content) !important;
+  border: 1px solid var(--border-medium) !important;
+  box-shadow: 0 2px 8px var(--shadow-light), 0 1px 3px var(--shadow-medium) !important;
+  transition: all 0.2s ease-in-out !important;
+}
+
+.instagram-card:hover {
+  box-shadow: 0 8px 24px var(--shadow-medium), 0 4px 12px var(--shadow-light) !important;
+  transform: scale(1.02) !important;
+}
+
+/* Modal carousel arrows */
+.modal-carousel-nav-arrow:hover {
+  opacity: 1 !important;
+  background: rgba(0, 0, 0, 0.8) !important;
+  transform: scale(1.1) !important;
 }
 
 /* Utility Classes */

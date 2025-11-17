@@ -8,7 +8,7 @@ import { useLanguage } from '../contexts/LanguageContext'
 import DatePicker from './DatePicker'
 import { getCategories } from '../lib/categoriesData'
 
-export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
+export default function UploadForm({ familyId, onUploadSuccess, onClose, refreshTrigger }) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [category, setCategory] = useState('memories')
@@ -31,7 +31,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
   // Handle click outside to close modal
   useOnClickOutside(modalRef, onClose)
 
-  // Load categories on mount
+  // Load categories on mount and when refreshTrigger changes
   useEffect(() => {
     const loadCategories = async () => {
       try {
@@ -44,7 +44,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose }) {
       }
     }
     loadCategories()
-  }, [])
+  }, [refreshTrigger])
 
   // Handle hashtag input
   const handleHashtagKeyDown = (e) => {

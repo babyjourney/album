@@ -235,6 +235,7 @@ export default function Dashboard() {
         onFiltersChange={setFilters}
         selectedChildId={selectedChildId}
         onChildFilterChange={handleChildFilterChange}
+        onCategoryAdded={() => setRefreshTrigger(prev => prev + 1)}
       />
 
       {/* Children Filter */}
@@ -321,6 +322,7 @@ export default function Dashboard() {
               familyId={session.familyId} 
               onUploadSuccess={handleUploadSuccess}
               onClose={() => setShowUploadForm(false)}
+              refreshTrigger={refreshTrigger}
             />
           </div>
         </div>

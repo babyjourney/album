@@ -367,7 +367,7 @@ export default function Skills() {
                 padding: '10px 16px',
                 borderRadius: '12px',
                 border: '1px solid var(--border-light)',
-                background: 'white',
+                background: 'var(--bg-secondary)',
                 color: 'var(--text-primary)',
                 fontSize: '14px',
                 fontWeight: '500',
@@ -381,7 +381,7 @@ export default function Skills() {
                 e.target.style.background = 'var(--bg-gray)'
               }}
               onMouseOut={(e) => {
-                e.target.style.background = 'white'
+                e.target.style.background = 'var(--bg-secondary)'
               }}
             >
 ← {t('back')} {t('album')}
@@ -445,12 +445,13 @@ export default function Skills() {
                 style={{
                   padding: '6px 12px',
                   borderRadius: '6px',
-                  border: 'none',
+                  border: '1px solid var(--border-medium)',
                   fontSize: '13px',
                   fontWeight: '500',
                   cursor: 'pointer',
-                  background: selectedCategory === 'all' ? 'var(--accent-blue)' : 'var(--bg-gray)',
-                  color: selectedCategory === 'all' ? 'white' : 'var(--text-secondary)'
+                  background: selectedCategory === 'all' ? 'var(--accent-blue)' : 'var(--bg-secondary)',
+                  color: selectedCategory === 'all' ? 'white' : 'var(--text-secondary)',
+                  transition: 'all 0.2s ease'
                 }}
               >
 {t('all')}
@@ -462,12 +463,13 @@ export default function Skills() {
                   style={{
                     padding: '6px 12px',
                     borderRadius: '6px',
-                    border: 'none',
+                    border: '1px solid var(--border-medium)',
                     fontSize: '13px',
                     fontWeight: '500',
                     cursor: 'pointer',
-                    background: selectedCategory === category ? 'var(--accent-blue)' : 'var(--bg-gray)',
-                    color: selectedCategory === category ? 'white' : 'var(--text-secondary)'
+                    background: selectedCategory === category ? 'var(--accent-blue)' : 'var(--bg-secondary)',
+                    color: selectedCategory === category ? 'white' : 'var(--text-secondary)',
+                    transition: 'all 0.2s ease'
                   }}
                 >
                   {skillCategories[category].name}
@@ -486,7 +488,7 @@ export default function Skills() {
                   marginBottom: '8px',
                   fontSize: '16px',
                   fontWeight: '500',
-                  color: '#374151'
+                  color: 'var(--text-primary)'
                 }}>
                   {skillCategories[category].name}
                 </h3>

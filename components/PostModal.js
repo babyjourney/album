@@ -3,6 +3,7 @@ import { useToast } from '../contexts/ToastContext'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useOnClickOutside } from '../hooks/useOnClickOutside'
 import { authenticatedFetch } from '../lib/pinAuth'
+import { getCategories } from '../lib/categoriesData'
 import InstagramCarousel from './InstagramCarousel'
 import DatePicker from './DatePicker'
 
@@ -79,6 +80,7 @@ const getTruncatedDescription = (description, isExpanded) => {
 function MobileActionMenu({ currentPost, isTextPost, onDownload, onDelete, onEdit, isDescriptionExpanded }) {
   const [showMenu, setShowMenu] = useState(false)
   const menuRef = useRef(null)
+  const { t } = useLanguage()
 
   useOnClickOutside(menuRef, () => setShowMenu(false))
 
@@ -110,7 +112,7 @@ function MobileActionMenu({ currentPost, isTextPost, onDownload, onDelete, onEdi
           {!isTextPost && currentPost.file_url && (
             <button
               onClick={() => {
-                onDownload()
+                if (onDownload) onDownload()
                 setShowMenu(false)
               }}
               style={{
@@ -270,7 +272,9 @@ export default function PostModal({
   const [editHashtags, setEditHashtags] = useState([])
   const [editHashtagInput, setEditHashtagInput] = useState('')
   const [editDate, setEditDate] = useState(null)
+  const [editCategory, setEditCategory] = useState('')
   const [editCoverIndex, setEditCoverIndex] = useState(0)
+  const [categories, setCategories] = useState([])
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
   const [editLoading, setEditLoading] = useState(false)
   const [currentImageIndex, setCurrentImageIndexInternal] = useState(0)
@@ -301,6 +305,26 @@ export default function PostModal({
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
+  // Load categories
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const cats = await getCategories()
+        setCategories(cats)
+      } catch (error) {
+        console.error('Error loading categories:', error)
+        // Fallback to default categories
+        setCategories([
+          { value: 'memories', label: 'Amintiri', emoji: '📸' },
+          { value: 'milestones', label: 'Etape importante', emoji: '🎉' },
+          { value: 'everyday', label: 'Zilnic', emoji: '☀️' },
+          { value: 'special', label: 'Special', emoji: '✨' }
+        ])
+      }
+    }
+    loadCategories()
+  }, [])
+
   // Edit functionality
   const handleEdit = () => {
     setEditTitle(currentPost.title || '')
@@ -326,6 +350,7 @@ export default function PostModal({
     setEditHashtags(hashtagsArray)
     setEditHashtagInput('')
     setEditDate(currentPost.created_at ? new Date(currentPost.created_at) : null)
+    setEditCategory(currentPost.category || '')
     
     // Set cover index for multi-photo posts
     let coverIndex = 0
@@ -358,7 +383,8 @@ export default function PostModal({
         description: editDescription,
         hashtags: editHashtags.map(tag => `#${tag}`), // Send as array, not joined string
         customDate: editDate,
-        coverIndex: editCoverIndex
+        coverIndex: editCoverIndex,
+        category: editCategory
       }
 
       // CRITICAL: Preserve file_urls for multi-photo posts
@@ -719,7 +745,10 @@ export default function PostModal({
         >
         {/* Close button only on mobile */}
         <button
-          onClick={onClose}
+          onClick={(e) => {
+            e.stopPropagation()
+            onClose()
+          }}
           style={{
             position: 'fixed',
             top: '20px',
@@ -1480,7 +1509,10 @@ export default function PostModal({
         
         {/* Close button */}
         <button
-          onClick={onClose}
+          onClick={(e) => {
+            e.stopPropagation()
+            onClose()
+          }}
           style={{
             padding: '14px',
             background: 'rgba(0, 0, 0, 0.7)',
@@ -1934,14 +1966,14 @@ export default function PostModal({
                   textTransform: 'uppercase',
                   letterSpacing: '0.5px'
                 }}>
-                  {currentPost.category === 'memories' ? 'Amintiri' :
-                   currentPost.category === 'milestones' ? 'Etape importante' :
-                   currentPost.category === 'everyday' ? 'Zilnic' :
-                   currentPost.category === 'special' ? 'Special' :
-                   currentPost.category === 'family' ? 'Familie' :
-                   currentPost.category === 'play' ? 'Joacă' :
-                   currentPost.category === 'learning' ? 'Învățare' :
-                   currentPost.category.charAt(0).toUpperCase() + currentPost.category.slice(1)}
+                  {(() => {
+                    const category = categories.find(cat => cat.value === currentPost.category)
+                    if (category) {
+                      return `${category.emoji ? category.emoji + ' ' : ''}${category.label}`
+                    }
+                    // Fallback to capitalized category name if not found in dynamic categories
+                    return currentPost.category.charAt(0).toUpperCase() + currentPost.category.slice(1)
+                  })()}
                 </span>
               </div>
             )}
@@ -2190,6 +2222,46 @@ export default function PostModal({
                 onChange={setEditDate}
                 label={t('postDate')}
               />
+            </div>
+
+            {/* Category Selection */}
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: 'var(--text-primary)',
+                marginBottom: '8px'
+              }}>
+                Categorie
+              </label>
+              <select
+                value={editCategory}
+                onChange={(e) => setEditCategory(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  border: '1px solid var(--border-light)',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  outline: 'none',
+                  backgroundColor: 'var(--bg-secondary)',
+                  color: 'var(--text-primary)',
+                  appearance: 'none',
+                  backgroundImage: 'url("data:image/svg+xml,%3csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 20 20\'%3e%3cpath stroke=\'%236b7280\' stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'1.5\' d=\'M6 8l4 4 4-4\'/%3e%3c/svg%3e")',
+                  backgroundPosition: 'right 0.75rem center',
+                  backgroundRepeat: 'no-repeat',
+                  backgroundSize: '1.5em 1.5em',
+                  paddingRight: '2.5rem'
+                }}
+              >
+                <option value="">Selectează o categorie</option>
+                {categories.map((cat) => (
+                  <option key={cat.value} value={cat.value}>
+                    {cat.emoji ? `${cat.emoji} ` : ''}{cat.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Cover Selection - Desktop */}
