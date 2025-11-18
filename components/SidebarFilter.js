@@ -76,11 +76,17 @@ export default function SidebarFilter({
     const loadCategories = async () => {
       try {
         const cats = await getCategories()
-        setCategories(cats)
+        setCategories([{ value: 'all', label: 'Toate', emoji: '📱' }, ...cats])
       } catch (error) {
         console.error('Error loading categories:', error)
         // Fallback to cached/default categories
-        setCategories(getCategoriesSync())
+        setCategories([
+          { value: 'all', label: 'Toate', emoji: '📱' },
+          { value: 'memories', label: 'Amintiri', emoji: '💭' },
+          { value: 'milestones', label: 'Etape', emoji: '🎯' },
+          { value: 'everyday', label: 'Zilnic', emoji: '☀️' },
+          { value: 'special', label: 'Special', emoji: '✨' }
+        ])
       }
     }
     loadCategories()
@@ -135,28 +141,28 @@ export default function SidebarFilter({
               onClick={(e) => e.stopPropagation()}
               style={{
                 background: 'var(--bg-secondary)',
-                borderRadius: '20px',
-                padding: '20px',
-                width: '90%',
-                maxWidth: '400px',
-                maxHeight: '80vh',
+                borderRadius: '16px',
+                padding: '16px',
+                width: '92%',
+                maxWidth: '350px',
+                maxHeight: '75vh',
                 overflowY: 'auto',
-                margin: '20px'
+                margin: '16px'
               }}>
               {/* Header */}
               <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                marginBottom: '20px'
+                marginBottom: '16px'
               }}>
                 <h3 style={{
-                  fontSize: '14px',
+                  fontSize: '16px',
                   fontWeight: '600',
                   margin: 0,
                   color: 'var(--text-primary)'
                 }}>
-{t('searchAndFilters')}
+                  🔍 Filtre
                 </h3>
                 <button
                   onClick={() => setShowMobileFilters(false)}
@@ -164,11 +170,12 @@ export default function SidebarFilter({
                     background: 'none',
                     border: 'none',
                     cursor: 'pointer',
-                    padding: '8px',
-                    borderRadius: '8px'
+                    padding: '4px',
+                    borderRadius: '6px',
+                    color: 'var(--text-secondary)'
                   }}
                 >
-                  <X size={20} />
+                  <X size={18} />
                 </button>
               </div>
 
@@ -176,10 +183,10 @@ export default function SidebarFilter({
               <div style={{ marginBottom: '12px' }}>
                 <div style={{ position: 'relative' }}>
                   <Search 
-                    size={16} 
+                    size={14} 
                     style={{
                       position: 'absolute',
-                      left: '12px',
+                      left: '10px',
                       top: '50%',
                       transform: 'translateY(-50%)',
                       color: 'var(--text-secondary)',
@@ -190,13 +197,13 @@ export default function SidebarFilter({
                     type="text"
                     value={searchQuery}
                     onChange={(e) => onSearchChange(e.target.value)}
-                    placeholder={t('searchInDescriptions')}
+                    placeholder="Caută în descrieri..."
                     style={{
                       width: '100%',
-                      padding: '12px 16px 12px 40px',
+                      padding: '8px 12px 8px 32px',
                       border: '1px solid var(--border-light)',
-                      borderRadius: '12px',
-                      fontSize: '16px',
+                      borderRadius: '8px',
+                      fontSize: '14px',
                       outline: 'none',
                       backgroundColor: 'var(--bg-secondary)',
                       color: 'var(--text-primary)'
@@ -205,13 +212,147 @@ export default function SidebarFilter({
                 </div>
               </div>
 
-              {/* Filters */}
-              <FilterIsland
-                isVisible={true}
-                filters={filters}
-                onFiltersChange={onFiltersChange}
-                onCategoryAdded={onCategoryAdded}
-              />
+              {/* Compact Mobile Filters */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {/* Categories - Most Important First */}
+                <div>
+                  <label style={{ 
+                    fontSize: '12px', 
+                    fontWeight: '600', 
+                    color: 'var(--text-secondary)', 
+                    marginBottom: '8px', 
+                    display: 'block' 
+                  }}>
+                    Categorie
+                  </label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {categories.map((cat) => (
+                      <button
+                        key={cat.value}
+                        onClick={() => onFiltersChange({ ...filters, category: cat.value })}
+                        style={{
+                          padding: '6px 12px',
+                          fontSize: '12px',
+                          borderRadius: '16px',
+                          border: 'none',
+                          cursor: 'pointer',
+                          background: (filters.category || 'all') === cat.value ? 'var(--accent-blue)' : 'var(--bg-gray)',
+                          color: (filters.category || 'all') === cat.value ? 'white' : 'var(--text-primary)',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        {cat.emoji && `${cat.emoji} `}{cat.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Date Filter */}
+                <div>
+                  <label style={{ 
+                    fontSize: '12px', 
+                    fontWeight: '600', 
+                    color: 'var(--text-secondary)', 
+                    marginBottom: '8px', 
+                    display: 'block' 
+                  }}>
+                    📅 Dată
+                  </label>
+                  <input
+                    type="date"
+                    value={filters.date || ''}
+                    onChange={(e) => onFiltersChange({ ...filters, date: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: '1px solid var(--border-light)',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      backgroundColor: 'var(--bg-secondary)',
+                      color: 'var(--text-primary)'
+                    }}
+                  />
+                </div>
+
+                {/* Hashtag Filter */}
+                <div>
+                  <label style={{ 
+                    fontSize: '12px', 
+                    fontWeight: '600', 
+                    color: 'var(--text-secondary)', 
+                    marginBottom: '8px', 
+                    display: 'block' 
+                  }}>
+                    # Hashtag
+                  </label>
+                  <input
+                    type="text"
+                    value={filters.hashtag || ''}
+                    onChange={(e) => onFiltersChange({ ...filters, hashtag: e.target.value })}
+                    placeholder="#familie, #vacanță..."
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: '1px solid var(--border-light)',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      backgroundColor: 'var(--bg-secondary)',
+                      color: 'var(--text-primary)'
+                    }}
+                  />
+                </div>
+
+                {/* Sort */}
+                <div>
+                  <label style={{ 
+                    fontSize: '12px', 
+                    fontWeight: '600', 
+                    color: 'var(--text-secondary)', 
+                    marginBottom: '8px', 
+                    display: 'block' 
+                  }}>
+                    ⬆️ Sortare
+                  </label>
+                  <select
+                    value={filters.sort || 'newest'}
+                    onChange={(e) => onFiltersChange({ ...filters, sort: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: '1px solid var(--border-light)',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      backgroundColor: 'var(--bg-secondary)',
+                      color: 'var(--text-primary)'
+                    }}
+                  >
+                    <option value="newest">Cel mai nou</option>
+                    <option value="oldest">Cel mai vechi</option>
+                    <option value="title_asc">Titlu A-Z</option>
+                    <option value="title_desc">Titlu Z-A</option>
+                  </select>
+                </div>
+
+                {/* Clear Filters */}
+                <button
+                  onClick={() => onFiltersChange({ date: '', category: 'all', hashtag: '', sort: 'newest' })}
+                  style={{
+                    padding: '10px 16px',
+                    background: (filters.category !== 'all' || filters.date || filters.hashtag) ? 'var(--accent-red)' : 'var(--bg-gray)',
+                    border: '1px solid var(--border-light)',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    fontWeight: '500',
+                    color: (filters.category !== 'all' || filters.date || filters.hashtag) ? 'white' : 'var(--text-secondary)',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    width: '100%',
+                    textAlign: 'center'
+                  }}
+                >
+                  🗑️ Șterge toate filtrele
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -545,6 +686,9 @@ export default function SidebarFilter({
         onClose={() => setShowCategoryManager(false)}
         onCategoriesUpdate={(updatedCategories) => {
           setCategories(updatedCategories)
+          if (onCategoryAdded) {
+            onCategoryAdded()
+          }
         }}
       />
     </>

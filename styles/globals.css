@@ -438,27 +438,6 @@ a:focus:not(:focus-visible) {
     z-index: 10 !important;
   }
 
-/* Global floating button z-index override */
-button[style*="position: fixed"] {
-  z-index: 10 !important;
-}
-
-/* Prevent scrolling in all modals */
-.modal-overlay,
-[style*="position: fixed"][style*="inset: 0"],
-[style*="position: fixed"][style*="top: 0"][style*="left: 0"][style*="right: 0"][style*="bottom: 0"] {
-  overflow: hidden !important;
-}
-
-.modal-content,
-.modal,
-[class*="modal"],
-[style*="maxHeight"],
-[style*="overflowY"] {
-  overflow: hidden !important;
-  max-height: calc(100vh - 40px) !important;
-}
-
   /* Skills page mobile responsiveness */
   .skills-grid {
     grid-template-columns: 1fr !important;
@@ -496,6 +475,27 @@ button[style*="position: fixed"] {
   .skill-controls button {
     width: 100% !important;
   }
+}
+
+/* Global floating button z-index override */
+button[style*="position: fixed"] {
+  z-index: 10 !important;
+}
+
+/* Prevent scrolling in all modals */
+.modal-overlay,
+[style*="position: fixed"][style*="inset: 0"],
+[style*="position: fixed"][style*="top: 0"][style*="left: 0"][style*="right: 0"][style*="bottom: 0"] {
+  overflow: hidden !important;
+}
+
+.modal-content,
+.modal,
+[class*="modal"],
+[style*="maxHeight"],
+[style*="overflowY"] {
+  overflow: hidden !important;
+  max-height: calc(100vh - 40px) !important;
 }
 
 @media (min-width: 769px) {
@@ -820,22 +820,30 @@ button[style*="position: fixed"] {
   transition: opacity 0.3s ease-out;
 }
 
-/* Desktop carousel navigation arrows */
-@media (min-width: 1201px) {
-  .carousel-nav-arrow {
-    opacity: 0.3;
-    transition: opacity 0.2s ease, transform 0.2s ease, background 0.2s ease;
-  }
-  
-  .instagram-card:hover .carousel-nav-arrow {
-    opacity: 0.8;
-  }
-  
-  .carousel-nav-arrow:hover {
-    opacity: 1 !important;
-    background: rgba(0, 0, 0, 0.8) !important;
-    transform: translateY(-50%) scale(1.1) !important;
-  }
+/* Smooth scrolling container for carousels */
+.smooth-scroll-container {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.smooth-scroll-container::-webkit-scrollbar {
+  display: none;
+}
+
+/* Carousel navigation arrows for all devices */
+.carousel-nav-arrow {
+  opacity: 0.6;
+  transition: opacity 0.2s ease, transform 0.2s ease, background 0.2s ease;
+}
+
+.instagram-card:hover .carousel-nav-arrow {
+  opacity: 0.9;
+}
+
+.carousel-nav-arrow:hover {
+  opacity: 1 !important;
+  background: rgba(0, 0, 0, 0.8) !important;
+  transform: translateY(-50%) scale(1.1) !important;
 }
 
 /* Instagram Card Styling */
@@ -856,6 +864,33 @@ button[style*="position: fixed"] {
   opacity: 1 !important;
   background: rgba(0, 0, 0, 0.8) !important;
   transform: scale(1.1) !important;
+}
+
+/* Upload Modal Specific Styles */
+.upload-modal-content {
+  max-width: 600px; /* Wider on desktop for 2 columns */
+}
+
+/* Mobile: compact single column */
+@media (max-width: 768px) {
+  .upload-modal-content {
+    max-width: 95vw !important;
+    width: 95vw !important;
+    margin: 0 !important;
+    max-height: 80vh !important;
+  }
+}
+
+/* Desktop: 2 column layout */
+@media (min-width: 769px) {
+  .upload-form-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 16px !important;
+  }
+  .upload-form-full-width {
+    grid-column: 1 / -1 !important;
+  }
 }
 
 /* Utility Classes */

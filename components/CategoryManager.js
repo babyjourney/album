@@ -52,7 +52,9 @@ export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate })
         emoji: newCategory.emoji
       }
       
+      console.log('Adding category:', categoryToAdd)
       const updatedCategories = await addCategory(categoryToAdd)
+      console.log('Category added, updated list:', updatedCategories)
       setCategories(updatedCategories)
       setNewCategory({ value: '', label: '', emoji: '📝' })
       setIsAdding(false)

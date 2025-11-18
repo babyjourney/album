@@ -305,6 +305,11 @@ export default function PostModal({
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
+  // Debug editCoverIndex changes
+  useEffect(() => {
+    console.log('editCoverIndex changed to:', editCoverIndex)
+  }, [editCoverIndex])
+
   // Load categories
   useEffect(() => {
     const loadCategories = async () => {
@@ -1275,7 +1280,12 @@ export default function PostModal({
                             <button
                               key={index}
                               type="button"
-                              onClick={() => setEditCoverIndex(index)}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                e.preventDefault()
+                                console.log('Thumbnail clicked:', index)
+                                setEditCoverIndex(index)
+                              }}
                               style={{
                                 position: 'relative',
                                 width: '60px',
@@ -2298,7 +2308,12 @@ export default function PostModal({
                           <button
                             key={index}
                             type="button"
-                            onClick={() => setEditCoverIndex(index)}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              e.preventDefault()
+                              console.log('Desktop thumbnail clicked:', index)
+                              setEditCoverIndex(index)
+                            }}
                             style={{
                               position: 'relative',
                               width: '80px',

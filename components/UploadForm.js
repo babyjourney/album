@@ -24,6 +24,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
   const [customDate, setCustomDate] = useState(null)
   const [categories, setCategories] = useState([])
   const [coverIndex, setCoverIndex] = useState(0)
+  const [dragOver, setDragOver] = useState(false)
   const { showSuccess, showError } = useToast()
   const { t } = useLanguage()
   const modalRef = useRef(null)
@@ -39,8 +40,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
         setCategories(cats)
       } catch (error) {
         console.error('Error loading categories:', error)
-        // Keep default categories if API fails
-        setCategories(getCategories().catch(() => []))
+        setCategories([])
       }
     }
     loadCategories()
@@ -60,19 +60,16 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
     }
   }
 
-
   // Fetch children and album settings when component mounts
   useEffect(() => {
     const fetchChildrenData = async () => {
       try {
-        // Fetch album settings
         const settingsResponse = await fetch(`/api/album-settings/get?familyId=${familyId}`)
         const settingsResult = await settingsResponse.json()
         
         if (settingsResponse.ok) {
           setAlbumSettings(settingsResult.settings)
           
-          // If multi-child is enabled, fetch children
           if (settingsResult.settings?.is_multi_child) {
             const childrenResponse = await fetch(`/api/children/list?familyId=${familyId}`)
             const childrenResult = await childrenResponse.json()
@@ -92,14 +89,34 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
     }
   }, [familyId])
 
+  const handleDragOver = (e) => {
+    e.preventDefault()
+    setDragOver(true)
+  }
+
+  const handleDragLeave = (e) => {
+    e.preventDefault()
+    setDragOver(false)
+  }
+
+  const handleDrop = (e) => {
+    e.preventDefault()
+    setDragOver(false)
+    const droppedFiles = Array.from(e.dataTransfer.files)
+    processFiles(droppedFiles)
+  }
+
   const handleFileChange = async (e) => {
     const selectedFiles = Array.from(e.target.files)
+    processFiles(selectedFiles)
+  }
+
+  const processFiles = async (selectedFiles) => {
     if (!selectedFiles.length) return
 
     setError('')
     setCompressionInfo(null)
 
-    // Check if adding these files would exceed the 10-file limit
     const totalFilesAfterAddition = files.length + selectedFiles.length
     if (totalFilesAfterAddition > 10) {
       const errorMessage = t('error')
@@ -108,12 +125,10 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
       return
     }
 
-    // Handle multiple files - add to existing files
-    const processedFiles = [...files] // Start with existing files
+    const processedFiles = [...files]
     setLoading(true)
 
     for (const selectedFile of selectedFiles) {
-      // Check if file already exists (by name and size)
       const fileExists = processedFiles.some(existingFile => 
         existingFile.name === selectedFile.name && existingFile.size === selectedFile.size
       )
@@ -123,14 +138,12 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
         continue
       }
 
-      // Check if we've reached the 10-file limit
       if (processedFiles.length >= 10) {
         const warningMessage = `Maximum 10 fișiere sunt permise per postare. Restul fișierelor nu vor fi adăugate.`
         showError(warningMessage)
         break
       }
 
-      // Check file size limit
       if (selectedFile.size > 500 * 1024 * 1024) {
         const errorMessage = `Fișierul ${selectedFile.name} trebuie să fie mai mic de 500MB`
         setError(errorMessage)
@@ -138,7 +151,6 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
         continue
       }
 
-      // Allow images and videos for multi-media posts
       if (!selectedFile.type.startsWith('image/') && !selectedFile.type.startsWith('video/')) {
         const errorMessage = `Pentru postări multiple sunt permise doar imagini și video-uri. ${selectedFile.name} nu este o imagine sau video.`
         setError(errorMessage)
@@ -147,7 +159,6 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
       }
 
       try {
-        // Only compress images, not videos
         if (selectedFile.type.startsWith('image/')) {
           const options = {
             maxSizeMB: 2,
@@ -161,7 +172,6 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
           const compressedFile = await imageCompression(selectedFile, options)
           processedFiles.push(compressedFile)
         } else {
-          // Add videos without compression
           processedFiles.push(selectedFile)
         }
       } catch (error) {
@@ -173,12 +183,10 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
     setFiles(processedFiles)
     setLoading(false)
     
-    // Reset cover index if files were removed or reordered
     if (coverIndex >= processedFiles.length) {
       setCoverIndex(0)
     }
     
-    // Reset file input to allow selecting more files
     const fileInput = document.getElementById('file-upload')
     if (fileInput) {
       fileInput.value = ''
@@ -202,7 +210,6 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
     setError('')
 
     try {
-      // Handle multiple files upload
       const imageUrls = []
       
       for (const [index, fileToUpload] of files.entries()) {
@@ -225,7 +232,6 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
         imageUrls.push(publicUrlData.publicUrl)
       }
 
-      // Prepare request data
       const requestData = {
         title: title.trim(),
         description: description.trim(),
@@ -236,12 +242,10 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
         customDate
       }
 
-      // Only include coverIndex if there are multiple files
       if (imageUrls.length > 1) {
         requestData.coverIndex = coverIndex
       }
 
-      // Save multi-photo post via API
       const response = await authenticatedFetch('/api/posts/create-multi', {
         method: 'POST',
         body: JSON.stringify(requestData)
@@ -253,7 +257,6 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
         throw new Error(result.error || t('error'))
       }
 
-      // Handle child associations for multi-photo posts
       if (albumSettings?.is_multi_child && selectedChildren.length > 0) {
         const childResponse = await authenticatedFetch('/api/child-posts/create', {
           method: 'POST',
@@ -268,7 +271,6 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
         }
       }
 
-      // Determine success message before resetting form
       const successMessage = t('success')
 
       // Reset form
@@ -307,563 +309,662 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
     <div ref={modalRef} style={{ 
       display: 'flex', 
       flexDirection: 'column', 
-      height: 'auto',
-      maxHeight: '85vh',
-      minHeight: '70vh',
-      overflow: 'hidden',
+      height: '100%',
       width: '100%'
     }}>
-      {/* Fixed Header */}
+      {/* Premium Header */}
       <div style={{
-        padding: '16px 20px 12px 20px',
-        borderBottom: '1px solid var(--border-light)',
-        flexShrink: 0
+        padding: '32px 40px 24px 40px',
+        borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
+        flexShrink: 0,
+        background: 'linear-gradient(135deg, rgba(79, 70, 229, 0.02) 0%, rgba(168, 85, 247, 0.02) 100%)'
       }}>
-        <h2 className="text-section-title">{t('upload')}</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{
+            width: '48px',
+            height: '48px',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            borderRadius: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 8px 16px rgba(102, 126, 234, 0.3)'
+          }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7,10 12,15 17,10"/>
+              <line x1="12" x2="12" y1="15" y2="3"/>
+            </svg>
+          </div>
+          <div>
+            <h1 style={{ 
+              margin: 0, 
+              fontSize: '28px', 
+              fontWeight: '700',
+              color: 'var(--text-primary)',
+              lineHeight: '1.2'
+            }}>Create New Post</h1>
+            <p style={{
+              margin: '4px 0 0 0',
+              fontSize: '16px',
+              color: 'var(--text-secondary)',
+              fontWeight: '400'
+            }}>Share your moments with beautiful memories</p>
+          </div>
+        </div>
       </div>
 
-      {/* Scrollable Content */}
+      {/* Premium Content */}
       <div style={{
         flex: 1,
         overflowY: 'auto',
-        padding: '16px 20px',
-        minHeight: 0,
-        maxHeight: 'calc(85vh - 80px)'
+        padding: '32px 40px',
+        minHeight: 0
       }}>
-        {/* Title Input */}
-        <div style={{ marginBottom: '16px' }}>
-          <label className="text-subtle" style={{ display: 'block', marginBottom: '8px' }}>
-            {t('title')}
-          </label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="input-field"
-            placeholder={t('titlePlaceholder')}
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            spellCheck="false"
-            data-form-type="other"
-            data-lpignore="true"
-            data-1p-ignore="true"
-            data-bwignore="true"
-            name="photo-title"
-            id="photo-title"
-            required
-          />
-        </div>
-
-        {/* Description Input */}
-        <div style={{ marginBottom: '16px' }}>
-          <label className="text-subtle" style={{ display: 'block', marginBottom: '8px' }}>
-            {t('description')}
-          </label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="input-field"
-            style={{ resize: 'none', minHeight: '80px' }}
-            rows="3"
-            placeholder={t('addDescription')}
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            spellCheck="false"
-            data-form-type="other"
-            data-lpignore="true"
-            data-1p-ignore="true"
-            data-bwignore="true"
-            name="photo-description"
-            id="photo-description"
-          />
-        </div>
-        
-        {/* Category Selection - Interactive Pills */}
-        <div style={{ marginBottom: '16px' }}>
-          <label className="text-subtle" style={{ display: 'block', marginBottom: '8px' }}>
-            Categorie
-          </label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-            {categories.map((cat) => (
-              <button
-                key={cat.value}
-                type="button"
-                onClick={() => setCategory(cat.value)}
-                className={`category-pill ${
-                  category === cat.value ? 'category-pill--selected' : 'category-pill--unselected'
-                }`}
-              >
-                {cat.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        
-        {/* Hashtags Input */}
-        <div style={{ marginBottom: '16px' }}>
-          <label className="text-subtle" style={{ display: 'block', marginBottom: '8px' }}>
-            {t('tags')}
-          </label>
-          <div style={{
-            border: '1px solid var(--border-light)',
-            borderRadius: '12px',
-            padding: '8px 12px',
-            backgroundColor: 'var(--bg-secondary)',
-            minHeight: '44px',
-            display: 'flex',
-            flexWrap: 'wrap',
-            alignItems: 'center',
-            gap: '6px'
-          }}>
-            {/* Display hashtag pills */}
-            {hashtags.map((tag, index) => (
-              <span
-                key={index}
-                style={{
-                  backgroundColor: 'var(--accent-blue)',
-                  color: 'white',
-                  padding: '6px 10px',
-                  borderRadius: '10px',
-                  fontSize: '14px',
-                  fontWeight: '400',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  lineHeight: '1.2',
-                  height: 'auto',
-                  minHeight: 'unset',
-                  verticalAlign: 'middle',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                {tag.startsWith('#') ? tag : `#${tag}`}
-              </span>
-            ))}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+          gap: '32px',
+          maxWidth: '1200px'
+        }}>
+          
+          {/* Left Column - File Upload */}
+          <div style={{ order: '1' }}>
+            <h3 style={{
+              margin: '0 0 16px 0',
+              fontSize: '18px',
+              fontWeight: '600',
+              color: 'var(--text-primary)'
+            }}>📸 Photos & Videos</h3>
             
-            {/* Input for new hashtags */}
-            <input
-              type="text"
-              value={currentHashtagInput}
-              onChange={(e) => setCurrentHashtagInput(e.target.value)}
-              onKeyDown={handleHashtagKeyDown}
-              placeholder={hashtags.length === 0 ? t('hashtagInputPlaceholder') : ""}
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck="false"
-              data-form-type="other"
-              data-lpignore="true"
-              data-1p-ignore="true"
-              data-bwignore="true"
-              name="photo-hashtags"
-              id="photo-hashtags"
+            {/* Drag & Drop Area */}
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
               style={{
-                border: 'none',
-                outline: 'none',
-                flex: 1,
-                minWidth: '120px',
-                padding: '4px 0',
-                fontSize: '14px',
-                backgroundColor: 'transparent'
+                border: `2px dashed ${dragOver ? '#667eea' : 'rgba(0, 0, 0, 0.1)'}`,
+                borderRadius: '20px',
+                padding: '40px 24px',
+                textAlign: 'center',
+                background: dragOver 
+                  ? 'linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(168, 85, 247, 0.05) 100%)'
+                  : 'rgba(248, 250, 252, 0.5)',
+                transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                cursor: 'pointer',
+                position: 'relative',
+                marginBottom: '24px'
               }}
-            />
+              onClick={() => document.getElementById('file-upload').click()}
+            >
+              <div style={{
+                fontSize: '48px',
+                marginBottom: '16px',
+                opacity: dragOver ? 1 : 0.6,
+                transition: 'opacity 0.2s ease'
+              }}>
+                {dragOver ? '🎯' : '📁'}
+              </div>
+              <h4 style={{
+                margin: '0 0 8px 0',
+                fontSize: '18px',
+                fontWeight: '600',
+                color: 'var(--text-primary)'
+              }}>
+                {dragOver ? 'Drop your files here' : 'Upload your media'}
+              </h4>
+              <p style={{
+                margin: 0,
+                fontSize: '14px',
+                color: 'var(--text-secondary)',
+                lineHeight: '1.5'
+              }}>
+                Drag and drop your photos and videos, or click to browse<br/>
+                <span style={{ fontSize: '12px', opacity: 0.7 }}>
+                  Supports JPG, PNG, GIF, MP4, MOV • Max 10 files • Up to 500MB each
+                </span>
+              </p>
+              
+              <input
+                id="file-upload"
+                type="file"
+                onChange={handleFileChange}
+                accept="image/*,video/*"
+                multiple={true}
+                style={{ display: 'none' }}
+                disabled={files.length >= 10}
+                required
+              />
+            </div>
+
+            {/* File Preview Grid */}
+            {files.length > 0 && (
+              <div style={{
+                padding: '24px',
+                background: 'white',
+                borderRadius: '16px',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+                border: '1px solid rgba(0, 0, 0, 0.06)'
+              }}>
+                <h4 style={{
+                  margin: '0 0 16px 0',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  color: 'var(--text-primary)'
+                }}>
+                  ✨ {files.length} file{files.length !== 1 ? 's' : ''} selected
+                </h4>
+                
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))',
+                  gap: '12px'
+                }}>
+                  {files.map((file, index) => (
+                    <div key={index} style={{
+                      position: 'relative',
+                      aspectRatio: '1',
+                      borderRadius: '12px',
+                      overflow: 'hidden',
+                      background: '#f8fafc',
+                      border: index === coverIndex ? '3px solid #667eea' : '2px solid transparent',
+                      transition: 'all 0.2s ease',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => setCoverIndex(index)}
+                    >
+                      {file.type.startsWith('image/') ? (
+                        <img 
+                          src={URL.createObjectURL(file)}
+                          alt="Preview"
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover'
+                          }}
+                        />
+                      ) : (
+                        <div style={{
+                          width: '100%',
+                          height: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '24px',
+                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                          color: 'white'
+                        }}>
+                          🎥
+                        </div>
+                      )}
+                      
+                      {/* Cover Badge */}
+                      {index === coverIndex && (
+                        <div style={{
+                          position: 'absolute',
+                          top: '4px',
+                          left: '4px',
+                          background: '#667eea',
+                          color: 'white',
+                          borderRadius: '6px',
+                          padding: '2px 6px',
+                          fontSize: '10px',
+                          fontWeight: '600'
+                        }}>
+                          COVER
+                        </div>
+                      )}
+                      
+                      {/* Remove Button */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          const newFiles = files.filter((_, i) => i !== index)
+                          setFiles(newFiles)
+                          if (index === coverIndex && index === files.length - 1) {
+                            setCoverIndex(Math.max(0, index - 1))
+                          } else if (index < coverIndex) {
+                            setCoverIndex(coverIndex - 1)
+                          }
+                        }}
+                        style={{
+                          position: 'absolute',
+                          top: '4px',
+                          right: '4px',
+                          width: '20px',
+                          height: '20px',
+                          borderRadius: '50%',
+                          border: 'none',
+                          background: 'rgba(239, 68, 68, 0.9)',
+                          color: 'white',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseOver={(e) => e.target.style.background = '#dc2626'}
+                        onMouseOut={(e) => e.target.style.background = 'rgba(239, 68, 68, 0.9)'}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-          <p className="text-subtle" style={{ marginTop: '4px', fontSize: '12px' }}>
-{t('hashtagInputHelp')}
-          </p>
-        </div>
 
-        {/* Date Picker */}
-        <div style={{ marginBottom: '16px' }}>
-          <DatePicker
-            value={customDate}
-            onChange={setCustomDate}
-            label={t('postDate')}
-          />
-        </div>
+          {/* Right Column - Form Fields */}
+          <div style={{ order: '2' }}>
+            <h3 style={{
+              margin: '0 0 24px 0',
+              fontSize: '18px',
+              fontWeight: '600',
+              color: 'var(--text-primary)'
+            }}>✏️ Post Details</h3>
 
-        {/* Children Selection - Only show if multi-child is enabled */}
-        {albumSettings?.is_multi_child && children.length > 0 && (
-          <div style={{ marginBottom: '16px' }}>
-            <label className="text-subtle" style={{ display: 'block', marginBottom: '8px' }}>
-{t('filterByChild')}
-            </label>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-              gap: '8px',
-              padding: '12px',
-              backgroundColor: 'var(--bg-gray)',
-              borderRadius: '12px',
-              border: '1px solid var(--border-light)'
-            }}>
-              {children.map((child) => (
-                <label
-                  key={child.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    cursor: 'pointer',
-                    padding: '8px',
-                    borderRadius: '8px',
-                    backgroundColor: selectedChildren.includes(child.id) ? 'var(--accent-blue)' : 'var(--bg-secondary)',
-                    color: selectedChildren.includes(child.id) ? 'white' : 'var(--text-primary)',
-                    border: '1px solid var(--border-light)',
-                    transition: 'all 0.2s ease-in-out'
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedChildren.includes(child.id)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedChildren([...selectedChildren, child.id])
-                      } else {
-                        setSelectedChildren(selectedChildren.filter(id => id !== child.id))
+            {/* Title Input */}
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: '8px', 
+                fontSize: '15px', 
+                fontWeight: '600',
+                color: 'var(--text-primary)'
+              }}>
+                Title *
+              </label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '14px 16px',
+                  border: '2px solid rgba(0, 0, 0, 0.06)',
+                  borderRadius: '12px',
+                  fontSize: '16px',
+                  background: 'white',
+                  color: 'var(--text-primary)',
+                  transition: 'all 0.2s ease',
+                  outline: 'none'
+                }}
+                placeholder="Give your post an amazing title..."
+                required
+                onFocus={(e) => e.target.style.borderColor = '#667eea'}
+                onBlur={(e) => e.target.style.borderColor = 'rgba(0, 0, 0, 0.06)'}
+              />
+            </div>
+
+            {/* Description */}
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: '8px', 
+                fontSize: '15px', 
+                fontWeight: '600',
+                color: 'var(--text-primary)'
+              }}>
+                Description
+              </label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '14px 16px',
+                  border: '2px solid rgba(0, 0, 0, 0.06)',
+                  borderRadius: '12px',
+                  fontSize: '16px',
+                  background: 'white',
+                  color: 'var(--text-primary)',
+                  resize: 'none',
+                  minHeight: '100px',
+                  fontFamily: 'inherit',
+                  transition: 'all 0.2s ease',
+                  outline: 'none'
+                }}
+                rows="4"
+                placeholder="Tell the story behind your photos..."
+                onFocus={(e) => e.target.style.borderColor = '#667eea'}
+                onBlur={(e) => e.target.style.borderColor = 'rgba(0, 0, 0, 0.06)'}
+              />
+            </div>
+            
+            {/* Categories */}
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: '12px', 
+                fontSize: '15px', 
+                fontWeight: '600',
+                color: 'var(--text-primary)'
+              }}>
+                Category
+              </label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {categories.map((cat) => (
+                  <button
+                    key={cat.value}
+                    type="button"
+                    onClick={() => setCategory(cat.value)}
+                    style={{
+                      padding: '10px 16px',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      border: '2px solid',
+                      borderColor: category === cat.value ? '#667eea' : 'rgba(0, 0, 0, 0.08)',
+                      borderRadius: '12px',
+                      background: category === cat.value 
+                        ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                        : 'white',
+                      color: category === cat.value ? 'white' : 'var(--text-primary)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                      boxShadow: category === cat.value 
+                        ? '0 4px 12px rgba(102, 126, 234, 0.3)'
+                        : 'none'
+                    }}
+                    onMouseOver={(e) => {
+                      if (category !== cat.value) {
+                        e.target.style.borderColor = '#667eea'
+                        e.target.style.background = 'rgba(102, 126, 234, 0.05)'
                       }
                     }}
-                    style={{ display: 'none' }}
-                  />
-                  <div style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '50%',
-                    backgroundColor: selectedChildren.includes(child.id) ? 'rgba(255, 255, 255, 0.2)' : 'var(--accent-blue)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: 'white',
-                    backgroundImage: child.profile_picture_url ? `url(${child.profile_picture_url})` : 'none',
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center'
-                  }}>
-                    {!child.profile_picture_url && child.name.charAt(0).toUpperCase()}
-                  </div>
-                  <span style={{ fontSize: '14px', fontWeight: '500' }}>
-                    {child.name}
-                  </span>
-                </label>
-              ))}
-            </div>
-            <p className="text-subtle" style={{ marginTop: '6px', fontSize: '11px' }}>
-              Selectează copiii asociați cu această postare. Dacă nu selectezi niciun copil, postarea va fi considerată "comună".
-            </p>
-          </div>
-        )}
-
-        {/* File Upload */}
-
-        <div style={{ marginBottom: '16px' }}>
-          <label className="text-subtle" style={{ display: 'block', marginBottom: '8px' }}>
-            Imagini și Video-uri
-          </label>
-          <input
-            id="file-upload"
-            type="file"
-            onChange={handleFileChange}
-            accept="image/*,video/*"
-            multiple={true}
-            className="input-field"
-            style={{ 
-              paddingTop: '8px', 
-              paddingBottom: '8px',
-              opacity: files.length >= 10 ? 0.5 : 1,
-              cursor: files.length >= 10 ? 'not-allowed' : 'pointer'
-            }}
-            disabled={files.length >= 10}
-            required
-          />
-          <p className="text-subtle" style={{ marginTop: '4px', fontSize: '12px' }}>
-            {files.length >= 10 
-              ? 'Limită atinsă: Maximum 10 fișiere per postare.' 
-              : 'Formate acceptate: JPG, PNG, GIF, MP4, MOV, AVI. Maximum 10 fișiere per postare. Selectează mai multe fișiere deodată.'
-            }
-          </p>
-          
-          {/* Multiple files selected feedback */}
-          {files.length > 0 && (
-            <div style={{ 
-              marginTop: '12px', 
-              padding: '12px', 
-              backgroundColor: '#F0FDF4', 
-              border: '1px solid #DCFCE7',
-              borderRadius: '12px',
-              color: '#15803D'
-            }}>
-              ✅ {files.length} {files.length === 1 ? 'fișier selectat' : 'fișiere selectate'} din maximum 10
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fill, minmax(60px, 1fr))', 
-                gap: '8px', 
-                marginTop: '8px' 
-              }}>
-                {files.slice(0, 6).map((file, index) => (
-                  <div key={index} style={{
-                    position: 'relative',
-                    width: '60px',
-                    height: '60px',
-                    borderRadius: '8px',
-                    backgroundColor: '#E5E7EB',
-                    backgroundImage: file.type.startsWith('image/') ? `url(${URL.createObjectURL(file)})` : 'none',
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    {/* Video icon for video files */}
-                    {file.type.startsWith('video/') && (
-                      <div style={{
-                        color: 'var(--text-secondary)',
-                        fontSize: '24px',
-                        background: 'rgba(255, 255, 255, 0.9)',
-                        borderRadius: '50%',
-                        width: '32px',
-                        height: '32px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}>
-                        ▶
-                      </div>
-                    )}
-                    
-                    {/* Cover selection indicator */}
-                    {index === coverIndex && (
-                      <div style={{
-                        position: 'absolute',
-                        top: '4px',
-                        left: '4px',
-                        width: '16px',
-                        height: '16px',
-                        borderRadius: '50%',
-                        backgroundColor: 'var(--accent-green)',
-                        color: 'white',
-                        fontSize: '10px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
-                        fontWeight: 'bold'
-                      }}
-                      title="Cover/Thumbnail"
-                      >
-                        ★
-                      </div>
-                    )}
-                    
-                    {/* Remove button */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const newFiles = files.filter((_, i) => i !== index)
-                        setFiles(newFiles)
-                        // Adjust cover index if needed
-                        if (index === coverIndex && index === files.length - 1) {
-                          setCoverIndex(Math.max(0, index - 1))
-                        } else if (index < coverIndex) {
-                          setCoverIndex(coverIndex - 1)
-                        }
-                      }}
-                      style={{
-                        position: 'absolute',
-                        top: '-4px',
-                        right: '-4px',
-                        width: '20px',
-                        height: '20px',
-                        borderRadius: '50%',
-                        border: 'none',
-                        backgroundColor: '#DC2626',
-                        color: 'white',
-                        cursor: 'pointer',
-                        fontSize: '12px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
-                      }}
-                      title={`Elimină ${file.type.startsWith('video/') ? 'video-ul' : 'imaginea'}`}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-                {files.length > 6 && (
-                  <div style={{
-                    width: '60px',
-                    height: '60px',
-                    borderRadius: '8px',
-                    backgroundColor: '#E5E7EB',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '12px',
-                    color: '#6B7280',
-                    fontWeight: '600'
-                  }}>
-                    +{files.length - 6}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Cover Selection - Only show when multiple files */}
-          {files.length > 1 && (
-            <div style={{ 
-              marginTop: '12px', 
-              padding: '12px', 
-              backgroundColor: 'var(--bg-gray)', 
-              border: '1px solid var(--border-light)',
-              borderRadius: '12px'
-            }}>
-              <div style={{ marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
-                📸 Alege thumbnail-ul/cover-ul pentru această postare:
-              </div>
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', 
-                gap: '8px' 
-              }}>
-                {files.map((file, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    onClick={() => setCoverIndex(index)}
-                    style={{
-                      position: 'relative',
-                      width: '80px',
-                      height: '80px',
-                      borderRadius: '8px',
-                      backgroundColor: 'var(--bg-gray)',
-                      backgroundImage: file.type.startsWith('image/') ? `url(${URL.createObjectURL(file)})` : 'none',
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      border: index === coverIndex ? '3px solid var(--accent-green)' : '2px solid transparent',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease'
+                    onMouseOut={(e) => {
+                      if (category !== cat.value) {
+                        e.target.style.borderColor = 'rgba(0, 0, 0, 0.08)'
+                        e.target.style.background = 'white'
+                      }
                     }}
-                    title={`Selectează ca thumbnail ${index === coverIndex ? '(selectat)' : ''}`}
                   >
-                    {/* Video icon for video files */}
-                    {file.type.startsWith('video/') && (
-                      <div style={{
-                        color: 'var(--text-secondary)',
-                        fontSize: '28px',
-                        background: 'rgba(255, 255, 255, 0.9)',
-                        borderRadius: '50%',
-                        width: '40px',
-                        height: '40px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}>
-                        ▶
-                      </div>
-                    )}
-                    
-                    {/* Cover selection indicator */}
-                    {index === coverIndex && (
-                      <div style={{
-                        position: 'absolute',
-                        top: '4px',
-                        right: '4px',
-                        width: '20px',
-                        height: '20px',
-                        borderRadius: '50%',
-                        backgroundColor: 'var(--accent-green)',
-                        color: 'white',
-                        fontSize: '12px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
-                        fontWeight: 'bold'
-                      }}
-                      >
-                        ✓
-                      </div>
-                    )}
+                    {cat.label}
                   </button>
                 ))}
               </div>
-              <p style={{ 
-                marginTop: '8px', 
-                fontSize: '12px', 
-                color: '#6B7280',
-                lineHeight: '1.4'
+            </div>
+
+            {/* Hashtags */}
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: '8px', 
+                fontSize: '15px', 
+                fontWeight: '600',
+                color: 'var(--text-primary)'
               }}>
-                Thumbnail-ul selectat va fi afișat în grid ca poza principală a postării. Poți selecta orice imagine sau video.
+                Hashtags
+              </label>
+              <div style={{
+                border: '2px solid rgba(0, 0, 0, 0.06)',
+                borderRadius: '12px',
+                padding: '12px',
+                backgroundColor: 'white',
+                minHeight: '50px',
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.2s ease'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#667eea'}
+              >
+                {hashtags.map((tag, index) => (
+                  <span
+                    key={index}
+                    style={{
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      color: 'white',
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    #{tag}
+                    <button
+                      type="button"
+                      onClick={() => setHashtags(hashtags.filter((_, i) => i !== index))}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'white',
+                        cursor: 'pointer',
+                        fontSize: '16px',
+                        width: '16px',
+                        height: '16px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+                
+                <input
+                  type="text"
+                  value={currentHashtagInput}
+                  onChange={(e) => setCurrentHashtagInput(e.target.value)}
+                  onKeyDown={handleHashtagKeyDown}
+                  placeholder={hashtags.length === 0 ? "Add hashtags (press space to add)..." : ""}
+                  style={{
+                    border: 'none',
+                    outline: 'none',
+                    flex: 1,
+                    minWidth: '120px',
+                    padding: '4px 0',
+                    fontSize: '14px',
+                    backgroundColor: 'transparent'
+                  }}
+                />
+              </div>
+              <p style={{ marginTop: '6px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                Type a word and press space to create a hashtag
               </p>
             </div>
-          )}
-        </div>
 
-        {/* Error Message */}
-        {error && (
-          <div style={{ 
-            marginBottom: '12px', 
-            padding: '10px', 
-            backgroundColor: '#FEF2F2', 
-            border: '1px solid #FECACA',
-            borderRadius: '8px',
-            color: '#DC2626',
-            fontSize: '14px'
-          }}>
-            {error}
+            {/* Date Picker */}
+            <div style={{ marginBottom: '24px' }}>
+              <DatePicker
+                value={customDate}
+                onChange={setCustomDate}
+                label="Post Date"
+              />
+            </div>
+
+            {/* Children Selection */}
+            {albumSettings?.is_multi_child && children.length > 0 && (
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{ 
+                  display: 'block', 
+                  marginBottom: '12px', 
+                  fontSize: '15px', 
+                  fontWeight: '600',
+                  color: 'var(--text-primary)'
+                }}>
+                  👶 Associated Children
+                </label>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                  gap: '12px'
+                }}>
+                  {children.map((child) => (
+                    <label
+                      key={child.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        cursor: 'pointer',
+                        padding: '12px',
+                        borderRadius: '12px',
+                        background: selectedChildren.includes(child.id) 
+                          ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                          : 'white',
+                        color: selectedChildren.includes(child.id) ? 'white' : 'var(--text-primary)',
+                        border: '2px solid',
+                        borderColor: selectedChildren.includes(child.id) ? '#667eea' : 'rgba(0, 0, 0, 0.08)',
+                        transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                        boxShadow: selectedChildren.includes(child.id) 
+                          ? '0 4px 12px rgba(102, 126, 234, 0.3)'
+                          : 'none'
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedChildren.includes(child.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedChildren([...selectedChildren, child.id])
+                          } else {
+                            setSelectedChildren(selectedChildren.filter(id => id !== child.id))
+                          }
+                        }}
+                        style={{ display: 'none' }}
+                      />
+                      <div style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        background: selectedChildren.includes(child.id) 
+                          ? 'rgba(255, 255, 255, 0.2)'
+                          : '#667eea',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: 'white',
+                        backgroundImage: child.profile_picture_url ? `url(${child.profile_picture_url})` : 'none',
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center'
+                      }}>
+                        {!child.profile_picture_url && child.name.charAt(0).toUpperCase()}
+                      </div>
+                      <span style={{ fontSize: '14px', fontWeight: '500' }}>
+                        {child.name}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Error Message */}
+            {error && (
+              <div style={{ 
+                marginBottom: '24px', 
+                padding: '16px', 
+                backgroundColor: 'rgba(239, 68, 68, 0.1)', 
+                border: '2px solid rgba(239, 68, 68, 0.2)',
+                borderRadius: '12px',
+                color: '#DC2626',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}>
+                🚨 {error}
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Fixed Footer */}
+      {/* Premium Footer */}
       <div style={{
-        padding: '12px 24px 16px 24px',
-        borderTop: '1px solid var(--border-light)',
+        padding: '24px 40px',
+        borderTop: '1px solid rgba(0, 0, 0, 0.06)',
         flexShrink: 0,
+        background: 'rgba(248, 250, 252, 0.5)',
         display: 'flex',
-        justifyContent: 'flex-end',
-        background: 'var(--bg-secondary)',
-        minHeight: '70px'
+        justifyContent: 'space-between',
+        alignItems: 'center'
       }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          color: 'var(--text-secondary)',
+          fontSize: '14px'
+        }}>
+          {files.length > 0 && (
+            <>
+              <span style={{
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+                padding: '4px 8px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                fontWeight: '600'
+              }}>
+                {files.length} file{files.length !== 1 ? 's' : ''}
+              </span>
+              <span>•</span>
+            </>
+          )}
+          <span>Ready to share your moment?</span>
+        </div>
+        
         <button
           onClick={handleSubmit}
-          disabled={loading}
-          className="btn-primary"
-          style={{ minWidth: '140px' }}
+          disabled={loading || !title.trim() || files.length === 0}
+          style={{
+            padding: '16px 32px',
+            background: loading || !title.trim() || files.length === 0
+              ? 'rgba(0, 0, 0, 0.1)'
+              : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: loading || !title.trim() || files.length === 0 ? 'rgba(0, 0, 0, 0.4)' : 'white',
+            border: 'none',
+            borderRadius: '12px',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: loading || !title.trim() || files.length === 0 ? 'not-allowed' : 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+            boxShadow: loading || !title.trim() || files.length === 0
+              ? 'none'
+              : '0 8px 16px rgba(102, 126, 234, 0.3)',
+            minWidth: '140px'
+          }}
+          onMouseOver={(e) => {
+            if (!loading && title.trim() && files.length > 0) {
+              e.target.style.transform = 'translateY(-2px)'
+              e.target.style.boxShadow = '0 12px 24px rgba(102, 126, 234, 0.4)'
+            }
+          }}
+          onMouseOut={(e) => {
+            if (!loading && title.trim() && files.length > 0) {
+              e.target.style.transform = 'translateY(0)'
+              e.target.style.boxShadow = '0 8px 16px rgba(102, 126, 234, 0.3)'
+            }
+          }}
         >
           {loading ? (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px'
-            }}>
+            <>
               <div style={{
                 width: '16px',
                 height: '16px',
-                border: '2px solid white',
-                borderTop: '2px solid transparent',
+                border: '2px solid rgba(255, 255, 255, 0.3)',
+                borderTop: '2px solid white',
                 borderRadius: '50%',
                 animation: 'spin 1s linear infinite'
               }}></div>
-              {t('uploading')}
-            </div>
+              Publishing...
+            </>
           ) : (
             <>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="7,10 12,15 17,10"/>
-                <line x1="12" x2="12" y1="15" y2="3"/>
-              </svg>
-{t('upload')}
+              🚀 Publish Post
             </>
           )}
         </button>

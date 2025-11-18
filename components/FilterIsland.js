@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Calendar, Hash, ArrowUpDown, Settings } from 'lucide-react'
-import { getCategories } from '../lib/categoriesData'
+import { getCategories, clearCategoriesCache } from '../lib/categoriesData'
 import CategoryManager from './CategoryManager'
 
 const SORT_OPTIONS = [
@@ -39,6 +39,14 @@ export default function FilterIsland({
     }
     loadCategories()
   }, [])
+
+  // Manual refresh function
+  const refreshCategories = async () => {
+    clearCategoriesCache()
+    const loadedCategories = await getCategories()
+    setCategories([{ value: 'all', label: 'Toate' }, ...loadedCategories])
+    console.log('Categories refreshed:', loadedCategories)
+  }
 
   // Debounced live hashtag filtering
   useEffect(() => {
@@ -209,24 +217,44 @@ export default function FilterIsland({
             <label className="text-subtle" style={{ fontWeight: '500' }}>
               Filtrare după categorie
             </label>
-            <button
-              onClick={() => setShowCategoryManager(true)}
-              style={{
-                padding: '6px 12px',
-                background: 'var(--bg-gray)',
-                border: '1px solid var(--border-light)',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '12px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                color: 'var(--text-secondary)'
-              }}
-            >
-              <Settings size={14} />
-              Gestionează
-            </button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={refreshCategories}
+                style={{
+                  padding: '6px 10px',
+                  background: 'var(--bg-gray)',
+                  border: '1px solid var(--border-light)',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '11px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  color: 'var(--text-secondary)'
+                }}
+                title="Refresh categories"
+              >
+                🔄
+              </button>
+              <button
+                onClick={() => setShowCategoryManager(true)}
+                style={{
+                  padding: '6px 12px',
+                  background: 'var(--bg-gray)',
+                  border: '1px solid var(--border-light)',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  color: 'var(--text-secondary)'
+                }}
+              >
+                <Settings size={14} />
+                Gestionează
+              </button>
+            </div>
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
             {categories.map((cat) => (

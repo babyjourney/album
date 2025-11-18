@@ -2,32 +2,66 @@ import { useState, useEffect, useMemo } from 'react'
 import { useToast } from '../contexts/ToastContext'
 import { useLanguage } from '../contexts/LanguageContext'
 
-// Helper function to detect and extract multi-photo URLs
+// Helper function to detect and extract multi-photo URLs with cover reordering
 const getMultiPhotoUrls = (post) => {
-  // First check for proper file_urls field (new format)
-  if (post.type === 'multi-photo' && post.file_urls) {
-    // If file_urls is already an array, return it
+  let urls = null
+  let coverIndex = 0
+  
+  // Check for file_urls field (works for both 'multi-photo' and 'image' types with multiple files)
+  if (post.file_urls) {
+    // If file_urls is already an array, use it
     if (Array.isArray(post.file_urls)) {
-      return post.file_urls
+      urls = post.file_urls
+    } else if (typeof post.file_urls === 'string') {
+      // If it's a string, try to parse it
+      try {
+        urls = JSON.parse(post.file_urls)
+      } catch (e) {
+        return null
+      }
     }
-    // If it's a string, try to parse it
+    
+    // Get cover index from post
+    if (post.cover_index !== undefined) {
+      coverIndex = post.cover_index || 0
+    }
+  }
+  
+  // Fallback to old format in description (for compatibility with existing posts)
+  if (!urls && post.description && post.description.includes('__MULTI_PHOTO_URLS__:')) {
     try {
-      return JSON.parse(post.file_urls)
+      const marker = '__MULTI_PHOTO_URLS__:'
+      const markerIndex = post.description.indexOf(marker)
+      const urlsJson = post.description.substring(markerIndex + marker.length)
+      urls = JSON.parse(urlsJson)
+      
+      // Extract cover index from old format
+      if (post.description.includes('__COVER_INDEX__:')) {
+        const coverMatch = post.description.match(/__COVER_INDEX__:(\d+)/)
+        if (coverMatch) {
+          coverIndex = parseInt(coverMatch[1]) || 0
+        }
+      }
     } catch (e) {
       return null
     }
   }
   
-  // Fallback to old format in description (for compatibility with existing posts)
-  if (post.description && post.description.includes('__MULTI_PHOTO_URLS__:')) {
-    try {
-      const marker = '__MULTI_PHOTO_URLS__:'
-      const markerIndex = post.description.indexOf(marker)
-      const urlsJson = post.description.substring(markerIndex + marker.length)
-      return JSON.parse(urlsJson)
-    } catch (e) {
-      return null
+  // Only process if there are actually multiple URLs
+  if (urls && Array.isArray(urls) && urls.length > 1) {
+    // Reorder URLs to put the cover image first for carousel display
+    if (coverIndex > 0 && coverIndex < urls.length) {
+      console.log(`Reordering images for post: coverIndex=${coverIndex}, total=${urls.length}`)
+      const reorderedUrls = [...urls]
+      const coverUrl = reorderedUrls[coverIndex]
+      reorderedUrls.splice(coverIndex, 1)
+      reorderedUrls.unshift(coverUrl)
+      console.log('Original order:', urls.map((url, i) => `${i}: ${url.split('/').pop()}`))
+      console.log('Reordered:', reorderedUrls.map((url, i) => `${i}: ${url.split('/').pop()}`))
+      return reorderedUrls
     }
+    
+    return urls
   }
   
   return null
@@ -37,8 +71,8 @@ const getMultiPhotoUrls = (post) => {
 const getCleanDescription = (post) => {
   if (!post.description) return ''
   
-  // If this is a new format multi-photo post, just return the description as-is
-  if (post.type === 'multi-photo' && post.file_urls) {
+  // If this post has file_urls (new format), just return the description as-is
+  if (post.file_urls) {
     return post.description
   }
   
@@ -164,7 +198,23 @@ export default function InstagramFeed({ familyId, searchQuery, refreshTrigger, o
           boxShadow: '0 2px 8px var(--shadow-light), 0 1px 3px var(--shadow-medium)',
           position: 'relative'
         }}
-        onClick={() => onPostClick(post, filteredPosts, index)}
+        onClick={(e) => {
+          const scrollContainer = e.currentTarget.querySelector('.smooth-scroll-container')
+          
+          // Don't open modal if carousel was recently scrolled
+          if (scrollContainer && scrollContainer.dataset.isScrolling === 'true') {
+            return
+          }
+          
+          // Don't open modal if clicking on carousel controls
+          if (e.target.closest('.carousel-nav-arrow') || 
+              e.target.closest('.carousel-dot')) {
+            return
+          }
+          
+          // Open modal for all other clicks
+          onPostClick(post, filteredPosts, index)
+        }}
         onMouseOver={(e) => {
           e.currentTarget.style.transform = 'scale(1.02)'
           e.currentTarget.style.boxShadow = '0 8px 24px var(--shadow-medium), 0 4px 12px var(--shadow-light)'
@@ -341,6 +391,36 @@ export default function InstagramFeed({ familyId, searchQuery, refreshTrigger, o
                         const x = e.pageX - container.offsetLeft
                         const walk = (x - parseFloat(container.dataset.startX)) * 2
                         container.scrollLeft = parseFloat(container.dataset.scrollLeft) - walk
+                      }}
+                      onTouchStart={(e) => {
+                        const container = e.currentTarget
+                        container.dataset.touchStartX = e.touches[0].clientX
+                        container.dataset.initialScrollLeft = container.scrollLeft
+                      }}
+                      onTouchMove={(e) => {
+                        const container = e.currentTarget
+                        // Mark that scrolling is happening
+                        container.dataset.isScrolling = 'true'
+                      }}
+                      onTouchEnd={(e) => {
+                        const container = e.currentTarget
+                        const touchEndX = e.changedTouches[0].clientX
+                        const touchStartX = parseFloat(container.dataset.touchStartX || '0')
+                        const initialScrollLeft = parseFloat(container.dataset.initialScrollLeft || '0')
+                        
+                        // If there was horizontal movement or scroll changed, prevent modal opening
+                        const horizontalMovement = Math.abs(touchEndX - touchStartX)
+                        const scrollChanged = Math.abs(container.scrollLeft - initialScrollLeft)
+                        
+                        if (horizontalMovement > 10 || scrollChanged > 10) {
+                          e.preventDefault()
+                          e.stopPropagation()
+                        }
+                        
+                        // Reset after a small delay
+                        setTimeout(() => {
+                          container.dataset.isScrolling = 'false'
+                        }, 100)
                       }}
                     >
                       {multiPhotoUrls.map((url, index) => (
@@ -575,7 +655,7 @@ export default function InstagramFeed({ familyId, searchQuery, refreshTrigger, o
         </div>
 
         {/* Compact Footer with all info */}
-        <div style={{ 
+        <div className="card-footer" style={{ 
           background: 'var(--bg-secondary)',
           padding: '12px',
           borderTop: '1px solid var(--border-light)',

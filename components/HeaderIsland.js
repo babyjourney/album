@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useToast } from '../contexts/ToastContext'
 import { useLanguage } from '../contexts/LanguageContext'
+import { getCategories } from '../lib/categoriesData'
 
 export default function HeaderIsland({ 
   childName = "Child", 
@@ -18,9 +19,33 @@ export default function HeaderIsland({
   const [postText, setPostText] = useState('')
   const [category, setCategory] = useState('memories')
   const [hashtags, setHashtags] = useState('')
+  const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(false)
   const { showSuccess, showError } = useToast()
   const { t } = useLanguage()
+
+  // Load categories
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const cats = await getCategories()
+        setCategories(cats)
+      } catch (error) {
+        console.error('Error loading categories:', error)
+        // Fallback to default categories
+        setCategories([
+          { value: 'memories', label: 'Amintiri' },
+          { value: 'milestones', label: 'Etape importante' },
+          { value: 'everyday', label: 'Zilnic' },
+          { value: 'special', label: 'Special' },
+          { value: 'family', label: 'Familie' },
+          { value: 'play', label: 'Joacă' },
+          { value: 'learning', label: 'Învățare' }
+        ])
+      }
+    }
+    loadCategories()
+  }, [])
 
   const handlePostSubmit = async () => {
     if (!postText.trim()) return
@@ -191,22 +216,14 @@ export default function HeaderIsland({
               <div style={{ marginBottom: '16px' }}>
                 <label className="text-subtle" style={{ display: 'block', marginBottom: '8px' }}>Categorie</label>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                  {[
-                    {key: 'memories', label: 'Amintiri'},
-                    {key: 'milestones', label: 'Etape importante'},
-                    {key: 'everyday', label: 'Zilnic'},
-                    {key: 'special', label: 'Special'},
-                    {key: 'family', label: 'Familie'},
-                    {key: 'play', label: 'Joacă'},
-                    {key: 'learning', label: 'Învățare'}
-                  ].map((cat) => (
+                  {categories.map((cat) => (
                     <button
-                      key={cat.key}
+                      key={cat.value}
                       type="button"
-                      onClick={() => setCategory(cat.key)}
-                      className={`category-pill ${category === cat.key ? 'category-pill--selected' : 'category-pill--unselected'}`}
+                      onClick={() => setCategory(cat.value)}
+                      className={`category-pill ${category === cat.value ? 'category-pill--selected' : 'category-pill--unselected'}`}
                     >
-                      {cat.label}
+                      {cat.emoji ? `${cat.emoji} ` : ''}{cat.label}
                     </button>
                   ))}
                 </div>

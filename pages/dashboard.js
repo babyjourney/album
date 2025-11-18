@@ -280,43 +280,77 @@ export default function Dashboard() {
         />
       )}
 
-      {/* Upload Form Modal */}
+      {/* Premium Upload Modal */}
       {hasEditorAccess && showUploadForm && (
-        <div className="modal-overlay">
-          <div className="modal-content animate-fade-in" style={{ 
-            maxWidth: '500px', 
-            width: '100%',
-            margin: '0 8px',
-            maxHeight: '90vh',
-            height: 'auto'
-          }}>
+        <div 
+          className="upload-modal-overlay"
+          onClick={() => setShowUploadForm(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.6)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+            animation: 'fadeIn 0.2s ease-out'
+          }}
+        >
+          <div 
+            className="upload-modal-container" 
+            onClick={(e) => e.stopPropagation()}
+            style={{ 
+              width: '100%',
+              maxWidth: '900px',
+              maxHeight: '90vh',
+              background: 'var(--bg-primary)',
+              borderRadius: '24px',
+              boxShadow: '0 32px 64px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.05)',
+              position: 'relative',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              animation: 'modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+            }}
+          >
             <button
-              onClick={() => setShowUploadForm(false)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowUploadForm(false);
+              }}
               style={{
                 position: 'absolute',
-                top: '16px',
-                right: '16px',
-                zIndex: 10,
-                padding: '8px',
-                backgroundColor: 'transparent',
+                top: '20px',
+                right: '20px',
+                zIndex: 1001,
+                width: '40px',
+                height: '40px',
+                backgroundColor: 'rgba(0, 0, 0, 0.05)',
                 border: 'none',
                 cursor: 'pointer',
                 color: 'var(--text-secondary)',
-                borderRadius: '10px'
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                fontSize: '16px'
               }}
               onMouseOver={(e) => {
-                e.target.style.backgroundColor = 'var(--bg-gray)'
-                e.target.style.color = 'var(--accent-red)'
+                e.target.style.backgroundColor = 'rgba(239, 68, 68, 0.1)'
+                e.target.style.color = '#EF4444'
+                e.target.style.transform = 'scale(1.1)'
               }}
               onMouseOut={(e) => {
-                e.target.style.backgroundColor = 'transparent'
+                e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.05)'
                 e.target.style.color = 'var(--text-secondary)'
+                e.target.style.transform = 'scale(1)'
               }}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="m18 6-12 12"/>
-                <path d="m6 6 12 12"/>
-              </svg>
+              ✕
             </button>
             <UploadForm 
               familyId={session.familyId} 

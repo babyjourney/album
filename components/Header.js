@@ -301,57 +301,45 @@ export default function Header({ familyName, role, albumTitle }) {
               }}>
                 🎨 Тема / Temă
               </label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ 
+                display: 'flex', 
+                flexWrap: 'wrap', 
+                gap: '12px', 
+                justifyContent: 'center'
+              }}>
                 {Object.values(themes).map((theme) => (
                   <button
                     key={theme.name}
                     onClick={() => changeTheme(theme.name)}
                     style={{
-                      padding: '12px 16px',
-                      border: currentTheme === theme.name ? '2px solid var(--accent-blue)' : '1px solid var(--border-light)',
-                      background: currentTheme === theme.name ? 'var(--accent-blue-light)' : 'var(--bg-secondary)',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      fontWeight: '500',
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '50%',
+                      background: theme.colors['--bg-primary'],
+                      border: currentTheme === theme.name ? '3px solid var(--accent-blue)' : '2px solid rgba(0, 0, 0, 0.1)',
                       cursor: 'pointer',
                       transition: 'all 0.2s ease',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                      width: '100%',
-                      textAlign: 'left'
+                      boxShadow: currentTheme === theme.name ? '0 0 0 2px var(--accent-blue-light)' : 'var(--shadow-sm)',
+                      position: 'relative'
                     }}
                     onMouseOver={(e) => {
-                      if (currentTheme !== theme.name) {
-                        e.currentTarget.style.background = 'var(--bg-gray)'
-                        e.currentTarget.style.borderColor = 'var(--border-primary)'
-                      }
+                      e.currentTarget.style.transform = 'scale(1.1)'
+                      e.currentTarget.style.boxShadow = 'var(--shadow-md)'
                     }}
                     onMouseOut={(e) => {
-                      if (currentTheme !== theme.name) {
-                        e.currentTarget.style.background = 'var(--bg-secondary)'
-                        e.currentTarget.style.borderColor = 'var(--border-light)'
-                      }
+                      e.currentTarget.style.transform = 'scale(1)'
+                      e.currentTarget.style.boxShadow = currentTheme === theme.name ? '0 0 0 2px var(--accent-blue-light)' : 'var(--shadow-sm)'
                     }}
                   >
-                    <div style={{
-                      width: '20px',
-                      height: '20px',
-                      borderRadius: '4px',
-                      background: theme.colors['--bg-primary'],
-                      border: '1px solid rgba(0, 0, 0, 0.1)',
-                      flexShrink: 0
-                    }} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span>{theme.icon}</span>
-                        <span style={{ color: 'var(--text-primary)' }}>{theme.label}</span>
-                      </div>
-                    </div>
                     {currentTheme === theme.name && (
                       <div style={{
-                        color: 'var(--accent-blue)',
-                        fontSize: '16px'
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        color: theme.colors['--text-primary'],
+                        fontSize: '16px',
+                        fontWeight: 'bold'
                       }}>
                         ✓
                       </div>
