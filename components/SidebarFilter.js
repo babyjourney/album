@@ -392,7 +392,7 @@ export default function SidebarFilter({
           e.currentTarget.style.transform = 'scale(1)'
         }}
       >
-        <Filter size={20} color={hasActiveFilters ? '#3b82f6' : 'var(--text-secondary)'} />
+        <Filter size={20} color={hasActiveFilters ? 'var(--accent-blue)' : 'var(--text-secondary)'} />
       </button>
 
       {/* Desktop Sidebar Backdrop */}
@@ -561,12 +561,30 @@ export default function SidebarFilter({
             fontSize: '11px', 
             fontWeight: '500', 
             color: 'var(--text-secondary)',
-            marginBottom: '6px'
+            marginBottom: '6px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
           }}>
             {t('data')}
+            {filters.date && (
+              <button
+                onClick={() => onFiltersChange({ ...filters, date: '' })}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  fontSize: '10px',
+                  padding: '2px 4px'
+                }}
+              >
+                ✕
+              </button>
+            )}
           </div>
           <input
-            type="month"
+            type="date"
             value={filters.date}
             onChange={(e) => onFiltersChange({ ...filters, date: e.target.value })}
             style={{
@@ -580,6 +598,75 @@ export default function SidebarFilter({
               color: 'var(--text-primary)'
             }}
           />
+          {filters.date && (
+            <div style={{
+              marginTop: '8px',
+              padding: '8px',
+              background: 'var(--bg-gray)',
+              borderRadius: '6px',
+              border: '1px solid var(--border-light)'
+            }}>
+              <div style={{
+                fontSize: '10px',
+                fontWeight: '500',
+                color: 'var(--text-secondary)',
+                marginBottom: '6px'
+              }}>
+                📅 Days around {new Date(filters.date).toLocaleDateString('ro-RO', { day: 'numeric', month: 'short' })}
+              </div>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(7, 1fr)',
+                gap: '2px'
+              }}>
+                {(() => {
+                  const selectedDate = new Date(filters.date)
+                  const days = []
+                  for (let i = -3; i <= 3; i++) {
+                    const date = new Date(selectedDate)
+                    date.setDate(selectedDate.getDate() + i)
+                    const dateStr = date.toISOString().split('T')[0]
+                    const isSelected = i === 0
+                    days.push(
+                      <button
+                        key={i}
+                        onClick={() => onFiltersChange({ ...filters, date: dateStr })}
+                        style={{
+                          padding: '4px 2px',
+                          border: 'none',
+                          borderRadius: '4px',
+                          fontSize: '9px',
+                          cursor: 'pointer',
+                          background: isSelected ? 'var(--accent-blue)' : 'var(--bg-secondary)',
+                          color: isSelected ? 'white' : 'var(--text-primary)',
+                          textAlign: 'center',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseOver={(e) => {
+                          if (!isSelected) {
+                            e.target.style.background = 'var(--accent-blue-light)'
+                          }
+                        }}
+                        onMouseOut={(e) => {
+                          if (!isSelected) {
+                            e.target.style.background = 'var(--bg-secondary)'
+                          }
+                        }}
+                      >
+                        <div style={{ fontSize: '8px', opacity: 0.7 }}>
+                          {date.toLocaleDateString('en', { weekday: 'narrow' })}
+                        </div>
+                        <div style={{ fontWeight: isSelected ? '600' : '400' }}>
+                          {date.getDate()}
+                        </div>
+                      </button>
+                    )
+                  }
+                  return days
+                })()}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Hashtag Filter */}
@@ -666,11 +753,11 @@ export default function SidebarFilter({
               width: '100%',
               padding: '10px',
               fontSize: '12px',
-              background: '#fee2e2',
-              border: '1px solid #fecaca',
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--accent-red)',
               borderRadius: '8px',
               cursor: 'pointer',
-              color: '#dc2626',
+              color: 'var(--accent-red)',
               fontWeight: '500'
             }}
           >

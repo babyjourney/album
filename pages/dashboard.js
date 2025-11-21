@@ -13,6 +13,56 @@ import ChildrenFilter from '../components/ChildrenFilter'
 import SidebarFilter from '../components/SidebarFilter'
 import FloatingSlideshowButton from '../components/FloatingSlideshowButton'
 
+// Add CSS animations for the modal
+const modalStyles = `
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes modalSlideUp {
+    from { 
+      opacity: 0;
+      transform: translateY(30px) scale(0.95);
+    }
+    to { 
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes slideUpFromBottom {
+    from { 
+      transform: translateY(100%);
+    }
+    to { 
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes fadeInScale {
+    from { 
+      opacity: 0;
+      transform: scale(0.8);
+    }
+    to { 
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+`
+
 export default function Dashboard() {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -57,36 +107,68 @@ export default function Dashboard() {
     const userSession = getSession()
     setSession(userSession)
     
-    // Fetch album title and family profile picture
+    // Set loading to false immediately to show the interface
+    setLoading(false)
+    
+    // Fetch album title and family profile picture in parallel with caching
     if (userSession?.familyId) {
-      try {
-        const response = await fetch(`/api/album-settings/get-title?familyId=${userSession.familyId}`)
-        const result = await response.json()
-        
-        if (response.ok) {
-          setAlbumTitle(result.title)
-        }
-      } catch (error) {
-        console.error('Error fetching album title:', error)
+      const familyId = userSession.familyId
+      
+      // Check cache first
+      const cachedTitle = sessionStorage.getItem(`albumTitle_${familyId}`)
+      const cachedPicture = sessionStorage.getItem(`familyPicture_${familyId}`)
+      
+      if (cachedTitle) {
+        setAlbumTitle(cachedTitle)
       }
-
-      // Fetch family profile picture
-      try {
-        const { data, error } = await supabase
+      if (cachedPicture) {
+        setFamilyProfilePicture(cachedPicture)
+      }
+      
+      // Only fetch if not cached or cache is old (5 minutes)
+      const titleCacheTime = sessionStorage.getItem(`albumTitle_${familyId}_time`)
+      const pictureCacheTime = sessionStorage.getItem(`familyPicture_${familyId}_time`)
+      const now = Date.now()
+      const cacheAge = 5 * 60 * 1000 // 5 minutes
+      
+      const promises = []
+      
+      if (!cachedTitle || !titleCacheTime || (now - titleCacheTime) > cacheAge) {
+        const albumTitlePromise = fetch(`/api/album-settings/get-title?familyId=${familyId}`)
+          .then(response => response.json())
+          .then(result => {
+            if (result.title) {
+              setAlbumTitle(result.title)
+              sessionStorage.setItem(`albumTitle_${familyId}`, result.title)
+              sessionStorage.setItem(`albumTitle_${familyId}_time`, now.toString())
+            }
+          })
+          .catch(error => console.error('Error fetching album title:', error))
+        promises.push(albumTitlePromise)
+      }
+      
+      if (!cachedPicture || !pictureCacheTime || (now - pictureCacheTime) > cacheAge) {
+        const familyPicturePromise = supabase
           .from('families')
           .select('profile_picture_url')
-          .eq('id', userSession.familyId)
+          .eq('id', familyId)
           .single()
-
-        if (!error && data?.profile_picture_url) {
-          setFamilyProfilePicture(data.profile_picture_url)
-        }
-      } catch (error) {
-        console.error('Error fetching family profile picture:', error)
+          .then(({ data, error }) => {
+            if (!error && data?.profile_picture_url) {
+              setFamilyProfilePicture(data.profile_picture_url)
+              sessionStorage.setItem(`familyPicture_${familyId}`, data.profile_picture_url)
+              sessionStorage.setItem(`familyPicture_${familyId}_time`, now.toString())
+            }
+          })
+          .catch(error => console.error('Error fetching family profile picture:', error))
+        promises.push(familyPicturePromise)
+      }
+      
+      // Execute any needed requests in parallel
+      if (promises.length > 0) {
+        Promise.all(promises)
       }
     }
-    
-    setLoading(false)
   }
 
   const handleUploadSuccess = () => {
@@ -186,6 +268,9 @@ export default function Dashboard() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-gray)' }}>
+      {/* Add modal styles */}
+      <style jsx global>{modalStyles}</style>
+      
       {/* Navbar */}
       <Header 
         familyName={session.familyName} 
@@ -280,22 +365,25 @@ export default function Dashboard() {
         />
       )}
 
-      {/* Premium Upload Modal */}
+      {/* Enhanced Upload Modal */}
       {hasEditorAccess && showUploadForm && (
         <div 
           className="upload-modal-overlay"
-          onClick={() => setShowUploadForm(false)}
+          onClick={(e) => {
+            e.stopPropagation()
+            setShowUploadForm(false)
+          }}
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(0, 0, 0, 0.6)',
+            background: 'rgba(0, 0, 0, 0.8)',
             backdropFilter: 'blur(8px)',
             zIndex: 1000,
             display: 'flex',
-            alignItems: 'center',
+            alignItems: isMobile ? 'stretch' : 'center',
             justifyContent: 'center',
-            padding: '20px',
-            animation: 'fadeIn 0.2s ease-out'
+            padding: isMobile ? '0' : '20px',
+            animation: 'fadeIn 0.3s ease-out'
           }}
         >
           <div 
@@ -303,51 +391,70 @@ export default function Dashboard() {
             onClick={(e) => e.stopPropagation()}
             style={{ 
               width: '100%',
-              maxWidth: '900px',
-              maxHeight: '90vh',
-              background: 'var(--bg-primary)',
-              borderRadius: '24px',
-              boxShadow: '0 32px 64px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.05)',
+              maxWidth: isMobile ? '100%' : '900px',
+              height: isMobile ? '100%' : 'auto',
+              maxHeight: isMobile ? '100%' : '80vh',
+              background: 'white',
+              borderRadius: isMobile ? '0' : '12px',
+              boxShadow: isMobile 
+                ? 'none' 
+                : '0 10px 25px rgba(0, 0, 0, 0.1)',
               position: 'relative',
-              overflow: 'hidden',
               display: 'flex',
               flexDirection: 'column',
-              animation: 'modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+              animation: isMobile 
+                ? 'slideUpFromBottom 0.3s ease-out'
+                : 'modalSlideUp 0.3s ease-out'
             }}
           >
             <button
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                setShowUploadForm(false);
+                // Use setTimeout to ensure the modal closes after all events have processed
+                setTimeout(() => {
+                  setShowUploadForm(false);
+                }, 10);
+              }}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              onTouchStart={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
               }}
               style={{
                 position: 'absolute',
-                top: '20px',
-                right: '20px',
-                zIndex: 1001,
-                width: '40px',
-                height: '40px',
-                backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                top: isMobile ? '16px' : '20px',
+                right: isMobile ? '16px' : '20px',
+                zIndex: 10001,
+                width: isMobile ? '36px' : '44px',
+                height: isMobile ? '36px' : '44px',
+                backgroundColor: isMobile ? 'rgba(0, 0, 0, 0.08)' : 'rgba(0, 0, 0, 0.06)',
                 border: 'none',
                 cursor: 'pointer',
                 color: 'var(--text-secondary)',
-                borderRadius: '12px',
+                borderRadius: isMobile ? '10px' : '12px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-                fontSize: '16px'
+                transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                fontSize: isMobile ? '14px' : '16px',
+                fontWeight: '700',
+                backdropFilter: 'blur(20px)'
               }}
               onMouseOver={(e) => {
-                e.target.style.backgroundColor = 'rgba(239, 68, 68, 0.1)'
+                e.target.style.backgroundColor = 'rgba(239, 68, 68, 0.15)'
                 e.target.style.color = '#EF4444'
-                e.target.style.transform = 'scale(1.1)'
+                e.target.style.transform = 'scale(1.1) rotate(90deg)'
+                e.target.style.boxShadow = '0 8px 20px rgba(239, 68, 68, 0.25)'
               }}
               onMouseOut={(e) => {
-                e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.05)'
+                e.target.style.backgroundColor = isMobile ? 'rgba(0, 0, 0, 0.08)' : 'rgba(0, 0, 0, 0.06)'
                 e.target.style.color = 'var(--text-secondary)'
-                e.target.style.transform = 'scale(1)'
+                e.target.style.transform = 'scale(1) rotate(0deg)'
+                e.target.style.boxShadow = 'none'
               }}
             >
               ✕

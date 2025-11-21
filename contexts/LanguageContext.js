@@ -234,7 +234,36 @@ export const translations = {
     addFirstChild: 'Adaugă primul copil pentru a începe să folosești funcționalitatea multi-copil.',
     
     // Error messages
-    photoDeleteFailed: 'Ștergerea fotografiei a eșuat'
+    photoDeleteFailed: 'Ștergerea fotografiei a eșuat',
+    
+    // Upload Modal Specific
+    createPost: 'Creează Postare',
+    sharePhotosMemories: 'Împărtășește fotografii și amintiri',
+    uploadPhotosVideos: 'Încarcă Fotografii & Video',
+    postDetails: 'Detalii Postare',
+    chooseFiles: 'Alege fișiere',
+    dropFilesHere: 'Lasă fișierele aici',
+    dragAndDropBrowse: 'Trage și lasă sau apasă pentru a răsfoi',
+    fileTypesSupported: 'JPG, PNG, GIF, MP4, MOV',
+    maxFiles: 'Maxim 10 fișiere',
+    filesSelected: 'fișiere selectate',
+    tapForThumbnail: 'Apasă pentru coperta',
+    thumbnail: 'Coperta',
+    enterPostTitle: 'Introduceți titlul postării...',
+    tellStory: 'Povestește...',
+    addHashtags: 'Adaugă hashtag-uri...',
+    addMagicalHashtags: '✨ Adaugă hashtag-uri magice...',
+    typeSpaceToAdd: 'Tastează și apasă spațiu pentru a adăuga • Maxim 10 hashtag-uri',
+    associatedChildren: 'Copii Asociați',
+    readyToPublish: 'Gata să publici?',
+    selectFilesToStart: 'Selectează fișiere pentru a începe',
+    publishPost: 'Publică Postarea',
+    publishing: 'Se publică...',
+    uploadError: 'Eroare la încărcare',
+    maxFilesWarning: 'Maximum 10 fișiere sunt permise per postare. Restul fișierelor nu vor fi adăugate.',
+    fileTooLarge: 'Fișierul {fileName} trebuie să fie mai mic de 500MB',
+    invalidFileType: 'Pentru postări multiple sunt permise doar imagini și video-uri. {fileName} nu este o imagine sau video.',
+    uploadFailed: 'Încărcarea fișierului a eșuat: {error}. Vă rugăm să încercați din nou.'
   },
   ru: {
     // Header
@@ -467,7 +496,36 @@ export const translations = {
     addFirstChild: 'Добавьте первого ребенка, чтобы начать использовать функционал для нескольких детей.',
     
     // Error messages
-    photoDeleteFailed: 'Не удалось удалить фотографию'
+    photoDeleteFailed: 'Не удалось удалить фотографию',
+    
+    // Upload Modal Specific
+    createPost: 'Создать Пост',
+    sharePhotosMemories: 'Поделитесь фотографиями и воспоминаниями',
+    uploadPhotosVideos: 'Загрузить Фото и Видео',
+    postDetails: 'Детали Поста',
+    chooseFiles: 'Выбрать файлы',
+    dropFilesHere: 'Перетащите файлы сюда',
+    dragAndDropBrowse: 'Перетащите или нажмите для просмотра',
+    fileTypesSupported: 'JPG, PNG, GIF, MP4, MOV',
+    maxFiles: 'Максимум 10 файлов',
+    filesSelected: 'файлов выбрано',
+    tapForThumbnail: 'Нажмите для обложки',
+    thumbnail: 'Обложка',
+    enterPostTitle: 'Введите заголовок поста...',
+    tellStory: 'Расскажите историю...',
+    addHashtags: 'Добавить хештеги...',
+    addMagicalHashtags: '✨ Добавьте волшебные хештеги...',
+    typeSpaceToAdd: 'Введите и нажмите пробел для добавления • Максимум 10 хештегов',
+    associatedChildren: 'Связанные Дети',
+    readyToPublish: 'Готовы к публикации?',
+    selectFilesToStart: 'Выберите файлы для начала',
+    publishPost: 'Опубликовать Пост',
+    publishing: 'Публикация...',
+    uploadError: 'Ошибка загрузки',
+    maxFilesWarning: 'Максимум 10 файлов разрешено на пост. Остальные файлы не будут добавлены.',
+    fileTooLarge: 'Файл {fileName} должен быть меньше 500MB',
+    invalidFileType: 'Для множественных постов разрешены только изображения и видео. {fileName} не является изображением или видео.',
+    uploadFailed: 'Загрузка файла не удалась: {error}. Пожалуйста, попробуйте еще раз.'
   },
   en: {
     // Header
@@ -699,7 +757,36 @@ export const translations = {
     addFirstChild: 'Add the first child to start using multi-child functionality.',
     
     // Error messages
-    photoDeleteFailed: 'Failed to delete photo'
+    photoDeleteFailed: 'Failed to delete photo',
+    
+    // Upload Modal Specific
+    createPost: 'Create Post',
+    sharePhotosMemories: 'Share photos and memories',
+    uploadPhotosVideos: 'Upload Photos & Videos',
+    postDetails: 'Post Details',
+    chooseFiles: 'Choose files',
+    dropFilesHere: 'Drop files here',
+    dragAndDropBrowse: 'Drag and drop or click to browse',
+    fileTypesSupported: 'JPG, PNG, GIF, MP4, MOV',
+    maxFiles: 'Max 10 files',
+    filesSelected: 'files selected',
+    tapForThumbnail: 'Tap for thumbnail',
+    thumbnail: 'Thumbnail',
+    enterPostTitle: 'Enter post title...',
+    tellStory: 'Tell the story...',
+    addHashtags: 'Add hashtags...',
+    addMagicalHashtags: '✨ Add magical hashtags...',
+    typeSpaceToAdd: 'Type and press space to add • Max 10 hashtags',
+    associatedChildren: 'Associated Children',
+    readyToPublish: 'Ready to publish?',
+    selectFilesToStart: 'Select files to get started',
+    publishPost: 'Publish Post',
+    publishing: 'Publishing...',
+    uploadError: 'Upload Error',
+    maxFilesWarning: 'Maximum 10 files are allowed per post. Remaining files will not be added.',
+    fileTooLarge: 'File {fileName} must be smaller than 500MB',
+    invalidFileType: 'Only images and videos are allowed for multiple posts. {fileName} is not an image or video.',
+    uploadFailed: 'File upload failed: {error}. Please try again.'
   }
 }
 
@@ -721,8 +808,15 @@ export function LanguageProvider({ children }) {
     }
   }
 
-  const t = (key) => {
-    return translations[language]?.[key] || key
+  const t = (key, variables = {}) => {
+    let text = translations[language]?.[key] || key
+    
+    // Replace variables in the text
+    Object.keys(variables).forEach(variable => {
+      text = text.replace(new RegExp(`{${variable}}`, 'g'), variables[variable])
+    })
+    
+    return text
   }
 
   return (

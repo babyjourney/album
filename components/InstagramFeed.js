@@ -88,13 +88,19 @@ const getCleanDescription = (post) => {
 
 export default function InstagramFeed({ familyId, searchQuery, refreshTrigger, onPostClick, onPostCountUpdate, onHashtagClick, filters, selectedChildId }) {
   const [posts, setPosts] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const { showError } = useToast()
   const { language } = useLanguage()
 
   useEffect(() => {
-    fetchPosts()
+    if (familyId) {
+      // Small delay to let the page render first, then fetch posts
+      const timer = setTimeout(() => {
+        fetchPosts()
+      }, 50)
+      return () => clearTimeout(timer)
+    }
   }, [familyId, refreshTrigger, searchQuery, filters, selectedChildId])
 
   const fetchPosts = async () => {

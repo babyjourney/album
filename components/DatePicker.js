@@ -90,13 +90,14 @@ export default function DatePicker({ value, onChange, label }) {
               border: '1px solid var(--border-light)',
               borderRadius: '8px',
               fontSize: '14px',
-              background: 'white',
+              background: 'var(--bg-secondary)',
+              color: 'var(--text-primary)',
               outline: 'none'
             }}
           >
-            <option value="">-</option>
+            <option value="" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>-</option>
             {days.map(d => (
-              <option key={d} value={String(d).padStart(2, '0')}>
+              <option key={d} value={String(d).padStart(2, '0')} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
                 {String(d).padStart(2, '0')}
               </option>
             ))}
@@ -122,13 +123,14 @@ export default function DatePicker({ value, onChange, label }) {
               border: '1px solid var(--border-light)',
               borderRadius: '8px',
               fontSize: '14px',
-              background: 'white',
+              background: 'var(--bg-secondary)',
+              color: 'var(--text-primary)',
               outline: 'none'
             }}
           >
-            <option value="">-</option>
+            <option value="" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>-</option>
             {months.map(m => (
-              <option key={m} value={String(m).padStart(2, '0')}>
+              <option key={m} value={String(m).padStart(2, '0')} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
                 {String(m).padStart(2, '0')}
               </option>
             ))}
@@ -154,13 +156,14 @@ export default function DatePicker({ value, onChange, label }) {
               border: '1px solid var(--border-light)',
               borderRadius: '8px',
               fontSize: '14px',
-              background: 'white',
+              background: 'var(--bg-secondary)',
+              color: 'var(--text-primary)',
               outline: 'none'
             }}
           >
-            <option value="">-</option>
+            <option value="" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>-</option>
             {years.map(y => (
-              <option key={y} value={y}>
+              <option key={y} value={y} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
                 {y}
               </option>
             ))}

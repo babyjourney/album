@@ -139,20 +139,20 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
       }
 
       if (processedFiles.length >= 10) {
-        const warningMessage = `Maximum 10 fișiere sunt permise per postare. Restul fișierelor nu vor fi adăugate.`
+        const warningMessage = t('maxFilesWarning')
         showError(warningMessage)
         break
       }
 
       if (selectedFile.size > 500 * 1024 * 1024) {
-        const errorMessage = `Fișierul ${selectedFile.name} trebuie să fie mai mic de 500MB`
+        const errorMessage = t('fileTooLarge', { fileName: selectedFile.name })
         setError(errorMessage)
         showError(errorMessage)
         continue
       }
 
       if (!selectedFile.type.startsWith('image/') && !selectedFile.type.startsWith('video/')) {
-        const errorMessage = `Pentru postări multiple sunt permise doar imagini și video-uri. ${selectedFile.name} nu este o imagine sau video.`
+        const errorMessage = t('invalidFileType', { fileName: selectedFile.name })
         setError(errorMessage)
         showError(errorMessage)
         continue
@@ -297,7 +297,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
 
     } catch (error) {
       console.error('Upload error:', error)
-      const errorMessage = `Încărcarea fișierului a eșuat: ${error.message}. Vă rugăm să încercați din nou.`
+      const errorMessage = t('uploadFailed', { error: error.message })
       setError(errorMessage)
       showError(errorMessage)
     } finally {
@@ -305,32 +305,40 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
     }
   }
 
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768
+
   return (
     <div ref={modalRef} style={{ 
       display: 'flex', 
       flexDirection: 'column', 
       height: '100%',
-      width: '100%'
+      width: '100%',
+      background: isMobile 
+        ? 'var(--bg-gray)'
+        : 'var(--bg-secondary)'
     }}>
-      {/* Premium Header */}
+      {/* Header */}
       <div style={{
-        padding: '32px 40px 24px 40px',
-        borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
+        padding: isMobile ? '8px 16px' : '8px 16px',
+        borderBottom: '1px solid var(--border-light)',
         flexShrink: 0,
-        background: 'linear-gradient(135deg, rgba(79, 70, 229, 0.02) 0%, rgba(168, 85, 247, 0.02) 100%)'
+        background: 'var(--bg-secondary)'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: isMobile ? '10px' : '12px'
+        }}>
           <div style={{
-            width: '48px',
-            height: '48px',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            borderRadius: '16px',
+            width: isMobile ? '32px' : '36px',
+            height: isMobile ? '32px' : '36px',
+            background: 'var(--accent-blue)',
+            borderRadius: isMobile ? '6px' : '8px',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 8px 16px rgba(102, 126, 234, 0.3)'
+            justifyContent: 'center'
           }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+            <svg width={isMobile ? "16" : "18"} height={isMobile ? "16" : "18"} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
               <polyline points="7,10 12,15 17,10"/>
               <line x1="12" x2="12" y1="15" y2="3"/>
@@ -339,463 +347,663 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
           <div>
             <h1 style={{ 
               margin: 0, 
-              fontSize: '28px', 
-              fontWeight: '700',
-              color: 'var(--text-primary)',
-              lineHeight: '1.2'
-            }}>Create New Post</h1>
+              fontSize: isMobile ? '14px' : '15px', 
+              fontWeight: '600',
+              color: 'var(--text-primary)'
+            }}>{t('createPost')}</h1>
             <p style={{
-              margin: '4px 0 0 0',
-              fontSize: '16px',
-              color: 'var(--text-secondary)',
-              fontWeight: '400'
-            }}>Share your moments with beautiful memories</p>
+              margin: '1px 0 0 0',
+              fontSize: isMobile ? '11px' : '11px',
+              color: 'var(--text-secondary)'
+            }}>{t('sharePhotosMemories')}</p>
           </div>
         </div>
       </div>
 
-      {/* Premium Content */}
+      {/* Content */}
       <div style={{
         flex: 1,
         overflowY: 'auto',
-        padding: '32px 40px',
-        minHeight: 0
+        padding: isMobile ? '10px 16px' : '10px 16px',
+        minHeight: 0,
+        background: 'var(--bg-gray)'
       }}>
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-          gap: '32px',
-          maxWidth: '1200px'
+          display: isMobile ? 'flex' : 'grid',
+          flexDirection: isMobile ? 'column' : 'initial',
+          gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+          gap: isMobile ? '10px' : '16px',
+          maxWidth: isMobile ? '500px' : '100%',
+          margin: '0 auto'
         }}>
           
-          {/* Left Column - File Upload */}
-          <div style={{ order: '1' }}>
-            <h3 style={{
-              margin: '0 0 16px 0',
-              fontSize: '18px',
-              fontWeight: '600',
-              color: 'var(--text-primary)'
-            }}>📸 Photos & Videos</h3>
-            
-            {/* Drag & Drop Area */}
-            <div
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              style={{
-                border: `2px dashed ${dragOver ? '#667eea' : 'rgba(0, 0, 0, 0.1)'}`,
-                borderRadius: '20px',
-                padding: '40px 24px',
-                textAlign: 'center',
-                background: dragOver 
-                  ? 'linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(168, 85, 247, 0.05) 100%)'
-                  : 'rgba(248, 250, 252, 0.5)',
-                transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-                cursor: 'pointer',
-                position: 'relative',
-                marginBottom: '24px'
-              }}
-              onClick={() => document.getElementById('file-upload').click()}
-            >
-              <div style={{
-                fontSize: '48px',
-                marginBottom: '16px',
-                opacity: dragOver ? 1 : 0.6,
-                transition: 'opacity 0.2s ease'
-              }}>
-                {dragOver ? '🎯' : '📁'}
-              </div>
-              <h4 style={{
+          {/* File Upload Section */}
+          <div>
+            <div style={{
+              background: 'var(--bg-secondary)',
+              borderRadius: isMobile ? '6px' : '8px',
+              padding: isMobile ? '10px' : '12px',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+              border: '1px solid var(--border-light)'
+            }}>
+              <h3 style={{
                 margin: '0 0 8px 0',
-                fontSize: '18px',
+                fontSize: isMobile ? '13px' : '14px',
                 fontWeight: '600',
                 color: 'var(--text-primary)'
               }}>
-                {dragOver ? 'Drop your files here' : 'Upload your media'}
-              </h4>
-              <p style={{
-                margin: 0,
-                fontSize: '14px',
-                color: 'var(--text-secondary)',
-                lineHeight: '1.5'
-              }}>
-                Drag and drop your photos and videos, or click to browse<br/>
-                <span style={{ fontSize: '12px', opacity: 0.7 }}>
-                  Supports JPG, PNG, GIF, MP4, MOV • Max 10 files • Up to 500MB each
-                </span>
-              </p>
+                {t('uploadPhotosVideos')}
+              </h3>
               
-              <input
-                id="file-upload"
-                type="file"
-                onChange={handleFileChange}
-                accept="image/*,video/*"
-                multiple={true}
-                style={{ display: 'none' }}
-                disabled={files.length >= 10}
-                required
-              />
-            </div>
-
-            {/* File Preview Grid */}
-            {files.length > 0 && (
-              <div style={{
-                padding: '24px',
-                background: 'white',
-                borderRadius: '16px',
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
-                border: '1px solid rgba(0, 0, 0, 0.06)'
-              }}>
+              {/* Drag & Drop Area */}
+              <div
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                style={{
+                  border: `2px dashed ${dragOver ? 'var(--accent-blue)' : 'var(--border-primary)'}`,
+                  borderRadius: isMobile ? '8px' : '10px',
+                  padding: isMobile ? '16px 12px' : '20px 16px',
+                  textAlign: 'center',
+                  background: dragOver ? 'var(--accent-blue-light)' : 'var(--bg-gray)',
+                  transition: 'all 0.2s ease',
+                  cursor: 'pointer',
+                  marginBottom: '12px'
+                }}
+                onClick={() => document.getElementById('file-upload').click()}
+              >
+                <div style={{
+                  fontSize: isMobile ? '28px' : '32px',
+                  marginBottom: isMobile ? '6px' : '8px',
+                  opacity: dragOver ? 1 : 0.6
+                }}>
+                  {dragOver ? '📤' : '📁'}
+                </div>
                 <h4 style={{
-                  margin: '0 0 16px 0',
-                  fontSize: '16px',
+                  margin: '0 0 4px 0',
+                  fontSize: isMobile ? '13px' : '14px',
                   fontWeight: '600',
                   color: 'var(--text-primary)'
                 }}>
-                  ✨ {files.length} file{files.length !== 1 ? 's' : ''} selected
+                  {dragOver ? t('dropFilesHere') : t('chooseFiles')}
                 </h4>
-                
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))',
-                  gap: '12px'
+                <p style={{
+                  margin: 0,
+                  fontSize: isMobile ? '11px' : '12px',
+                  color: 'var(--text-secondary)',
+                  lineHeight: '1.3'
                 }}>
-                  {files.map((file, index) => (
-                    <div key={index} style={{
-                      position: 'relative',
-                      aspectRatio: '1',
-                      borderRadius: '12px',
-                      overflow: 'hidden',
-                      background: '#f8fafc',
-                      border: index === coverIndex ? '3px solid #667eea' : '2px solid transparent',
-                      transition: 'all 0.2s ease',
-                      cursor: 'pointer'
-                    }}
-                    onClick={() => setCoverIndex(index)}
-                    >
-                      {file.type.startsWith('image/') ? (
-                        <img 
-                          src={URL.createObjectURL(file)}
-                          alt="Preview"
-                          style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover'
-                          }}
-                        />
-                      ) : (
-                        <div style={{
-                          width: '100%',
-                          height: '100%',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '24px',
-                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                          color: 'white'
-                        }}>
-                          🎥
-                        </div>
-                      )}
-                      
-                      {/* Cover Badge */}
-                      {index === coverIndex && (
-                        <div style={{
-                          position: 'absolute',
-                          top: '4px',
-                          left: '4px',
-                          background: '#667eea',
-                          color: 'white',
-                          borderRadius: '6px',
-                          padding: '2px 6px',
-                          fontSize: '10px',
-                          fontWeight: '600'
-                        }}>
-                          COVER
-                        </div>
-                      )}
-                      
-                      {/* Remove Button */}
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          const newFiles = files.filter((_, i) => i !== index)
-                          setFiles(newFiles)
-                          if (index === coverIndex && index === files.length - 1) {
-                            setCoverIndex(Math.max(0, index - 1))
-                          } else if (index < coverIndex) {
-                            setCoverIndex(coverIndex - 1)
-                          }
-                        }}
-                        style={{
-                          position: 'absolute',
-                          top: '4px',
-                          right: '4px',
-                          width: '20px',
-                          height: '20px',
-                          borderRadius: '50%',
-                          border: 'none',
-                          background: 'rgba(239, 68, 68, 0.9)',
-                          color: 'white',
-                          cursor: 'pointer',
-                          fontSize: '12px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          transition: 'all 0.2s ease'
-                        }}
-                        onMouseOver={(e) => e.target.style.background = '#dc2626'}
-                        onMouseOut={(e) => e.target.style.background = 'rgba(239, 68, 68, 0.9)'}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Right Column - Form Fields */}
-          <div style={{ order: '2' }}>
-            <h3 style={{
-              margin: '0 0 24px 0',
-              fontSize: '18px',
-              fontWeight: '600',
-              color: 'var(--text-primary)'
-            }}>✏️ Post Details</h3>
-
-            {/* Title Input */}
-            <div style={{ marginBottom: '24px' }}>
-              <label style={{ 
-                display: 'block', 
-                marginBottom: '8px', 
-                fontSize: '15px', 
-                fontWeight: '600',
-                color: 'var(--text-primary)'
-              }}>
-                Title *
-              </label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '14px 16px',
-                  border: '2px solid rgba(0, 0, 0, 0.06)',
-                  borderRadius: '12px',
-                  fontSize: '16px',
-                  background: 'white',
-                  color: 'var(--text-primary)',
-                  transition: 'all 0.2s ease',
-                  outline: 'none'
-                }}
-                placeholder="Give your post an amazing title..."
-                required
-                onFocus={(e) => e.target.style.borderColor = '#667eea'}
-                onBlur={(e) => e.target.style.borderColor = 'rgba(0, 0, 0, 0.06)'}
-              />
-            </div>
-
-            {/* Description */}
-            <div style={{ marginBottom: '24px' }}>
-              <label style={{ 
-                display: 'block', 
-                marginBottom: '8px', 
-                fontSize: '15px', 
-                fontWeight: '600',
-                color: 'var(--text-primary)'
-              }}>
-                Description
-              </label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '14px 16px',
-                  border: '2px solid rgba(0, 0, 0, 0.06)',
-                  borderRadius: '12px',
-                  fontSize: '16px',
-                  background: 'white',
-                  color: 'var(--text-primary)',
-                  resize: 'none',
-                  minHeight: '100px',
-                  fontFamily: 'inherit',
-                  transition: 'all 0.2s ease',
-                  outline: 'none'
-                }}
-                rows="4"
-                placeholder="Tell the story behind your photos..."
-                onFocus={(e) => e.target.style.borderColor = '#667eea'}
-                onBlur={(e) => e.target.style.borderColor = 'rgba(0, 0, 0, 0.06)'}
-              />
-            </div>
-            
-            {/* Categories */}
-            <div style={{ marginBottom: '24px' }}>
-              <label style={{ 
-                display: 'block', 
-                marginBottom: '12px', 
-                fontSize: '15px', 
-                fontWeight: '600',
-                color: 'var(--text-primary)'
-              }}>
-                Category
-              </label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                {categories.map((cat) => (
-                  <button
-                    key={cat.value}
-                    type="button"
-                    onClick={() => setCategory(cat.value)}
-                    style={{
-                      padding: '10px 16px',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      border: '2px solid',
-                      borderColor: category === cat.value ? '#667eea' : 'rgba(0, 0, 0, 0.08)',
-                      borderRadius: '12px',
-                      background: category === cat.value 
-                        ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-                        : 'white',
-                      color: category === cat.value ? 'white' : 'var(--text-primary)',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-                      boxShadow: category === cat.value 
-                        ? '0 4px 12px rgba(102, 126, 234, 0.3)'
-                        : 'none'
-                    }}
-                    onMouseOver={(e) => {
-                      if (category !== cat.value) {
-                        e.target.style.borderColor = '#667eea'
-                        e.target.style.background = 'rgba(102, 126, 234, 0.05)'
-                      }
-                    }}
-                    onMouseOut={(e) => {
-                      if (category !== cat.value) {
-                        e.target.style.borderColor = 'rgba(0, 0, 0, 0.08)'
-                        e.target.style.background = 'white'
-                      }
-                    }}
-                  >
-                    {cat.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Hashtags */}
-            <div style={{ marginBottom: '24px' }}>
-              <label style={{ 
-                display: 'block', 
-                marginBottom: '8px', 
-                fontSize: '15px', 
-                fontWeight: '600',
-                color: 'var(--text-primary)'
-              }}>
-                Hashtags
-              </label>
-              <div style={{
-                border: '2px solid rgba(0, 0, 0, 0.06)',
-                borderRadius: '12px',
-                padding: '12px',
-                backgroundColor: 'white',
-                minHeight: '50px',
-                display: 'flex',
-                flexWrap: 'wrap',
-                alignItems: 'center',
-                gap: '8px',
-                transition: 'all 0.2s ease'
-              }}
-              onFocus={(e) => e.target.style.borderColor = '#667eea'}
-              >
-                {hashtags.map((tag, index) => (
-                  <span
-                    key={index}
-                    style={{
-                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                      color: 'white',
-                      padding: '6px 12px',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px'
-                    }}
-                  >
-                    #{tag}
-                    <button
-                      type="button"
-                      onClick={() => setHashtags(hashtags.filter((_, i) => i !== index))}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: 'white',
-                        cursor: 'pointer',
-                        fontSize: '16px',
-                        width: '16px',
-                        height: '16px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
+                  {isMobile 
+                    ? `${t('fileTypesSupported')} • ${t('maxFiles')}`
+                    : `${t('dragAndDropBrowse')} • ${t('fileTypesSupported')} • ${t('maxFiles')}`
+                  }
+                </p>
                 
                 <input
-                  type="text"
-                  value={currentHashtagInput}
-                  onChange={(e) => setCurrentHashtagInput(e.target.value)}
-                  onKeyDown={handleHashtagKeyDown}
-                  placeholder={hashtags.length === 0 ? "Add hashtags (press space to add)..." : ""}
-                  style={{
-                    border: 'none',
-                    outline: 'none',
-                    flex: 1,
-                    minWidth: '120px',
-                    padding: '4px 0',
-                    fontSize: '14px',
-                    backgroundColor: 'transparent'
-                  }}
+                  id="file-upload"
+                  type="file"
+                  onChange={handleFileChange}
+                  accept="image/*,video/*"
+                  multiple={true}
+                  style={{ display: 'none' }}
+                  disabled={files.length >= 10}
+                  required
                 />
               </div>
-              <p style={{ marginTop: '6px', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                Type a word and press space to create a hashtag
-              </p>
-            </div>
 
-            {/* Date Picker */}
-            <div style={{ marginBottom: '24px' }}>
-              <DatePicker
-                value={customDate}
-                onChange={setCustomDate}
-                label="Post Date"
-              />
-            </div>
+              {/* File Preview Grid with Thumbnail Selection */}
+              {files.length > 0 && (
+                <div style={{
+                  padding: isMobile ? '10px' : '12px',
+                  background: 'var(--bg-gray)',
+                  borderRadius: isMobile ? '8px' : '10px',
+                  border: '1px solid var(--border-light)',
+                  marginBottom: '10px'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: isMobile ? '6px' : '8px'
+                  }}>
+                    <h4 style={{
+                      margin: 0,
+                      fontSize: isMobile ? '12px' : '13px',
+                      fontWeight: '600',
+                      color: 'var(--text-primary)'
+                    }}>
+                      {files.length} {t('filesSelected')}
+                    </h4>
+                    {files.length > 1 && (
+                      <span style={{
+                        fontSize: isMobile ? '10px' : '11px',
+                        color: 'var(--text-secondary)',
+                        fontWeight: '500'
+                      }}>
+                        {t('tapForThumbnail')}
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: isMobile 
+                      ? 'repeat(auto-fill, minmax(60px, 1fr))' 
+                      : 'repeat(auto-fill, minmax(70px, 1fr))',
+                    gap: isMobile ? '6px' : '8px'
+                  }}>
+                    {files.map((file, index) => (
+                      <div key={index} style={{
+                        position: 'relative',
+                        aspectRatio: '1',
+                        borderRadius: isMobile ? '8px' : '10px',
+                        overflow: 'hidden',
+                        background: 'var(--bg-secondary)',
+                        border: index === coverIndex 
+                          ? '2px solid var(--accent-blue)' 
+                          : '1px solid var(--border-primary)',
+                        transition: 'all 0.2s ease',
+                        cursor: 'pointer',
+                        boxShadow: index === coverIndex 
+                          ? '0 4px 12px rgba(59, 130, 246, 0.15)' 
+                          : 'var(--shadow-sm)'
+                      }}
+                      onClick={() => setCoverIndex(index)}
+                      >
+                        {file.type.startsWith('image/') ? (
+                          <img 
+                            src={URL.createObjectURL(file)}
+                            alt="Preview"
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover'
+                            }}
+                          />
+                        ) : (
+                          <div style={{
+                            width: '100%',
+                            height: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: isMobile ? '16px' : '18px',
+                            background: 'var(--accent-blue)',
+                            color: 'white'
+                          }}>
+                            🎥
+                          </div>
+                        )}
+                        
+                        {/* Thumbnail Badge */}
+                        {index === coverIndex && files.length > 1 && (
+                          <div style={{
+                            position: 'absolute',
+                            bottom: '3px',
+                            left: '3px',
+                            background: 'var(--accent-blue)',
+                            color: 'white',
+                            borderRadius: '4px',
+                            padding: '2px 4px',
+                            fontSize: isMobile ? '8px' : '9px',
+                            fontWeight: '600',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px'
+                          }}>
+                            {t('thumbnail')}
+                          </div>
+                        )}
+                        
+                        {/* Remove Button */}
+                        <div
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            const newFiles = files.filter((_, i) => i !== index)
+                            setFiles(newFiles)
+                            if (index === coverIndex && index === files.length - 1) {
+                              setCoverIndex(Math.max(0, index - 1))
+                            } else if (index < coverIndex) {
+                              setCoverIndex(coverIndex - 1)
+                            }
+                          }}
+                          style={{
+                            position: 'absolute',
+                            top: isMobile ? '2px' : '3px',
+                            right: isMobile ? '2px' : '3px',
+                            padding: isMobile ? '2px 4px' : '3px 6px',
+                            background: 'rgba(239, 68, 68, 0.9)',
+                            color: 'white',
+                            cursor: 'pointer',
+                            fontSize: isMobile ? '12px' : '11px',
+                            fontWeight: '600',
+                            borderRadius: isMobile ? '8px' : '6px',
+                            lineHeight: '1',
+                            transition: 'all 0.2s ease'
+                          }}
+                          onMouseOver={(e) => {
+                            e.target.style.background = 'var(--accent-red)'
+                          }}
+                          onMouseOut={(e) => {
+                            e.target.style.background = 'rgba(239, 68, 68, 0.9)'
+                          }}
+                        >
+                          ×
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-            {/* Children Selection */}
-            {albumSettings?.is_multi_child && children.length > 0 && (
-              <div style={{ marginBottom: '24px' }}>
+              {/* Categories, Date Picker, and Children (Desktop only in left column) */}
+              {!isMobile && (
+                <>
+                  <div style={{ marginTop: '10px' }}>
+                    <label style={{ 
+                      display: 'block', 
+                      marginBottom: '6px', 
+                      fontSize: '12px', 
+                      fontWeight: '600',
+                      color: 'var(--text-primary)'
+                    }}>
+                      {t('category')}
+                    </label>
+                    <div style={{ 
+                      display: 'flex', 
+                      flexWrap: 'wrap',
+                      gap: '6px'
+                    }}>
+                      {categories.map((cat) => (
+                        <button
+                          key={cat.value}
+                          type="button"
+                          onClick={() => setCategory(cat.value)}
+                          style={{
+                            padding: '6px 10px',
+                            fontSize: '11px',
+                            fontWeight: '500',
+                            border: '1px solid',
+                            borderColor: category === cat.value ? 'var(--accent-blue)' : 'var(--border-primary)',
+                            borderRadius: '6px',
+                            background: category === cat.value ? 'var(--accent-blue)' : 'var(--bg-secondary)',
+                            color: category === cat.value ? 'white' : 'var(--text-primary)',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          {cat.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: '10px' }}>
+                    <label style={{ 
+                      display: 'block',
+                      marginBottom: '6px',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      color: 'var(--text-primary)'
+                    }}>
+                      {t('postDate')}
+                    </label>
+                    <DatePicker
+                      value={customDate}
+                      onChange={setCustomDate}
+                      label=""
+                    />
+                  </div>
+
+                  {/* Children Selection - Desktop */}
+                  {albumSettings?.is_multi_child && children.length > 0 && (
+                    <div style={{ marginTop: '10px' }}>
+                      <label style={{ 
+                        display: 'block',
+                        marginBottom: '6px',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        color: 'var(--text-primary)'
+                      }}>
+                        {t('associatedChildren')}
+                      </label>
+                      <div style={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: '6px'
+                      }}>
+                        {children.map((child) => (
+                          <label
+                            key={child.id}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              cursor: 'pointer',
+                              padding: '6px 8px',
+                              borderRadius: '6px',
+                              background: selectedChildren.includes(child.id) ? 'var(--accent-blue)' : 'var(--bg-secondary)',
+                              color: selectedChildren.includes(child.id) ? 'white' : 'var(--text-primary)',
+                              border: '1px solid',
+                              borderColor: selectedChildren.includes(child.id) ? 'var(--accent-blue)' : 'var(--border-primary)',
+                              transition: 'all 0.2s ease',
+                              fontSize: '11px'
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedChildren.includes(child.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedChildren([...selectedChildren, child.id])
+                                } else {
+                                  setSelectedChildren(selectedChildren.filter(id => id !== child.id))
+                                }
+                              }}
+                              style={{ display: 'none' }}
+                            />
+                            <div style={{
+                              width: '16px',
+                              height: '16px',
+                              borderRadius: '50%',
+                              background: selectedChildren.includes(child.id) ? 'rgba(255, 255, 255, 0.3)' : 'var(--accent-blue)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '8px',
+                              fontWeight: '600',
+                              color: 'white',
+                              backgroundImage: child.profile_picture_url ? `url(${child.profile_picture_url})` : 'none',
+                              backgroundSize: 'cover',
+                              backgroundPosition: 'center'
+                            }}>
+                              {!child.profile_picture_url && child.name.charAt(0).toUpperCase()}
+                            </div>
+                            <span style={{ fontWeight: '500' }}>
+                              {child.name}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Form Fields Section */}
+          <div>
+            <div style={{
+              background: 'var(--bg-secondary)',
+              borderRadius: isMobile ? '6px' : '8px',
+              padding: isMobile ? '10px' : '12px',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+              border: '1px solid var(--border-light)'
+            }}>
+              <h3 style={{
+                margin: '0 0 10px 0',
+                fontSize: isMobile ? '13px' : '14px',
+                fontWeight: '600',
+                color: 'var(--text-primary)'
+              }}>
+                {t('postDetails')}
+              </h3>
+
+              {/* Title Input */}
+              <div style={{ marginBottom: '8px' }}>
                 <label style={{ 
                   display: 'block', 
-                  marginBottom: '12px', 
-                  fontSize: '15px', 
+                  marginBottom: '4px', 
+                  fontSize: '12px', 
                   fontWeight: '600',
                   color: 'var(--text-primary)'
                 }}>
-                  👶 Associated Children
+                  {t('title')} *
+                </label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 10px',
+                    border: '1px solid var(--border-primary)',
+                    borderRadius: '6px',
+                    fontSize: '13px',
+                    background: 'var(--bg-secondary)',
+                    color: 'var(--text-primary)',
+                    transition: 'border-color 0.2s ease',
+                    outline: 'none'
+                  }}
+                  placeholder={t('enterPostTitle')}
+                  required
+                  onFocus={(e) => e.target.style.borderColor = 'var(--accent-blue)'}
+                  onBlur={(e) => e.target.style.borderColor = 'var(--border-primary)'}
+                />
+              </div>
+
+              {/* Description */}
+              <div style={{ marginBottom: '8px' }}>
+                <label style={{ 
+                  display: 'block', 
+                  marginBottom: '4px', 
+                  fontSize: '12px', 
+                  fontWeight: '600',
+                  color: 'var(--text-primary)'
+                }}>
+                  {t('description')}
+                </label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 10px',
+                    border: '1px solid var(--border-primary)',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    background: 'var(--bg-secondary)',
+                    color: 'var(--text-primary)',
+                    resize: 'none',
+                    minHeight: '50px',
+                    fontFamily: 'inherit',
+                    transition: 'border-color 0.2s ease',
+                    outline: 'none',
+                    lineHeight: '1.3'
+                  }}
+                  rows="2"
+                  placeholder={t('tellStory')}
+                  onFocus={(e) => e.target.style.borderColor = 'var(--accent-blue)'}
+                  onBlur={(e) => e.target.style.borderColor = 'var(--border-primary)'}
+                />
+              </div>
+
+              {/* Hashtags */}
+              <div style={{ marginBottom: '8px' }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: '4px'
+                }}>
+                  <label style={{ 
+                    fontSize: '12px', 
+                    fontWeight: '600',
+                    color: 'var(--text-primary)'
+                  }}>
+                    {t('hashtags')}
+                  </label>
+                  <span style={{
+                    fontSize: '10px',
+                    color: 'var(--text-secondary)',
+                    background: 'var(--bg-gray)',
+                    padding: '1px 4px',
+                    borderRadius: '3px'
+                  }}>
+                    {hashtags.length}/10
+                  </span>
+                </div>
+                <div style={{
+                  border: '1px solid var(--border-primary)',
+                  borderRadius: '6px',
+                  padding: '6px 8px',
+                  background: 'var(--bg-secondary)',
+                  minHeight: '32px',
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                  gap: '3px',
+                  transition: 'border-color 0.2s ease',
+                  cursor: 'text'
+                }}
+                onClick={() => document.querySelector('#hashtag-input').focus()}
+                >
+                  {hashtags.map((tag, index) => (
+                    <span
+                      key={index}
+                      style={{
+                        background: 'var(--accent-blue)',
+                        color: 'white',
+                        padding: isMobile ? '2px 4px' : '2px 6px',
+                        borderRadius: '4px',
+                        fontSize: '10px',
+                        fontWeight: '500',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '3px'
+                      }}
+                    >
+                      #{tag}
+                      <div
+                        onClick={() => setHashtags(hashtags.filter((_, i) => i !== index))}
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.3)',
+                          color: 'white',
+                          cursor: 'pointer',
+                          fontSize: isMobile ? '8px' : '10px',
+                          padding: isMobile ? '1px' : '2px',
+                          borderRadius: '50%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: '600',
+                          minWidth: isMobile ? '12px' : '14px',
+                          minHeight: isMobile ? '12px' : '14px'
+                        }}
+                      >
+                        ×
+                      </div>
+                    </span>
+                  ))}
+                  
+                  <input
+                    id="hashtag-input"
+                    type="text"
+                    value={currentHashtagInput}
+                    onChange={(e) => setCurrentHashtagInput(e.target.value)}
+                    onKeyDown={handleHashtagKeyDown}
+                    placeholder={hashtags.length === 0 ? t('addHashtags') : ""}
+                    disabled={hashtags.length >= 10}
+                    style={{
+                      border: 'none',
+                      outline: 'none',
+                      flex: 1,
+                      minWidth: '60px',
+                      padding: '2px 0',
+                      fontSize: '11px',
+                      backgroundColor: 'transparent',
+                      color: 'var(--text-primary)'
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Categories (Mobile only) */}
+              {isMobile && (
+                <div style={{ marginBottom: '8px' }}>
+                  <label style={{ 
+                    display: 'block', 
+                    marginBottom: '6px', 
+                    fontSize: '12px', 
+                    fontWeight: '600',
+                    color: 'var(--text-primary)'
+                  }}>
+                    {t('category')}
+                  </label>
+                  <div style={{ 
+                    display: 'flex', 
+                    flexWrap: 'wrap',
+                    gap: '6px'
+                  }}>
+                    {categories.map((cat) => (
+                      <button
+                        key={cat.value}
+                        type="button"
+                        onClick={() => setCategory(cat.value)}
+                        style={{
+                          padding: '8px 12px',
+                          fontSize: '12px',
+                          fontWeight: '500',
+                          border: '1px solid',
+                          borderColor: category === cat.value ? 'var(--accent-blue)' : 'var(--border-primary)',
+                          borderRadius: '6px',
+                          background: category === cat.value ? 'var(--accent-blue)' : 'var(--bg-secondary)',
+                          color: category === cat.value ? 'white' : 'var(--text-primary)',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        {cat.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Date Picker (Mobile only) */}
+              {isMobile && (
+                <div style={{ marginBottom: '8px' }}>
+                  <label style={{ 
+                    display: 'block',
+                    marginBottom: '6px',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: 'var(--text-primary)'
+                  }}>
+                    {t('postDate')}
+                  </label>
+                  <DatePicker
+                    value={customDate}
+                    onChange={setCustomDate}
+                    label=""
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Children Selection - Mobile Only */}
+            {isMobile && albumSettings?.is_multi_child && children.length > 0 && (
+              <div style={{
+                background: 'var(--bg-secondary)',
+                borderRadius: '8px',
+                padding: '12px',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                border: '1px solid var(--border-light)',
+                marginBottom: '8px'
+              }}>
+                <label style={{ 
+                  display: 'block', 
+                  marginBottom: '8px', 
+                  fontSize: '12px', 
+                  fontWeight: '600',
+                  color: 'var(--text-primary)'
+                }}>
+                  {t('associatedChildren')}
                 </label>
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-                  gap: '12px'
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+                  gap: '6px'
                 }}>
                   {children.map((child) => (
                     <label
@@ -803,20 +1011,16 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '12px',
+                        gap: '8px',
                         cursor: 'pointer',
-                        padding: '12px',
-                        borderRadius: '12px',
-                        background: selectedChildren.includes(child.id) 
-                          ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-                          : 'white',
+                        padding: '8px 10px',
+                        borderRadius: '6px',
+                        background: selectedChildren.includes(child.id) ? 'var(--accent-blue)' : 'var(--bg-gray)',
                         color: selectedChildren.includes(child.id) ? 'white' : 'var(--text-primary)',
-                        border: '2px solid',
-                        borderColor: selectedChildren.includes(child.id) ? '#667eea' : 'rgba(0, 0, 0, 0.08)',
-                        transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-                        boxShadow: selectedChildren.includes(child.id) 
-                          ? '0 4px 12px rgba(102, 126, 234, 0.3)'
-                          : 'none'
+                        border: '1px solid',
+                        borderColor: selectedChildren.includes(child.id) ? 'var(--accent-blue)' : 'var(--border-light)',
+                        transition: 'all 0.2s ease',
+                        fontSize: '11px'
                       }}
                     >
                       <input
@@ -832,16 +1036,14 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                         style={{ display: 'none' }}
                       />
                       <div style={{
-                        width: '32px',
-                        height: '32px',
+                        width: '20px',
+                        height: '20px',
                         borderRadius: '50%',
-                        background: selectedChildren.includes(child.id) 
-                          ? 'rgba(255, 255, 255, 0.2)'
-                          : '#667eea',
+                        background: selectedChildren.includes(child.id) ? 'rgba(255, 255, 255, 0.3)' : 'var(--accent-blue)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: '14px',
+                        fontSize: '10px',
                         fontWeight: '600',
                         color: 'white',
                         backgroundImage: child.profile_picture_url ? `url(${child.profile_picture_url})` : 'none',
@@ -850,7 +1052,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                       }}>
                         {!child.profile_picture_url && child.name.charAt(0).toUpperCase()}
                       </div>
-                      <span style={{ fontSize: '14px', fontWeight: '500' }}>
+                      <span style={{ fontWeight: '500', flex: 1 }}>
                         {child.name}
                       </span>
                     </label>
@@ -861,113 +1063,130 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
 
             {/* Error Message */}
             {error && (
-              <div style={{ 
-                marginBottom: '24px', 
-                padding: '16px', 
-                backgroundColor: 'rgba(239, 68, 68, 0.1)', 
-                border: '2px solid rgba(239, 68, 68, 0.2)',
-                borderRadius: '12px',
-                color: '#DC2626',
-                fontSize: '14px',
-                fontWeight: '500'
+              <div style={{
+                background: 'var(--bg-secondary)',
+                borderRadius: '6px',
+                padding: '10px 12px',
+                border: '1px solid var(--accent-red)',
+                marginBottom: '8px'
               }}>
-                🚨 {error}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  <span style={{ color: 'var(--accent-red)', fontSize: '14px' }}>⚠️</span>
+                  <p style={{
+                    margin: 0,
+                    fontSize: '12px',
+                    color: 'var(--accent-red)',
+                    fontWeight: '500'
+                  }}>
+                    {error}
+                  </p>
+                </div>
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Premium Footer */}
+      {/* Footer */}
       <div style={{
-        padding: '24px 40px',
-        borderTop: '1px solid rgba(0, 0, 0, 0.06)',
+        padding: isMobile ? '8px 16px' : '10px 16px',
+        borderTop: '1px solid var(--border-light)',
         flexShrink: 0,
-        background: 'rgba(248, 250, 252, 0.5)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
+        background: 'var(--bg-secondary)'
       }}>
         <div style={{
           display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          color: 'var(--text-secondary)',
-          fontSize: '14px'
+          flexDirection: isMobile ? 'column' : 'row',
+          justifyContent: 'space-between',
+          alignItems: isMobile ? 'stretch' : 'center',
+          gap: isMobile ? '10px' : '12px'
         }}>
-          {files.length > 0 && (
-            <>
-              <span style={{
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                color: 'white',
-                padding: '4px 8px',
-                borderRadius: '6px',
-                fontSize: '12px',
-                fontWeight: '600'
-              }}>
-                {files.length} file{files.length !== 1 ? 's' : ''}
-              </span>
-              <span>•</span>
-            </>
-          )}
-          <span>Ready to share your moment?</span>
-        </div>
-        
-        <button
-          onClick={handleSubmit}
-          disabled={loading || !title.trim() || files.length === 0}
-          style={{
-            padding: '16px 32px',
-            background: loading || !title.trim() || files.length === 0
-              ? 'rgba(0, 0, 0, 0.1)'
-              : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            color: loading || !title.trim() || files.length === 0 ? 'rgba(0, 0, 0, 0.4)' : 'white',
-            border: 'none',
-            borderRadius: '12px',
-            fontSize: '16px',
-            fontWeight: '600',
-            cursor: loading || !title.trim() || files.length === 0 ? 'not-allowed' : 'pointer',
+          <div style={{
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
             gap: '8px',
-            transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-            boxShadow: loading || !title.trim() || files.length === 0
-              ? 'none'
-              : '0 8px 16px rgba(102, 126, 234, 0.3)',
-            minWidth: '140px'
-          }}
-          onMouseOver={(e) => {
-            if (!loading && title.trim() && files.length > 0) {
-              e.target.style.transform = 'translateY(-2px)'
-              e.target.style.boxShadow = '0 12px 24px rgba(102, 126, 234, 0.4)'
-            }
-          }}
-          onMouseOut={(e) => {
-            if (!loading && title.trim() && files.length > 0) {
-              e.target.style.transform = 'translateY(0)'
-              e.target.style.boxShadow = '0 8px 16px rgba(102, 126, 234, 0.3)'
-            }
-          }}
-        >
-          {loading ? (
-            <>
-              <div style={{
-                width: '16px',
-                height: '16px',
-                border: '2px solid rgba(255, 255, 255, 0.3)',
-                borderTop: '2px solid white',
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite'
-              }}></div>
-              Publishing...
-            </>
-          ) : (
-            <>
-              🚀 Publish Post
-            </>
-          )}
-        </button>
+            color: 'var(--text-secondary)',
+            fontSize: isMobile ? '12px' : '13px',
+            order: isMobile ? '2' : '1'
+          }}>
+            {files.length > 0 && (
+              <>
+                <span style={{
+                  background: 'var(--accent-blue-light)',
+                  color: 'var(--accent-blue)',
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  fontSize: isMobile ? '11px' : '12px',
+                  fontWeight: '500'
+                }}>
+                  {files.length} file{files.length !== 1 ? 's' : ''}
+                </span>
+                <span>•</span>
+              </>
+            )}
+            <span>
+              {files.length > 0 
+                ? t('readyToPublish')
+                : t('selectFilesToStart')}
+            </span>
+          </div>
+          
+          <button
+            onClick={handleSubmit}
+            disabled={loading || !title.trim() || files.length === 0}
+            style={{
+              padding: isMobile ? '12px 20px' : '14px 24px',
+              background: loading || !title.trim() || files.length === 0
+                ? 'var(--border-light)'
+                : 'var(--accent-blue)',
+              color: loading || !title.trim() || files.length === 0 ? 'var(--text-subtle)' : 'white',
+              border: 'none',
+              borderRadius: isMobile ? '8px' : '10px',
+              fontSize: isMobile ? '14px' : '15px',
+              fontWeight: '600',
+              cursor: loading || !title.trim() || files.length === 0 ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              transition: 'all 0.2s ease',
+              minWidth: isMobile ? '100%' : '120px',
+              order: isMobile ? '1' : '2'
+            }}
+            onMouseOver={(e) => {
+              if (!loading && title.trim() && files.length > 0) {
+                e.target.style.background = 'var(--accent-blue)'
+              }
+            }}
+            onMouseOut={(e) => {
+              if (!loading && title.trim() && files.length > 0) {
+                e.target.style.background = 'var(--accent-blue)'
+              }
+            }}
+          >
+            {loading ? (
+              <>
+                <div style={{
+                  width: '14px',
+                  height: '14px',
+                  border: '2px solid rgba(255, 255, 255, 0.3)',
+                  borderTop: '2px solid white',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite'
+                }}></div>
+                {t('publishing')}
+              </>
+            ) : (
+              <>
+                {t('publishPost')}
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   )

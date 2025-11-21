@@ -39,7 +39,23 @@ export default function Skills() {
 
   const fetchSkillsProgress = async () => {
     try {
-      const response = await fetch(`/api/skills/progress?familyId=${session.familyId}`)
+      const familyId = session.familyId
+      
+      // Check cache first
+      const cacheKey = `skillsProgress_${familyId}`
+      const cacheTimeKey = `${cacheKey}_time`
+      const cached = sessionStorage.getItem(cacheKey)
+      const cacheTime = sessionStorage.getItem(cacheTimeKey)
+      const now = Date.now()
+      const cacheAge = 2 * 60 * 1000 // 2 minutes cache for skills
+      
+      if (cached && cacheTime && (now - parseInt(cacheTime)) < cacheAge) {
+        const progressMap = JSON.parse(cached)
+        setSkillsProgress(progressMap)
+        return
+      }
+      
+      const response = await fetch(`/api/skills/progress?familyId=${familyId}`)
       const result = await response.json()
 
       if (!response.ok) {
@@ -50,7 +66,12 @@ export default function Skills() {
       result.skills.forEach(skill => {
         progressMap[skill.skill_id] = skill
       })
+      
       setSkillsProgress(progressMap)
+      
+      // Cache the result
+      sessionStorage.setItem(cacheKey, JSON.stringify(progressMap))
+      sessionStorage.setItem(cacheTimeKey, now.toString())
     } catch (error) {
       console.error('Error fetching skills progress:', error)
       showError(t('loading'))
@@ -84,10 +105,17 @@ export default function Skills() {
       }
 
       // Update local state
-      setSkillsProgress(prev => ({
-        ...prev,
+      const newProgressMap = {
+        ...skillsProgress,
         [skillId]: result.skill
-      }))
+      }
+      setSkillsProgress(newProgressMap)
+      
+      // Update cache
+      const cacheKey = `skillsProgress_${session.familyId}`
+      const cacheTimeKey = `${cacheKey}_time`
+      sessionStorage.setItem(cacheKey, JSON.stringify(newProgressMap))
+      sessionStorage.setItem(cacheTimeKey, Date.now().toString())
 
       showSuccess(t('success'))
     } catch (error) {

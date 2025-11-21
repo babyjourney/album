@@ -210,32 +210,74 @@ export default function Header({ familyName, role, albumTitle }) {
 
       {/* Settings Modal */}
       {showSettingsModal && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          width: '100vw',
-          height: '100vh',
-          background: 'rgba(0, 0, 0, 0.6)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 99999,
-          backdropFilter: 'blur(4px)',
-          padding: '20px'
-        }}>
-          <div style={{
-            background: 'var(--bg-secondary)',
-            borderRadius: '16px',
-            padding: '24px',
-            maxWidth: '400px',
-            width: '100%',
-            maxHeight: 'calc(100vh - 40px)',
-            overflow: 'hidden',
-            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.2)',
-            transform: 'scale(1)',
-            animation: 'modalAppear 0.2s ease-out',
-            margin: 'auto'
+        <div 
+          onClick={() => setShowSettingsModal(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            width: '100vw',
+            height: '100vh',
+            background: 'rgba(0, 0, 0, 0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 99999,
+            backdropFilter: 'blur(4px)',
+            padding: '20px'
           }}>
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'var(--bg-secondary)',
+              borderRadius: '16px',
+              padding: '24px',
+              maxWidth: '400px',
+              width: '100%',
+              maxHeight: 'calc(100vh - 40px)',
+              overflow: 'hidden',
+              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.2)',
+              transform: 'scale(1)',
+              animation: 'modalAppear 0.2s ease-out',
+              margin: 'auto',
+              position: 'relative'
+            }}>
+
+            {/* X Close Button */}
+            <button
+              onClick={() => setShowSettingsModal(false)}
+              style={{
+                position: 'absolute',
+                top: '16px',
+                right: '16px',
+                width: '32px',
+                height: '32px',
+                border: 'none',
+                background: 'var(--bg-gray)',
+                borderRadius: '50%',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--text-secondary)',
+                fontSize: '18px',
+                fontWeight: '600',
+                transition: 'all 0.2s ease',
+                zIndex: 1
+              }}
+              onMouseOver={(e) => {
+                e.target.style.background = 'var(--accent-red)'
+                e.target.style.color = 'white'
+                e.target.style.transform = 'scale(1.1)'
+              }}
+              onMouseOut={(e) => {
+                e.target.style.background = 'var(--bg-gray)'
+                e.target.style.color = 'var(--text-secondary)'
+                e.target.style.transform = 'scale(1)'
+              }}
+              title="Close"
+            >
+              ×
+            </button>
 
             {/* Language Selection */}
             <div style={{ marginBottom: '24px' }}>
