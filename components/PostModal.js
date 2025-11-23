@@ -7,32 +7,66 @@ import { getCategories } from '../lib/categoriesData'
 import InstagramCarousel from './InstagramCarousel'
 import DatePicker from './DatePicker'
 
-// Helper function to get multi-photo URLs
+// Helper function to detect and extract multi-photo URLs with cover reordering
 const getMultiPhotoUrls = (post) => {
-  // First check for proper file_urls field (new format)
+  let urls = null
+  let coverIndex = 0
+  
+  // Check for file_urls field (works for both 'multi-photo' and 'image' types with multiple files)
   if (post.file_urls) {
-    // If file_urls is already an array, return it
+    // If file_urls is already an array, use it
     if (Array.isArray(post.file_urls)) {
-      return post.file_urls
+      urls = post.file_urls
+    } else {
+      // If it's a string, try to parse it
+      try {
+        urls = JSON.parse(post.file_urls)
+      } catch (e) {
+        return null
+      }
     }
-    // If it's a string, try to parse it
+    
+    // Get cover index from post
+    if (post.cover_index !== undefined) {
+      coverIndex = post.cover_index || 0
+    }
+  }
+  
+  // Fallback to old format in description (for compatibility with existing posts)
+  if (!urls && post.description && post.description.includes('__MULTI_PHOTO_URLS__:')) {
     try {
-      return JSON.parse(post.file_urls)
+      const marker = '__MULTI_PHOTO_URLS__:'
+      const markerIndex = post.description.indexOf(marker)
+      const urlsJson = post.description.substring(markerIndex + marker.length)
+      urls = JSON.parse(urlsJson)
+      
+      // Extract cover index from old format
+      if (post.description.includes('__COVER_INDEX__:')) {
+        const coverMatch = post.description.match(/__COVER_INDEX__:(\d+)/)
+        if (coverMatch) {
+          coverIndex = parseInt(coverMatch[1]) || 0
+        }
+      }
     } catch (e) {
       return null
     }
   }
   
-  // Fallback to old format in description (for compatibility with existing posts)
-  if (post.description && post.description.includes('__MULTI_PHOTO_URLS__:')) {
-    try {
-      const marker = '__MULTI_PHOTO_URLS__:'
-      const markerIndex = post.description.indexOf(marker)
-      const urlsJson = post.description.substring(markerIndex + marker.length)
-      return JSON.parse(urlsJson)
-    } catch (e) {
-      return null
+  // Only process if there are actually multiple URLs
+  if (urls && Array.isArray(urls) && urls.length > 1) {
+    // Reorder URLs to put the cover image first for carousel display
+    if (coverIndex > 0 && coverIndex < urls.length) {
+      console.log(`Reordering images for post modal: coverIndex=${coverIndex}, total=${urls.length}`)
+      const reorderedUrls = [...urls]
+      const coverUrl = reorderedUrls[coverIndex]
+      reorderedUrls.splice(coverIndex, 1)
+      reorderedUrls.unshift(coverUrl)
+      console.log('Original order:', urls.map((url, i) => `${i}: ${url.split('/').pop()}`))
+      console.log('Reordered:', reorderedUrls.map((url, i) => `${i}: ${url.split('/').pop()}`))
+      return reorderedUrls
     }
+    
+    return urls
   }
   
   return null
@@ -274,6 +308,7 @@ export default function PostModal({
   const [editDate, setEditDate] = useState(null)
   const [editCategory, setEditCategory] = useState('')
   const [editCoverIndex, setEditCoverIndex] = useState(0)
+  const [editPhotoOrder, setEditPhotoOrder] = useState([])
   const [categories, setCategories] = useState([])
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
   const [editLoading, setEditLoading] = useState(false)
@@ -374,6 +409,14 @@ export default function PostModal({
     }
     setEditCoverIndex(coverIndex)
     
+    // Initialize photo order
+    const multiUrls = getMultiPhotoUrls(currentPost)
+    if (multiUrls && multiUrls.length > 1) {
+      setEditPhotoOrder([...multiUrls])
+    } else {
+      setEditPhotoOrder([])
+    }
+    
     setShowEditModal(true)
   }
 
@@ -392,12 +435,14 @@ export default function PostModal({
         category: editCategory
       }
 
-      // CRITICAL: Preserve file_urls for multi-photo posts
+      // CRITICAL: Use reordered photo URLs if available
       // Check if this is ANY kind of multi-photo post
-      const multiUrls = getMultiPhotoUrls(currentPost)
+      const multiUrls = editPhotoOrder.length > 0 ? editPhotoOrder : getMultiPhotoUrls(currentPost)
       
-      // Always preserve file_urls if it exists, regardless of post type
-      if (currentPost.file_urls !== undefined && currentPost.file_urls !== null) {
+      // Always use reordered URLs if available, otherwise preserve original
+      if (editPhotoOrder.length > 0) {
+        updateData.file_urls = editPhotoOrder
+      } else if (currentPost.file_urls !== undefined && currentPost.file_urls !== null) {
         updateData.file_urls = currentPost.file_urls
       } else if (multiUrls && multiUrls.length > 1) {
         // If we detected multi-photo URLs from ANY source, preserve them
@@ -966,7 +1011,7 @@ export default function PostModal({
                 fontSize: '14px',
                 fontWeight: '600',
                 marginBottom: '4px',
-                color: 'var(--text-primary)', 
+                color: isMobile ? 'white' : 'var(--text-primary)', 
                 lineHeight: '1.3',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
@@ -1029,15 +1074,15 @@ export default function PostModal({
                     }}
                     style={{
                       padding: '1px 6px',
-                      backgroundColor: 'var(--bg-gray)', 
-                      color: 'rgba(255, 255, 255, 0.9)', 
+                      backgroundColor: 'rgba(0, 149, 246, 0.8)', 
+                      color: 'white', 
                       borderRadius: '10px',
                       fontSize: '10px',
                       fontWeight: '400',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      border: '1px solid rgba(0, 149, 246, 0.8)',
                       cursor: 'pointer',
                       transition: 'all 0.2s ease',
-                      background: 'var(--bg-gray)',
+                      background: 'rgba(0, 149, 246, 0.8)',
                       lineHeight: '2',
                       height: 'auto',
                       minHeight: 'unset',
@@ -1045,11 +1090,11 @@ export default function PostModal({
                       verticalAlign: 'baseline'
                     }}
                     onTouchStart={(e) => {
-                      e.currentTarget.style.backgroundColor = 'var(--bg-secondary)'
+                      e.currentTarget.style.backgroundColor = 'rgba(0, 149, 246, 1)'
                       e.currentTarget.style.transform = 'scale(0.95)'
                     }}
                     onTouchEnd={(e) => {
-                      e.currentTarget.style.backgroundColor = 'var(--bg-gray)'
+                      e.currentTarget.style.backgroundColor = 'rgba(0, 149, 246, 0.8)'
                       e.currentTarget.style.transform = 'scale(1)'
                     }}
                   >
@@ -1084,25 +1129,29 @@ export default function PostModal({
 
         {/* Mobile Edit Modal */}
         {showEditModal && (
-          <div style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0, 0, 0, 0.8)',
-            zIndex: 2000,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '20px'
-          }}>
-            <div style={{
-              background: 'white',
-              borderRadius: '16px',
-              padding: '20px',
-              width: '100%',
-              maxWidth: '400px',
-              maxHeight: '80vh',
-              overflow: 'auto'
+          <div 
+            onClick={() => setShowEditModal(false)}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0, 0, 0, 0.8)',
+              zIndex: 2000,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '20px'
             }}>
+            <div 
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: 'white',
+                borderRadius: '16px',
+                padding: '20px',
+                width: '100%',
+                maxWidth: '400px',
+                maxHeight: '80vh',
+                overflow: 'auto'
+              }}>
               <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>
 {t('editPost')}
               </h3>
@@ -1249,7 +1298,7 @@ export default function PostModal({
 
               {/* Cover Selection - Mobile */}
               {(() => {
-                const multiUrls = getMultiPhotoUrls(currentPost)
+                const multiUrls = editPhotoOrder.length > 0 ? editPhotoOrder : getMultiPhotoUrls(currentPost)
                 if (multiUrls && multiUrls.length > 1) {
                   return (
                     <div style={{ marginBottom: '20px' }}>
@@ -2047,12 +2096,12 @@ export default function PostModal({
                       }}
                       style={{
                         padding: '8px 14px',
-                        backgroundColor: 'rgba(0, 149, 246, 0.1)',
-                        color: 'var(--accent-blue)',
+                        backgroundColor: isMobile ? 'rgba(0, 149, 246, 0.8)' : 'rgba(0, 149, 246, 0.1)',
+                        color: isMobile ? 'white' : 'var(--accent-blue)',
                         borderRadius: '20px',
                         fontSize: '13px',
                         fontWeight: '600',
-                        border: '1px solid rgba(0, 149, 246, 0.2)',
+                        border: isMobile ? '1px solid rgba(0, 149, 246, 0.8)' : '1px solid rgba(0, 149, 246, 0.2)',
                         cursor: 'pointer',
                         transition: 'all 0.2s ease-in-out'
                       }}
@@ -2079,36 +2128,40 @@ export default function PostModal({
 
       {/* Edit Modal */}
       {showEditModal && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0, 0, 0, 0.7)',
-          zIndex: 1003,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '20px'
-        }}>
-          <div style={{
-            background: 'white',
-            borderRadius: '16px',
-            padding: '24px',
-            maxWidth: '500px',
-            width: '100%',
-            maxHeight: '80vh',
-            overflow: 'auto'
+        <div 
+          onClick={() => setShowEditModal(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.7)',
+            zIndex: 1003,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px'
           }}>
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'white',
+              borderRadius: '16px',
+              padding: '20px',
+              maxWidth: '500px',
+              width: '100%',
+              maxHeight: '80vh',
+              overflow: 'auto'
+            }}>
             <h3 style={{
               fontSize: '18px',
               fontWeight: '600',
-              marginBottom: '20px',
+              marginBottom: '16px',
               color: 'var(--text-primary)'
             }}>
   {t('edit')} postarea
             </h3>
 
             {/* Description */}
-            <div style={{ marginBottom: '20px' }}>
+            <div style={{ marginBottom: '16px' }}>
               <label style={{
                 display: 'block',
                 fontSize: '14px',
@@ -2123,12 +2176,12 @@ export default function PostModal({
                 onChange={(e) => setEditDescription(e.target.value)}
                 style={{
                   width: '100%',
-                  padding: '12px',
+                  padding: '10px',
                   border: '1px solid var(--border-light)',
                   borderRadius: '8px',
                   fontSize: '14px',
                   resize: 'vertical',
-                  minHeight: '80px'
+                  minHeight: '60px'
                 }}
                 placeholder={t('postDescription')}
                 autoComplete="off"
@@ -2143,7 +2196,7 @@ export default function PostModal({
             </div>
 
             {/* Hashtags */}
-            <div style={{ marginBottom: '24px' }}>
+            <div style={{ marginBottom: '16px' }}>
               <label style={{
                 display: 'block',
                 fontSize: '14px',
@@ -2156,8 +2209,8 @@ export default function PostModal({
               <div style={{
                 border: '1px solid var(--border-light)',
                 borderRadius: '8px',
-                padding: '8px',
-                minHeight: '40px',
+                padding: '6px',
+                minHeight: '32px',
                 display: 'flex',
                 flexWrap: 'wrap',
                 gap: '6px',
@@ -2226,7 +2279,7 @@ export default function PostModal({
             </div>
 
             {/* Date Picker */}
-            <div style={{ marginBottom: '24px' }}>
+            <div style={{ marginBottom: '16px' }}>
               <DatePicker
                 value={editDate}
                 onChange={setEditDate}
@@ -2235,7 +2288,7 @@ export default function PostModal({
             </div>
 
             {/* Category Selection */}
-            <div style={{ marginBottom: '24px' }}>
+            <div style={{ marginBottom: '16px' }}>
               <label style={{
                 display: 'block',
                 fontSize: '14px',
@@ -2250,7 +2303,7 @@ export default function PostModal({
                 onChange={(e) => setEditCategory(e.target.value)}
                 style={{
                   width: '100%',
-                  padding: '12px 16px',
+                  padding: '10px 14px',
                   border: '1px solid var(--border-light)',
                   borderRadius: '8px',
                   fontSize: '14px',
@@ -2279,7 +2332,7 @@ export default function PostModal({
               const multiUrls = getMultiPhotoUrls(currentPost)
               if (multiUrls && multiUrls.length > 1) {
                 return (
-                  <div style={{ marginBottom: '24px' }}>
+                  <div style={{ marginBottom: '16px' }}>
                     <label style={{
                       display: 'block',
                       fontSize: '14px',
@@ -2305,13 +2358,29 @@ export default function PostModal({
                                        url.toLowerCase().includes('.avi')
                         
                         return (
-                          <button
+                          <div
                             key={index}
-                            type="button"
+                            draggable={true}
+                            onDragStart={(e) => {
+                              e.dataTransfer.setData('text/plain', index.toString())
+                            }}
+                            onDragOver={(e) => {
+                              e.preventDefault()
+                            }}
+                            onDrop={(e) => {
+                              e.preventDefault()
+                              const draggedIndex = parseInt(e.dataTransfer.getData('text/plain'))
+                              if (draggedIndex !== index) {
+                                const newOrder = [...multiUrls]
+                                const draggedItem = newOrder[draggedIndex]
+                                newOrder.splice(draggedIndex, 1)
+                                newOrder.splice(index, 0, draggedItem)
+                                setEditPhotoOrder(newOrder)
+                              }
+                            }}
                             onClick={(e) => {
                               e.stopPropagation()
                               e.preventDefault()
-                              console.log('Desktop thumbnail clicked:', index)
                               setEditCoverIndex(index)
                             }}
                             style={{
@@ -2327,7 +2396,8 @@ export default function PostModal({
                               alignItems: 'center',
                               justifyContent: 'center',
                               border: index === editCoverIndex ? '3px solid var(--accent-blue)' : '2px solid transparent',
-                              cursor: 'pointer',
+                              cursor: 'grab',
+                              userSelect: 'none',
                               transition: 'all 0.2s ease'
                             }}
                           >
@@ -2367,7 +2437,7 @@ export default function PostModal({
                                 ✓
                               </div>
                             )}
-                          </button>
+                          </div>
                         )
                       })}
                     </div>
@@ -2377,7 +2447,7 @@ export default function PostModal({
                       color: '#6B7280',
                       lineHeight: '1.4'
                     }}>
-                      Selectează care imagine/video să fie afișat ca thumbnail în grid. Aceasta va fi poza principală a postării în galeria foto.
+                      Selectează care imagine/video să fie afișat ca thumbnail în grid. Trage și lasă pentru a rearanja ordinea pozelor.
                     </p>
                   </div>
                 )
@@ -2395,7 +2465,7 @@ export default function PostModal({
                 onClick={() => setShowEditModal(false)}
                 disabled={editLoading}
                 style={{
-                  padding: '10px 20px',
+                  padding: '8px 16px',
                   border: '1px solid var(--border-light)',
                   background: 'white',
                   color: 'var(--text-primary)',
@@ -2410,7 +2480,7 @@ export default function PostModal({
                 onClick={handleEditSave}
                 disabled={editLoading}
                 style={{
-                  padding: '10px 20px',
+                  padding: '8px 16px',
                   border: 'none',
                   background: 'var(--accent-blue)',
                   color: 'white',

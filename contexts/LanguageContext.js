@@ -13,6 +13,9 @@ export const translations = {
     disconnect: 'Deconectează',
     album: 'Album',
     skills: 'Skills',
+    language: 'Limbă',
+    theme: 'Temă',
+    done: 'Gata',
     
     // Post creation/editing
     createPost: 'Creaza postare',
@@ -275,6 +278,9 @@ export const translations = {
     disconnect: 'Выйти',
     album: 'Альбом',
     skills: 'Навыки',
+    language: 'Язык',
+    theme: 'Тема',
+    done: 'Готово',
     
     // Post creation/editing
     createPost: 'Создать пост',
@@ -537,6 +543,9 @@ export const translations = {
     disconnect: 'Sign Out',
     album: 'Album',
     skills: 'Skills',
+    language: 'Language',
+    theme: 'Theme',
+    done: 'Done',
     
     // Post creation/editing
     createPost: 'Create Post',

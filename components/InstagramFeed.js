@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useToast } from '../contexts/ToastContext'
 import { useLanguage } from '../contexts/LanguageContext'
+import LazyImage from './LazyImage'
+import MediaThumbnail from './MediaThumbnail'
 
 // Helper function to detect and extract multi-photo URLs with cover reordering
 const getMultiPhotoUrls = (post) => {
@@ -65,6 +67,19 @@ const getMultiPhotoUrls = (post) => {
   }
   
   return null
+}
+
+// Helper function to get cover/thumbnail URL for grid display
+const getCoverImageUrl = (post) => {
+  const multiUrls = getMultiPhotoUrls(post)
+  
+  if (multiUrls && multiUrls.length > 1) {
+    // For multi-photo posts, the first image in the reordered array is the cover
+    return multiUrls[0]
+  }
+  
+  // For single image/video posts
+  return post.file_url
 }
 
 // Helper function to clean description from old multi-photo format
@@ -284,53 +299,19 @@ export default function InstagramFeed({ familyId, searchQuery, refreshTrigger, o
               position: 'relative'
             }}>
               {isVideo ? (
-                <>
-                  <video
-                    src={post.file_url}
-                    style={{ 
-                      width: '100%', 
-                      height: '100%',
-                      objectFit: 'cover',
-                      display: 'block'
-                    }}
-                    controls={false}
-                    preload="metadata"
-                    muted
-                  />
-                  <div style={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    background: 'rgba(0, 0, 0, 0.7)',
-                    borderRadius: '50%',
-                    width: '60px',
-                    height: '60px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backdropFilter: 'blur(10px)',
-                    border: '3px solid rgba(255, 255, 255, 0.9)'
-                  }}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
-                      <path d="M8 5v14l11-7z"/>
-                    </svg>
-                  </div>
-                  <div style={{
-                    position: 'absolute',
-                    bottom: '12px',
-                    right: '12px',
-                    background: 'rgba(0, 0, 0, 0.8)',
-                    color: 'white',
-                    padding: '6px 12px',
-                    borderRadius: '12px',
-                    fontSize: '12px',
-                    fontWeight: '500',
-                    backdropFilter: 'blur(10px)'
-                  }}>
-                    Video
-                  </div>
-                </>
+                <MediaThumbnail
+                  src={post.file_url}
+                  alt={post.title || 'Video'}
+                  style={{ 
+                    width: '100%', 
+                    height: '100%',
+                    objectFit: 'cover',
+                    display: 'block'
+                  }}
+                  onError={(e) => {
+                    console.error('Video thumbnail failed to load:', post.file_url)
+                  }}
+                />
               ) : (() => {
                 const multiPhotoUrls = getMultiPhotoUrls(post)
                 return multiPhotoUrls ? (
@@ -430,10 +411,11 @@ export default function InstagramFeed({ familyId, searchQuery, refreshTrigger, o
                       }}
                     >
                       {multiPhotoUrls.map((url, index) => (
-                        <img
+                        <MediaThumbnail
                           key={index}
                           src={url}
                           alt={`${post.title || 'Post'} - ${index + 1}`}
+                          showPlayIcon={true}
                           style={{ 
                             minWidth: '100%',
                             maxWidth: '100%',
@@ -455,10 +437,8 @@ export default function InstagramFeed({ familyId, searchQuery, refreshTrigger, o
                             backfaceVisibility: 'hidden', // Prevent flicker
                             imageRendering: 'auto'
                           }}
-                          loading="lazy"
                           onError={(e) => {
-                            console.error('Image failed to load:', url)
-                            e.target.style.display = 'none'
+                            console.error('Media failed to load:', url)
                           }}
                         />
                       ))}
@@ -613,19 +593,18 @@ export default function InstagramFeed({ familyId, searchQuery, refreshTrigger, o
                 </>
                 ) : (
                   // Single image post
-                  <img
+                  <MediaThumbnail
                     src={post.file_url}
                     alt={post.title || 'Post'}
+                    showPlayIcon={false}
                     style={{ 
                       width: '100%', 
                       height: '100%',
                       objectFit: 'cover',
                       display: 'block'
                     }}
-                    loading="lazy"
                     onError={(e) => {
-                      console.error('Image failed to load:', post.file_url)
-                      e.target.style.display = 'none'
+                      console.error('Media failed to load:', post.file_url)
                     }}
                   />
                 )

@@ -288,7 +288,7 @@ export default function Header({ familyName, role, albumTitle }) {
                 color: 'var(--text-primary)',
                 marginBottom: '12px'
               }}>
-                🌍 Язык / Limbă
+                🌍 {t('language')}
               </label>
               <div style={{ display: 'flex', gap: '8px' }}>
                 {[
@@ -326,7 +326,6 @@ export default function Header({ familyName, role, albumTitle }) {
                     }}
                   >
                     <div>{lang.label}</div>
-                    <div style={{ fontSize: '11px', opacity: 0.8 }}>{lang.name}</div>
                   </button>
                 ))}
               </div>
@@ -341,7 +340,7 @@ export default function Header({ familyName, role, albumTitle }) {
                 color: 'var(--text-primary)',
                 marginBottom: '12px'
               }}>
-                🎨 Тема / Temă
+                🎨 {t('theme')}
               </label>
               <div style={{ 
                 display: 'flex', 
@@ -413,7 +412,7 @@ export default function Header({ familyName, role, albumTitle }) {
                   e.currentTarget.style.background = 'var(--bg-secondary)'
                 }}
               >
-                Готово / Gata
+                {t('done')}
               </button>
             </div>
           </div>

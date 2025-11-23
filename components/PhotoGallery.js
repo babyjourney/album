@@ -3,6 +3,8 @@ import Image from 'next/image'
 import { supabase } from '../lib/supabaseClient'
 import { useToast } from '../contexts/ToastContext'
 import { useLanguage } from '../contexts/LanguageContext'
+import LazyImage from './LazyImage'
+import MediaThumbnail from './MediaThumbnail'
 
 const CATEGORIES = [
   { value: 'all', label: 'All Posts', emoji: '📋' },
@@ -285,13 +287,12 @@ export default function PhotoGallery({ familyId, refreshTrigger, readOnly = fals
                 ) : (
                   <div className="image-container">
                     {(photo.file_type === 'image' || photo.type === 'image' || (photo.file_urls && Array.isArray(photo.file_urls) && photo.file_urls.length > 1)) ? (
-                      <img
+                      <MediaThumbnail
                         src={getCoverImageUrl(photo)}
                         alt={photo.title || 'Image'}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                         onError={(e) => {
-                          console.error('Image failed to load:', getCoverImageUrl(photo))
-                          e.target.style.display = 'none'
+                          console.error('Media failed to load:', getCoverImageUrl(photo))
                         }}
                       />
                     ) : (photo.file_type === 'video' || photo.type === 'video') ? (
@@ -408,7 +409,7 @@ export default function PhotoGallery({ familyId, refreshTrigger, readOnly = fals
                 </div>
               ) : (selectedPhoto.file_type === 'image' || selectedPhoto.type === 'image') ? (
                 <div className="relative w-full flex items-center justify-center bg-gray-50 rounded-2xl p-4">
-                  <img
+                  <LazyImage
                     src={selectedPhoto.file_url}
                     alt={selectedPhoto.title || 'Image'}
                     className="max-w-full max-h-96 object-contain rounded-xl shadow-soft"
