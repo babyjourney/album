@@ -7,13 +7,17 @@ export default function AdminLogin() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [isMobile, setIsMobile] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
-    // Redirect if already authenticated
     if (isAdminAuthenticated()) {
-      router.push('/admin/children')
+      router.push('/admin/dashboard')
     }
+    const check = () => setIsMobile(window.innerWidth <= 900)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
   }, [router])
 
   const handleLogin = async (e) => {
@@ -22,7 +26,7 @@ export default function AdminLogin() {
     setError('')
 
     if (!username || !password) {
-      setError('Vă rugăm să completați toate câmpurile')
+      setError('Completați toate câmpurile')
       setLoading(false)
       return
     }
@@ -30,7 +34,7 @@ export default function AdminLogin() {
     const result = await loginAdmin(username, password)
 
     if (result.success) {
-      router.push('/admin/children')
+      router.push('/admin/dashboard')
     } else {
       setError(result.error)
     }
@@ -40,244 +44,381 @@ export default function AdminLogin() {
 
   return (
     <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%)',
-      backgroundSize: '400% 400%',
-      animation: 'gradientShift 15s ease infinite',
       display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '20px'
+      minHeight: '100vh',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif'
     }}>
+      {/* Left — Form */}
       <div style={{
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        backdropFilter: 'blur(20px)',
-        borderRadius: '24px',
-        padding: '40px',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.2)',
-        border: '1px solid rgba(255, 255, 255, 0.3)',
-        width: '100%',
-        maxWidth: '400px'
+        flex: isMobile ? '1' : '0 0 480px',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        padding: isMobile ? '40px 24px' : '60px 64px',
+        backgroundColor: '#0b0f1a',
+        minHeight: '100vh'
       }}>
-        {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+        <div style={{ width: '100%', maxWidth: '340px', margin: '0 auto' }}>
+          {/* Logo */}
           <div style={{
-            width: '60px',
-            height: '60px',
-            backgroundColor: '#667eea',
-            borderRadius: '50%',
-            margin: '0 auto 16px',
+            width: '40px',
+            height: '40px',
+            borderRadius: '10px',
+            background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 8px 25px -8px rgba(102, 126, 234, 0.5)'
+            marginBottom: '32px'
           }}>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-              <path d="M2 17l10 5 10-5"/>
-              <path d="M2 12l10 5 10-5"/>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
             </svg>
           </div>
-          
+
           <h1 style={{
             fontSize: '28px',
             fontWeight: '700',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            backgroundClip: 'text',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            marginBottom: '8px',
+            color: '#f1f5f9',
+            margin: '0 0 8px 0',
             letterSpacing: '-0.5px'
           }}>
             Admin Panel
           </h1>
-          
           <p style={{
-            fontSize: '16px',
-            color: '#6B7280',
-            fontWeight: '400',
-            margin: 0
+            fontSize: '15px',
+            color: '#64748b',
+            margin: '0 0 36px 0',
+            lineHeight: '1.5'
           }}>
             Conectați-vă pentru a accesa panoul de administrare
           </p>
-        </div>
 
-        {/* Login Form */}
-        <form onSubmit={handleLogin}>
-          {/* Username */}
-          <div style={{ marginBottom: '20px' }}>
-            <label htmlFor="username" style={{
-              display: 'block',
-              fontSize: '14px',
-              fontWeight: '600',
-              color: '#374151',
-              marginBottom: '8px'
-            }}>
-              Username
-            </label>
-            <input
-              id="username"
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '16px 20px',
-                fontSize: '16px',
-                background: 'rgba(249, 250, 251, 0.8)',
-                border: '2px solid rgba(229, 231, 235, 0.5)',
-                borderRadius: '12px',
-                outline: 'none',
-                transition: 'all 0.3s ease',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-              }}
-              placeholder="Introduceți username-ul"
-              required
-              autoComplete="username"
-              onFocus={(e) => {
-                e.target.style.borderColor = '#667eea'
-                e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)'
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = 'rgba(229, 231, 235, 0.5)'
-                e.target.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-              }}
-            />
-          </div>
-
-          {/* Password */}
-          <div style={{ marginBottom: '24px' }}>
-            <label htmlFor="password" style={{
-              display: 'block',
-              fontSize: '14px',
-              fontWeight: '600',
-              color: '#374151',
-              marginBottom: '8px'
-            }}>
-              Parola
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '16px 20px',
-                fontSize: '16px',
-                background: 'rgba(249, 250, 251, 0.8)',
-                border: '2px solid rgba(229, 231, 235, 0.5)',
-                borderRadius: '12px',
-                outline: 'none',
-                transition: 'all 0.3s ease',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-              }}
-              placeholder="Introduceți parola"
-              required
-              autoComplete="current-password"
-              onFocus={(e) => {
-                e.target.style.borderColor = '#667eea'
-                e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)'
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = 'rgba(229, 231, 235, 0.5)'
-                e.target.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-              }}
-            />
-          </div>
-
-          {/* Error Message */}
-          {error && (
-            <div style={{
-              marginBottom: '20px',
-              padding: '12px 16px',
-              backgroundColor: '#FEF2F2',
-              border: '1px solid #FECACA',
-              borderRadius: '8px',
-              color: '#DC2626',
-              fontSize: '14px'
-            }}>
-              {error}
+          <form onSubmit={handleLogin}>
+            <div style={{ marginBottom: '20px' }}>
+              <label htmlFor="username" style={{
+                display: 'block',
+                fontSize: '13px',
+                fontWeight: '500',
+                color: '#94a3b8',
+                marginBottom: '8px',
+                letterSpacing: '0.3px'
+              }}>
+                USERNAME
+              </label>
+              <input
+                id="username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Introduceți username-ul"
+                required
+                autoComplete="username"
+                style={{
+                  width: '100%',
+                  padding: '12px 14px',
+                  fontSize: '15px',
+                  backgroundColor: 'rgba(255,255,255,0.04)',
+                  border: '1px solid #1e293b',
+                  borderRadius: '10px',
+                  color: '#f1f5f9',
+                  outline: 'none',
+                  transition: 'border-color 0.2s, background-color 0.2s',
+                  boxSizing: 'border-box'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#3b82f6'
+                  e.target.style.backgroundColor = 'rgba(59,130,246,0.06)'
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#1e293b'
+                  e.target.style.backgroundColor = 'rgba(255,255,255,0.04)'
+                }}
+              />
             </div>
-          )}
 
-          {/* Login Button */}
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              width: '100%',
-              padding: '16px',
-              fontSize: '16px',
-              fontWeight: '600',
-              color: 'white',
-              background: loading ? '#9CA3AF' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              border: 'none',
-              borderRadius: '12px',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              transition: 'all 0.3s ease',
-              boxShadow: loading ? 'none' : '0 8px 25px -8px rgba(102, 126, 234, 0.5)',
-              transform: loading ? 'none' : 'translateY(0)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px'
-            }}
-            onMouseOver={(e) => {
-              if (!loading) {
-                e.target.style.transform = 'translateY(-2px)'
-                e.target.style.boxShadow = '0 12px 35px -8px rgba(102, 126, 234, 0.6)'
-              }
-            }}
-            onMouseOut={(e) => {
-              if (!loading) {
-                e.target.style.transform = 'translateY(0)'
-                e.target.style.boxShadow = '0 8px 25px -8px rgba(102, 126, 234, 0.5)'
-              }
-            }}
-          >
-            {loading && (
+            <div style={{ marginBottom: '28px' }}>
+              <label htmlFor="password" style={{
+                display: 'block',
+                fontSize: '13px',
+                fontWeight: '500',
+                color: '#94a3b8',
+                marginBottom: '8px',
+                letterSpacing: '0.3px'
+              }}>
+                PAROLA
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Introduceți parola"
+                required
+                autoComplete="current-password"
+                style={{
+                  width: '100%',
+                  padding: '12px 14px',
+                  fontSize: '15px',
+                  backgroundColor: 'rgba(255,255,255,0.04)',
+                  border: '1px solid #1e293b',
+                  borderRadius: '10px',
+                  color: '#f1f5f9',
+                  outline: 'none',
+                  transition: 'border-color 0.2s, background-color 0.2s',
+                  boxSizing: 'border-box'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#3b82f6'
+                  e.target.style.backgroundColor = 'rgba(59,130,246,0.06)'
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#1e293b'
+                  e.target.style.backgroundColor = 'rgba(255,255,255,0.04)'
+                }}
+              />
+            </div>
+
+            {error && (
               <div style={{
-                width: '20px',
-                height: '20px',
-                border: '2px solid rgba(255, 255, 255, 0.3)',
-                borderTop: '2px solid white',
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite'
-              }} />
+                marginBottom: '20px',
+                padding: '12px 14px',
+                backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                border: '1px solid rgba(239, 68, 68, 0.15)',
+                borderRadius: '10px',
+                color: '#f87171',
+                fontSize: '14px'
+              }}>
+                {error}
+              </div>
             )}
-            {loading ? 'Se conectează...' : 'Conectare'}
-          </button>
-        </form>
 
-        {/* Footer */}
-        <div style={{
-          textAlign: 'center',
-          marginTop: '24px',
-          padding: '16px',
-          backgroundColor: 'rgba(243, 244, 246, 0.5)',
-          borderRadius: '8px'
-        }}>
-          <p style={{
-            fontSize: '12px',
-            color: '#6B7280',
-            margin: 0
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                width: '100%',
+                padding: '13px',
+                fontSize: '15px',
+                fontWeight: '600',
+                color: 'white',
+                backgroundColor: '#3b82f6',
+                border: 'none',
+                borderRadius: '10px',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                transition: 'background-color 0.2s, transform 0.1s',
+                opacity: loading ? 0.7 : 1
+              }}
+              onMouseOver={(e) => { if (!loading) e.target.style.backgroundColor = '#2563eb' }}
+              onMouseOut={(e) => { if (!loading) e.target.style.backgroundColor = '#3b82f6' }}
+              onMouseDown={(e) => { if (!loading) e.target.style.transform = 'scale(0.98)' }}
+              onMouseUp={(e) => { if (!loading) e.target.style.transform = 'scale(1)' }}
+            >
+              {loading ? 'Se conectează...' : 'Conectare'}
+            </button>
+          </form>
+
+          <div style={{
+            marginTop: '32px',
+            paddingTop: '24px',
+            borderTop: '1px solid #1e293b',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
           }}>
-            🔐 Acces restricționat doar pentru administratori
-          </p>
+            <div style={{
+              width: '6px',
+              height: '6px',
+              borderRadius: '50%',
+              backgroundColor: '#22c55e'
+            }} />
+            <span style={{ fontSize: '13px', color: '#64748b' }}>
+              Sistem securizat — doar administratori autorizați
+            </span>
+          </div>
         </div>
       </div>
 
-      <style jsx>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        @keyframes gradientShift {
-          0%, 100% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-        }
-      `}</style>
+      {/* Right — Visual Panel */}
+      {!isMobile && (
+        <div style={{
+          flex: 1,
+          background: 'linear-gradient(160deg, #0f172a 0%, #1e293b 40%, #0f172a 100%)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          position: 'relative',
+          overflow: 'hidden',
+          padding: '60px'
+        }}>
+          {/* Decorative elements */}
+          <div style={{
+            position: 'absolute',
+            width: '500px',
+            height: '500px',
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%)',
+            top: '15%',
+            right: '-10%'
+          }} />
+          <div style={{
+            position: 'absolute',
+            width: '350px',
+            height: '350px',
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(59,130,246,0.08) 0%, transparent 70%)',
+            bottom: '10%',
+            left: '-5%'
+          }} />
+          <div style={{
+            position: 'absolute',
+            width: '200px',
+            height: '200px',
+            borderRadius: '50%',
+            border: '1px solid rgba(59,130,246,0.08)',
+            top: '20%',
+            left: '15%'
+          }} />
+          <div style={{
+            position: 'absolute',
+            width: '120px',
+            height: '120px',
+            borderRadius: '50%',
+            border: '1px solid rgba(59,130,246,0.06)',
+            bottom: '25%',
+            right: '20%'
+          }} />
+
+          {/* Grid pattern hint */}
+          <div style={{
+            position: 'absolute',
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundImage: 'radial-gradient(rgba(59,130,246,0.04) 1px, transparent 1px)',
+            backgroundSize: '32px 32px',
+            opacity: 0.8
+          }} />
+
+          {/* Content */}
+          <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', maxWidth: '420px' }}>
+            {/* Icon cluster */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              gap: '12px',
+              marginBottom: '40px'
+            }}>
+              <div style={{
+                width: '52px',
+                height: '52px',
+                borderRadius: '14px',
+                backgroundColor: 'rgba(59,130,246,0.1)',
+                border: '1px solid rgba(59,130,246,0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="1.5">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+              </div>
+              <div style={{
+                width: '52px',
+                height: '52px',
+                borderRadius: '14px',
+                backgroundColor: 'rgba(59,130,246,0.1)',
+                border: '1px solid rgba(59,130,246,0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="1.5">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                  <circle cx="8.5" cy="8.5" r="1.5"/>
+                  <polyline points="21,15 16,10 5,21"/>
+                </svg>
+              </div>
+              <div style={{
+                width: '52px',
+                height: '52px',
+                borderRadius: '14px',
+                backgroundColor: 'rgba(59,130,246,0.1)',
+                border: '1px solid rgba(59,130,246,0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="1.5">
+                  <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                  <path d="M2 17l10 5 10-5"/>
+                  <path d="M2 12l10 5 10-5"/>
+                </svg>
+              </div>
+            </div>
+
+            <h2 style={{
+              fontSize: '32px',
+              fontWeight: '700',
+              color: '#f1f5f9',
+              margin: '0 0 12px 0',
+              letterSpacing: '-0.5px',
+              lineHeight: '1.2'
+            }}>
+              Dashboard<br />Administrativ
+            </h2>
+            <p style={{
+              fontSize: '16px',
+              color: '#64748b',
+              margin: 0,
+              lineHeight: '1.6'
+            }}>
+              Monitorizare familii, gestionare albume și<br />
+              vizualizare statistici în timp real
+            </p>
+
+            {/* Stats preview */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              gap: '32px',
+              marginTop: '48px'
+            }}>
+              {[
+                { label: 'Familii', icon: 'users' },
+                { label: 'Fotografii', icon: 'images' },
+                { label: 'Activitate', icon: 'activity' }
+              ].map((stat) => (
+                <div key={stat.label} style={{ textAlign: 'center' }}>
+                  <div style={{
+                    width: '44px',
+                    height: '44px',
+                    borderRadius: '12px',
+                    backgroundColor: 'rgba(59,130,246,0.06)',
+                    border: '1px solid rgba(59,130,246,0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 8px'
+                  }}>
+                    <div style={{
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      backgroundColor: '#3b82f6'
+                    }} />
+                  </div>
+                  <span style={{ fontSize: '12px', color: '#64748b', letterSpacing: '0.5px' }}>
+                    {stat.label}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
-import Link from 'next/link'
 import { loginWithPin, isAuthenticated } from '../lib/pinAuth'
 
 export default function Login() {
@@ -8,29 +7,26 @@ export default function Login() {
   const [phoneNumber, setPhoneNumber] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [isMobile, setIsMobile] = useState(false)
-  const [albumTitle, setAlbumTitle] = useState('Family Album')
   const [rateLimitInfo, setRateLimitInfo] = useState(null)
   const [cooldownTimer, setCooldownTimer] = useState(null)
+  const [isMobile, setIsMobile] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
-    checkUser()
-    
-    // Check if mobile on mount and on resize
-    const checkMobile = () => setIsMobile(window.innerWidth <= 768)
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
+    if (isAuthenticated()) {
+      router.push('/dashboard')
+    }
+    const check = () => setIsMobile(window.innerWidth <= 900)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
   }, [])
 
-  // Cooldown timer effect
   useEffect(() => {
     if (rateLimitInfo && rateLimitInfo.blockedUntil) {
       const updateTimer = () => {
         const now = Date.now()
         const timeRemaining = rateLimitInfo.blockedUntil - now
-        
         if (timeRemaining <= 0) {
           setRateLimitInfo(null)
           setCooldownTimer(null)
@@ -39,33 +35,19 @@ export default function Login() {
           setCooldownTimer(formatTimeRemaining(timeRemaining))
         }
       }
-      
       updateTimer()
       const interval = setInterval(updateTimer, 1000)
-      
       return () => clearInterval(interval)
     }
   }, [rateLimitInfo])
 
-  // Format time remaining for display
-  const formatTimeRemaining = (milliseconds) => {
-    const hours = Math.floor(milliseconds / (60 * 60 * 1000))
-    const minutes = Math.floor((milliseconds % (60 * 60 * 1000)) / (60 * 1000))
-    const seconds = Math.floor((milliseconds % (60 * 1000)) / 1000)
-
-    if (hours > 0) {
-      return `${hours}h ${minutes}m ${seconds}s`
-    } else if (minutes > 0) {
-      return `${minutes}m ${seconds}s`
-    } else {
-      return `${seconds}s`
-    }
-  }
-
-  const checkUser = () => {
-    if (isAuthenticated()) {
-      router.push('/dashboard')
-    }
+  const formatTimeRemaining = (ms) => {
+    const h = Math.floor(ms / 3600000)
+    const m = Math.floor((ms % 3600000) / 60000)
+    const s = Math.floor((ms % 60000) / 1000)
+    if (h > 0) return `${h}h ${m}m ${s}s`
+    if (m > 0) return `${m}m ${s}s`
+    return `${s}s`
   }
 
   const handlePinLogin = async (e) => {
@@ -74,13 +56,12 @@ export default function Login() {
     setError('')
 
     if (!phoneNumber) {
-      setError('Vă rugăm să introduceți numărul de telefon')
+      setError('Introduceți numărul de telefon')
       setLoading(false)
       return
     }
-
     if (!pin) {
-      setError('Vă rugăm să introduceți PIN-ul')
+      setError('Introduceți PIN-ul')
       setLoading(false)
       return
     }
@@ -88,27 +69,18 @@ export default function Login() {
     const result = await loginWithPin(pin, phoneNumber)
 
     if (result.success) {
-      // Clear any rate limiting info on success
       setRateLimitInfo(null)
       setCooldownTimer(null)
       setError('')
-      
-      // Fetch album title for the family
-      if (result.user?.familyId) {
-        try {
-          const titleResponse = await fetch(`/api/album-settings/get-title?familyId=${result.user.familyId}`)
-          const titleResult = await titleResponse.json()
-          
-          if (titleResponse.ok) {
-            setAlbumTitle(titleResult.title)
-          }
-        } catch (error) {
-          console.error('Error fetching album title:', error)
-        }
-      }
       router.push('/dashboard')
     } else {
-      // Handle rate limiting and errors
+      if (result.suspended) {
+        setRateLimitInfo(null)
+        setCooldownTimer(null)
+        setError(result.error)
+        setLoading(false)
+        return
+      }
       if (result.rateLimited) {
         setRateLimitInfo({
           level: result.level,
@@ -119,524 +91,389 @@ export default function Login() {
         setRateLimitInfo(null)
         setCooldownTimer(null)
       }
-      
       setError(result.error)
       setLoading(false)
     }
   }
 
+  const isBlocked = rateLimitInfo && cooldownTimer
+
   return (
     <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%)',
-      backgroundSize: '400% 400%',
-      animation: 'gradientShift 15s ease infinite',
       display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '20px',
-      position: 'relative',
-      overflow: 'hidden'
+      minHeight: '100vh',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif'
     }}>
-      {/* Animated background elements */}
+      {/* Left — Form */}
       <div style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%), radial-gradient(circle at 40% 40%, rgba(120, 119, 198, 0.2) 0%, transparent 50%)',
-        animation: 'float 20s ease-in-out infinite'
-      }} />
-      
-      {/* Glass morphism container */}
-      <div style={{
-        maxWidth: '420px',
-        width: '100%',
-        position: 'relative',
-        zIndex: 1,
-        margin: '0 auto'
+        flex: isMobile ? '1' : '0 0 480px',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        padding: isMobile ? '40px 24px' : '60px 64px',
+        backgroundColor: '#ffffff',
+        minHeight: '100vh'
       }}>
-        <div style={{
-          background: 'rgba(255, 255, 255, 0.95)',
-          backdropFilter: 'blur(20px)',
-          borderRadius: isMobile ? '24px' : '32px',
-          padding: isMobile ? '32px 24px' : '48px 40px',
-          boxShadow: '0 40px 80px rgba(0, 0, 0, 0.1), 0 20px 40px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          animation: 'slideUp 0.8s ease-out',
-          margin: isMobile ? '16px' : '20px'
-        }}>
-          {/* Header with modern icon and typography */}
-          <div style={{ 
-            textAlign: 'center', 
-            marginBottom: isMobile ? '24px' : '40px' 
+        <div style={{ width: '100%', maxWidth: '340px', margin: '0 auto' }}>
+          {/* Logo */}
+          <div style={{
+            width: '40px',
+            height: '40px',
+            borderRadius: '10px',
+            background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: '32px'
           }}>
-            <div style={{
-              width: isMobile ? '64px' : '80px',
-              height: isMobile ? '64px' : '80px',
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              borderRadius: isMobile ? '18px' : '24px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: isMobile ? '0 auto 16px' : '0 auto 24px',
-              boxShadow: '0 10px 30px rgba(102, 126, 234, 0.3)',
-              animation: 'pulse 2s ease-in-out infinite'
-            }}>
-              <svg 
-                width={isMobile ? "32" : "40"} 
-                height={isMobile ? "32" : "40"} 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="white" 
-                strokeWidth="2"
-              >
-                <path d="M14.828 14.828a4 4 0 0 1-5.656 0M9 10h.01M15 10h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 0 1-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-              </svg>
-            </div>
-            
-            <h1 style={{
-              fontSize: isMobile ? '24px' : '32px',
-              fontWeight: '700',
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              marginBottom: isMobile ? '6px' : '8px',
-              letterSpacing: isMobile ? '-0.25px' : '-0.5px',
-              lineHeight: '1.2'
-            }}>
-              {albumTitle}
-            </h1>
-            
-            <p style={{
-              fontSize: isMobile ? '14px' : '16px',
-              color: '#6B7280',
-              fontWeight: '400',
-              lineHeight: '1.5',
-              padding: isMobile ? '0 8px' : '0',
-              margin: 0
-            }}>
-              {isMobile 
-                ? "Enter your PIN to access memories" 
-                : "Welcome back! Enter your PIN to access your precious memories"
-              }
-            </p>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <polyline points="21,15 16,10 5,21"/>
+            </svg>
           </div>
 
-          <form onSubmit={handlePinLogin} style={{ marginBottom: '32px' }} autoComplete="on">
-            {/* Hidden username field for password managers */}
+          <h1 style={{
+            fontSize: '28px',
+            fontWeight: '700',
+            color: '#111827',
+            margin: '0 0 8px 0',
+            letterSpacing: '-0.5px'
+          }}>
+            Bine ai revenit
+          </h1>
+          <p style={{
+            fontSize: '15px',
+            color: '#6b7280',
+            margin: '0 0 36px 0',
+            lineHeight: '1.5'
+          }}>
+            Introduceți datele pentru a accesa albumul familiei
+          </p>
+
+          <form onSubmit={handlePinLogin} autoComplete="on">
             <input
               type="text"
               name="username"
               autoComplete="username"
               value="family-album-user"
               readOnly
-              style={{ 
-                position: 'absolute',
-                left: '-9999px',
-                opacity: 0,
-                pointerEvents: 'none'
-              }}
               tabIndex="-1"
+              style={{ position: 'absolute', left: '-9999px', opacity: 0, pointerEvents: 'none' }}
             />
-            
-            {/* Phone Number input */}
+
             <div style={{ marginBottom: '20px' }}>
               <label htmlFor="phone" style={{
                 display: 'block',
-                fontSize: '14px',
-                fontWeight: '600',
-                color: '#374151',
-                marginBottom: '12px'
+                fontSize: '13px',
+                fontWeight: '500',
+                color: '#6b7280',
+                marginBottom: '8px',
+                letterSpacing: '0.3px'
               }}>
-                Numărul de Telefon
+                NUMĂR DE TELEFON
               </label>
-              
-              <div style={{ position: 'relative' }}>
-                <input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  autoComplete="tel"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: isMobile ? '16px 20px' : '18px 24px',
-                    fontSize: isMobile ? '16px' : '18px',
-                    background: 'rgba(249, 250, 251, 0.8)',
-                    border: '2px solid rgba(229, 231, 235, 0.5)',
-                    borderRadius: isMobile ? '12px' : '16px',
-                    outline: 'none',
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)'
-                  }}
-                  placeholder="061234567"
-                  required
-                  onFocus={(e) => {
-                    e.target.style.borderColor = '#667eea'
-                    e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1), 0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                    e.target.style.background = 'rgba(255, 255, 255, 0.95)'
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = 'rgba(229, 231, 235, 0.5)'
-                    e.target.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)'
-                    e.target.style.background = 'rgba(249, 250, 251, 0.8)'
-                  }}
-                />
-              </div>
+              <input
+                id="phone"
+                name="phone"
+                type="tel"
+                autoComplete="tel"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                placeholder="061234567"
+                required
+                style={{
+                  width: '100%',
+                  padding: '12px 14px',
+                  fontSize: '15px',
+                  backgroundColor: '#f9fafb',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '10px',
+                  color: '#111827',
+                  outline: 'none',
+                  transition: 'border-color 0.2s, box-shadow 0.2s',
+                  boxSizing: 'border-box'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#7c3aed'
+                  e.target.style.boxShadow = '0 0 0 3px rgba(124,58,237,0.08)'
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#e5e7eb'
+                  e.target.style.boxShadow = 'none'
+                }}
+              />
             </div>
 
-            {/* Modern PIN input */}
-            <div style={{ marginBottom: '24px' }}>
+            <div style={{ marginBottom: '8px' }}>
               <label htmlFor="pin" style={{
                 display: 'block',
-                fontSize: '14px',
-                fontWeight: '600',
-                color: '#374151',
-                marginBottom: '12px'
+                fontSize: '13px',
+                fontWeight: '500',
+                color: '#6b7280',
+                marginBottom: '8px',
+                letterSpacing: '0.3px'
               }}>
-                Family PIN
+                PIN
               </label>
-              
-              <div style={{ position: 'relative' }}>
-                <input
-                  id="pin"
-                  name="password"
-                  type="password"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  autoComplete="current-password"
-                  value={pin}
-                  onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
-                  style={{
-                    width: '100%',
-                    padding: isMobile ? '16px 20px' : '20px 24px',
-                    fontSize: isMobile ? '20px' : '24px',
-                    fontFamily: 'SF Mono, Monaco, monospace',
-                    textAlign: 'center',
-                    letterSpacing: isMobile ? '4px' : '6px',
-                    background: 'rgba(249, 250, 251, 0.8)',
-                    border: '2px solid rgba(229, 231, 235, 0.5)',
-                    borderRadius: isMobile ? '12px' : '16px',
-                    outline: 'none',
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)'
-                  }}
-                  placeholder="••••"
-                  maxLength="8"
-                  required
-                  onFocus={(e) => {
-                    e.target.style.borderColor = '#667eea'
-                    e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1), 0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                    e.target.style.background = 'rgba(255, 255, 255, 0.95)'
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = 'rgba(229, 231, 235, 0.5)'
-                    e.target.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)'
-                    e.target.style.background = 'rgba(249, 250, 251, 0.8)'
-                  }}
-                />
-              </div>
-              
-              {/* Access levels */}
-              <div style={{
-                marginTop: '16px',
-                padding: '16px',
-                background: 'rgba(249, 250, 251, 0.5)',
-                borderRadius: '12px',
-                border: '1px solid rgba(229, 231, 235, 0.3)'
-              }}>
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: '8px'
-                }}>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px'
-                  }}>
-                    <div style={{
-                      width: '8px',
-                      height: '8px',
-                      borderRadius: '50%',
-                      background: '#10B981'
-                    }} />
-                    <span style={{
-                      fontSize: '13px',
-                      fontWeight: '500',
-                      color: '#374151'
-                    }}>
-                      Telefon + 4 cifre - Viewer
-                    </span>
-                  </div>
-                  <span style={{
-                    fontSize: '12px',
-                    color: '#6B7280'
-                  }}>
-                    View & browse
-                  </span>
-                </div>
-                
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px'
-                  }}>
-                    <div style={{
-                      width: '8px',
-                      height: '8px',
-                      borderRadius: '50%',
-                      background: '#8B5CF6'
-                    }} />
-                    <span style={{
-                      fontSize: '13px',
-                      fontWeight: '500',
-                      color: '#374151'
-                    }}>
-                      Telefon + 8 cifre - Editor
-                    </span>
-                  </div>
-                  <span style={{
-                    fontSize: '12px',
-                    color: '#6B7280'
-                  }}>
-                    Full access
-                  </span>
-                </div>
-              </div>
+              <input
+                id="pin"
+                name="password"
+                type="password"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                autoComplete="current-password"
+                value={pin}
+                onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+                placeholder="••••"
+                maxLength="8"
+                required
+                style={{
+                  width: '100%',
+                  padding: '12px 14px',
+                  fontSize: '18px',
+                  fontFamily: '"SF Mono", Monaco, "Cascadia Code", monospace',
+                  textAlign: 'center',
+                  letterSpacing: '6px',
+                  backgroundColor: '#f9fafb',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '10px',
+                  color: '#111827',
+                  outline: 'none',
+                  transition: 'border-color 0.2s, box-shadow 0.2s',
+                  boxSizing: 'border-box'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#7c3aed'
+                  e.target.style.boxShadow = '0 0 0 3px rgba(124,58,237,0.08)'
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#e5e7eb'
+                  e.target.style.boxShadow = 'none'
+                }}
+              />
             </div>
 
-            {/* Rate Limiting Alert */}
-            {rateLimitInfo && cooldownTimer && (
+            {/* Hint */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              gap: '6px',
+              marginBottom: '28px',
+              fontSize: '12px',
+              color: '#9ca3af'
+            }}>
+              <span style={{
+                padding: '3px 8px',
+                backgroundColor: '#f3f4f6',
+                borderRadius: '4px'
+              }}>4 cifre — Viewer</span>
+              <span style={{
+                padding: '3px 8px',
+                backgroundColor: '#f3f4f6',
+                borderRadius: '4px'
+              }}>8 cifre — Editor</span>
+            </div>
+
+            {/* Rate Limit */}
+            {isBlocked && (
               <div style={{
-                padding: '16px',
-                background: 'rgba(245, 158, 11, 0.1)',
-                border: '1px solid rgba(245, 158, 11, 0.2)',
-                borderRadius: '12px',
-                marginBottom: '24px',
-                animation: 'shake 0.5s ease-in-out'
+                marginBottom: '20px',
+                padding: '12px 14px',
+                backgroundColor: '#fffbeb',
+                border: '1px solid #fde68a',
+                borderRadius: '10px',
+                fontSize: '14px',
+                color: '#92400e'
               }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  marginBottom: '8px'
-                }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2">
-                    <circle cx="12" cy="12" r="10"/>
-                    <line x1="12" y1="8" x2="12" y2="12"/>
-                    <line x1="12" y1="16" x2="12.01" y2="16"/>
-                  </svg>
-                  <span style={{
-                    fontSize: '14px',
-                    color: '#D97706',
-                    fontWeight: '600'
-                  }}>
-                    {rateLimitInfo.level === 1 ? 'Cooldown 10 minute' : 'Cooldown 24 ore'}
-                  </span>
+                <div style={{ fontWeight: '600', marginBottom: '2px' }}>
+                  {rateLimitInfo.level === 1 ? 'Cooldown 10 minute' : 'Cooldown 24 ore'}
                 </div>
-                <div style={{
-                  fontSize: '13px',
-                  color: '#92400E',
-                  marginLeft: '24px'
-                }}>
+                <div style={{ fontSize: '13px' }}>
                   Timp rămas: <strong>{cooldownTimer}</strong>
-                </div>
-                <div style={{
-                  fontSize: '12px',
-                  color: '#A16207',
-                  marginLeft: '24px',
-                  marginTop: '4px'
-                }}>
-                  {rateLimitInfo.level === 1 
-                    ? 'După 10 minute veți avea încă 3 încercări'
-                    : 'Restricție de 24 ore activă din cauza încercărilor multiple'
-                  }
                 </div>
               </div>
             )}
 
-            {/* Regular Error Alert */}
-            {error && !rateLimitInfo && (
+            {/* Error */}
+            {error && !isBlocked && (
               <div style={{
-                padding: '16px',
-                background: 'rgba(248, 113, 113, 0.1)',
-                border: '1px solid rgba(248, 113, 113, 0.2)',
-                borderRadius: '12px',
-                marginBottom: '24px',
-                animation: 'shake 0.5s ease-in-out'
+                marginBottom: '20px',
+                padding: '12px 14px',
+                backgroundColor: '#fef2f2',
+                border: '1px solid #fecaca',
+                borderRadius: '10px',
+                color: '#dc2626',
+                fontSize: '14px'
               }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
-                }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2">
-                    <circle cx="12" cy="12" r="10"/>
-                    <line x1="15" y1="9" x2="9" y2="15"/>
-                    <line x1="9" y1="9" x2="15" y2="15"/>
-                  </svg>
-                  <span style={{
-                    fontSize: '14px',
-                    color: '#DC2626',
-                    fontWeight: '500'
-                  }}>
-                    {error}
-                  </span>
-                </div>
+                {error}
               </div>
             )}
 
             <button
               type="submit"
-              disabled={loading || (rateLimitInfo && cooldownTimer)}
+              disabled={loading || isBlocked}
               style={{
                 width: '100%',
-                padding: isMobile ? '16px 20px' : '18px 24px',
-                background: (loading || (rateLimitInfo && cooldownTimer))
-                  ? 'rgba(156, 163, 175, 0.5)' 
-                  : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                color: 'white',
-                border: 'none',
-                borderRadius: isMobile ? '12px' : '16px',
-                fontSize: isMobile ? '15px' : '16px',
+                padding: '13px',
+                fontSize: '15px',
                 fontWeight: '600',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                boxShadow: loading 
-                  ? 'none' 
-                  : '0 10px 30px rgba(102, 126, 234, 0.3), 0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                position: 'relative',
-                overflow: 'hidden'
+                color: 'white',
+                background: (loading || isBlocked) ? '#d1d5db' : 'linear-gradient(135deg, #7c3aed, #6d28d9)',
+                border: 'none',
+                borderRadius: '10px',
+                cursor: (loading || isBlocked) ? 'not-allowed' : 'pointer',
+                transition: 'opacity 0.2s, transform 0.1s'
               }}
-              onMouseOver={(e) => {
-                if (!loading) {
-                  e.target.style.transform = 'translateY(-2px)'
-                  e.target.style.boxShadow = '0 15px 40px rgba(102, 126, 234, 0.4), 0 8px 16px -1px rgba(0, 0, 0, 0.1)'
-                }
-              }}
-              onMouseOut={(e) => {
-                if (!loading) {
-                  e.target.style.transform = 'translateY(0)'
-                  e.target.style.boxShadow = '0 10px 30px rgba(102, 126, 234, 0.3), 0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                }
-              }}
+              onMouseOver={(e) => { if (!loading && !isBlocked) e.target.style.opacity = '0.9' }}
+              onMouseOut={(e) => { if (!loading && !isBlocked) e.target.style.opacity = '1' }}
+              onMouseDown={(e) => { if (!loading && !isBlocked) e.target.style.transform = 'scale(0.98)' }}
+              onMouseUp={(e) => { if (!loading && !isBlocked) e.target.style.transform = 'scale(1)' }}
             >
-              {loading ? (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px'
-                }}>
-                  <div style={{
-                    width: '20px',
-                    height: '20px',
-                    border: '2px solid rgba(255, 255, 255, 0.3)',
-                    borderTop: '2px solid white',
-                    borderRadius: '50%',
-                    animation: 'spin 1s linear infinite'
-                  }} />
-                  Opening Album...
-                </div>
-              ) : (rateLimitInfo && cooldownTimer) ? (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px'
-                }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="10"/>
-                    <polyline points="12,6 12,12 16,14"/>
-                  </svg>
-                  Blocat ({cooldownTimer})
-                </div>
-              ) : (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px'
-                }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
-                    <polyline points="10,17 15,12 10,7"/>
-                    <line x1="15" x2="3" y1="12" y2="12"/>
-                  </svg>
-                  Enter Album
-                </div>
-              )}
+              {loading ? 'Se conectează...' : isBlocked ? `Blocat (${cooldownTimer})` : 'Intră în album'}
             </button>
           </form>
 
-          {/* Footer text */}
           <div style={{
-            textAlign: 'center',
-            padding: '20px 0',
-            borderTop: '1px solid rgba(229, 231, 235, 0.3)'
+            marginTop: '32px',
+            paddingTop: '24px',
+            borderTop: '1px solid #f3f4f6',
+            textAlign: 'center'
           }}>
-            <p style={{
-              fontSize: '14px',
-              color: '#9CA3AF',
-              margin: 0
-            }}>
-              Your memories are safely protected
+            <p style={{ fontSize: '13px', color: '#9ca3af', margin: 0 }}>
+              Amintirile tale sunt în siguranță
             </p>
           </div>
         </div>
       </div>
-      
-      {/* Add CSS animations */}
-      <style jsx>{`
-        @keyframes gradientShift {
-          0%, 100% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-        }
-        
-        @keyframes slideUp {
-          from {
-            opacity: 0;
-            transform: translateY(40px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        
-        @keyframes float {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          33% { transform: translateY(-20px) rotate(1deg); }
-          66% { transform: translateY(-10px) rotate(-1deg); }
-        }
-        
-        @keyframes pulse {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.05); }
-        }
-        
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-5px); }
-          75% { transform: translateX(5px); }
-        }
-      `}</style>
+
+      {/* Right — Visual Panel */}
+      {!isMobile && (
+        <div style={{
+          flex: 1,
+          background: 'linear-gradient(145deg, #4c1d95 0%, #6d28d9 35%, #7c3aed 65%, #8b5cf6 100%)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          position: 'relative',
+          overflow: 'hidden',
+          padding: '60px'
+        }}>
+          {/* Decorative blobs */}
+          <div style={{
+            position: 'absolute',
+            width: '600px',
+            height: '600px',
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 60%)',
+            top: '-15%',
+            right: '-15%'
+          }} />
+          <div style={{
+            position: 'absolute',
+            width: '400px',
+            height: '400px',
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 60%)',
+            bottom: '-10%',
+            left: '-10%'
+          }} />
+          <div style={{
+            position: 'absolute',
+            width: '250px',
+            height: '250px',
+            borderRadius: '50%',
+            border: '1px solid rgba(255,255,255,0.08)',
+            top: '30%',
+            left: '10%'
+          }} />
+          <div style={{
+            position: 'absolute',
+            width: '150px',
+            height: '150px',
+            borderRadius: '50%',
+            border: '1px solid rgba(255,255,255,0.06)',
+            bottom: '20%',
+            right: '15%'
+          }} />
+          <div style={{
+            position: 'absolute',
+            width: '80px',
+            height: '80px',
+            borderRadius: '50%',
+            backgroundColor: 'rgba(255,255,255,0.04)',
+            top: '15%',
+            left: '35%'
+          }} />
+
+          {/* Content */}
+          <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', maxWidth: '400px' }}>
+            {/* Photo frame icon */}
+            <div style={{
+              width: '72px',
+              height: '72px',
+              borderRadius: '20px',
+              backgroundColor: 'rgba(255,255,255,0.12)',
+              border: '1px solid rgba(255,255,255,0.15)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 36px',
+              backdropFilter: 'blur(10px)'
+            }}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21,15 16,10 5,21"/>
+              </svg>
+            </div>
+
+            <h2 style={{
+              fontSize: '36px',
+              fontWeight: '700',
+              color: '#ffffff',
+              margin: '0 0 16px 0',
+              letterSpacing: '-0.5px',
+              lineHeight: '1.15'
+            }}>
+              Amintiri<br />de familie
+            </h2>
+            <p style={{
+              fontSize: '16px',
+              color: 'rgba(255,255,255,0.65)',
+              margin: '0 0 48px 0',
+              lineHeight: '1.6'
+            }}>
+              Albumul tău digital securizat unde<br />
+              fiecare moment contează
+            </p>
+
+            {/* Feature pills */}
+            <div style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+              gap: '8px'
+            }}>
+              {['Fotografii', 'Momente', 'Familie', 'Securizat'].map((label) => (
+                <span key={label} style={{
+                  padding: '8px 16px',
+                  backgroundColor: 'rgba(255,255,255,0.1)',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  borderRadius: '20px',
+                  color: 'rgba(255,255,255,0.8)',
+                  fontSize: '13px',
+                  fontWeight: '500',
+                  backdropFilter: 'blur(10px)'
+                }}>
+                  {label}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -56,7 +56,7 @@ export default async function handler(req, res) {
     if (cleanPin.length === 4) {
       const { data, error } = await supabase
         .from('families')
-        .select('id, name, phone_number, viewer_pin')
+        .select('id, name, phone_number, viewer_pin, is_suspended')
         .eq('viewer_pin', cleanPin)
         .eq('phone_number', cleanPhone)
         .single()
@@ -71,7 +71,7 @@ export default async function handler(req, res) {
     if (cleanPin.length === 8 && !family) {
       const { data, error } = await supabase
         .from('families')
-        .select('id, name, phone_number, editor_pin')
+        .select('id, name, phone_number, editor_pin, is_suspended')
         .eq('editor_pin', cleanPin)
         .eq('phone_number', cleanPhone)
         .single()
@@ -107,6 +107,14 @@ export default async function handler(req, res) {
         rateLimited: attemptResult.blocked || false,
         level: attemptResult.level || null,
         attemptsRemaining: attemptResult.attemptsRemaining || 0
+      })
+    }
+
+    // Check if album is suspended
+    if (family.is_suspended) {
+      return res.status(403).json({
+        error: 'Acest album a fost suspendat. Contactați administratorul pentru mai multe informații.',
+        suspended: true
       })
     }
 

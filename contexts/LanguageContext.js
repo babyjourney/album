@@ -238,7 +238,8 @@ export const translations = {
     
     // Error messages
     photoDeleteFailed: 'Ștergerea fotografiei a eșuat',
-    
+    albumSuspended: 'Acest album a fost suspendat. Contactați administratorul pentru mai multe informații.',
+
     // Upload Modal Specific
     createPost: 'Creează Postare',
     sharePhotosMemories: 'Împărtășește fotografii și amintiri',
@@ -503,7 +504,8 @@ export const translations = {
     
     // Error messages
     photoDeleteFailed: 'Не удалось удалить фотографию',
-    
+    albumSuspended: 'Этот альбом приостановлен. Свяжитесь с администратором для получения дополнительной информации.',
+
     // Upload Modal Specific
     createPost: 'Создать Пост',
     sharePhotosMemories: 'Поделитесь фотографиями и воспоминаниями',
@@ -767,7 +769,8 @@ export const translations = {
     
     // Error messages
     photoDeleteFailed: 'Failed to delete photo',
-    
+    albumSuspended: 'This album has been suspended. Contact the administrator for more information.',
+
     // Upload Modal Specific
     createPost: 'Create Post',
     sharePhotosMemories: 'Share photos and memories',
