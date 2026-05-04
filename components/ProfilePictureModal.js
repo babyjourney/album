@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
-import { X } from 'lucide-react'
 
-export default function ProfilePictureModal({ 
+export default function ProfilePictureModal({
   isOpen,
   onClose,
   childName,
@@ -31,67 +30,46 @@ export default function ProfilePictureModal({
 
   if (!isOpen) return null
 
-  const profileImage = childImage !== "/api/placeholder/80/80" ? 
-    childImage : 
+  const profileImage = childImage !== "/api/placeholder/80/80" ?
+    childImage :
     `https://ui-avatars.com/api/?name=${encodeURIComponent(childName)}&background=3B82F6&color=white&size=200&rounded=true`
 
   return (
-    <div className="modal-overlay">
-      {/* Background click to close */}
-      <div 
-        className="absolute inset-0" 
-        onClick={onClose}
-      />
-      
-      {/* Close button */}
-      <button
-        onClick={onClose}
+    <div className="modal-scrim" onClick={onClose}>
+      <div
+        className="modal-glass"
         style={{
-          position: 'absolute',
-          top: '16px',
-          right: '16px',
-          zIndex: 10,
-          padding: '12px',
-          backgroundColor: 'rgba(255, 255, 255, 0.9)',
-          border: 'none',
-          borderRadius: '50%',
-          cursor: 'pointer',
-          color: 'var(--text-primary)',
-          transition: 'all 0.15s ease-in-out',
-          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
-        }}
-        onMouseOver={(e) => {
-          e.target.style.backgroundColor = 'white'
-          e.target.style.color = '#DC2626'
-        }}
-        onMouseOut={(e) => {
-          e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.9)'
-          e.target.style.color = 'var(--text-primary)'
-        }}
-      >
-        <X size={20} />
-      </button>
-
-      {/* Modal content */}
-      <div 
-        className="modal-content animate-fade-in"
-        style={{
+          position: 'relative',
           maxWidth: '90vw',
           maxHeight: '90vh',
           width: 'auto',
           height: 'auto',
-          padding: '24px',
+          padding: '32px 28px 24px',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: '16px'
+          gap: '20px',
+          borderRadius: '28px'
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-section-title" style={{ textAlign: 'center' }}>
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="btn-icon"
+          style={{ position: 'absolute', top: 14, right: 14 }}
+          aria-label="Închide"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+
+        <h2 className="text-section-title" style={{ textAlign: 'center', margin: 0, color: 'var(--ink-1)' }}>
           Poza de profil a lui {childName}
         </h2>
-        
+
         <div style={{
           position: 'relative',
           display: 'flex',
@@ -101,20 +79,23 @@ export default function ProfilePictureModal({
           maxHeight: '400px'
         }}>
           {!imageLoaded && (
-            <div style={{
-              width: '200px',
-              height: '200px',
-              borderRadius: '50%',
-              backgroundColor: '#F3F4F6',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
-            }}>
+            <div
+              className="shimmer"
+              style={{
+                width: '220px',
+                height: '220px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'var(--glass-2)',
+                border: '1px solid var(--glass-hairline)'
+              }}
+            >
               <span className="text-subtle">Se încarcă...</span>
             </div>
           )}
-          
+
           <img
             src={profileImage}
             alt={`Poza de profil a lui ${childName}`}
@@ -125,7 +106,7 @@ export default function ProfilePictureModal({
               maxHeight: '400px',
               borderRadius: '50%',
               objectFit: 'cover',
-              boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.1), 0 10px 10px -5px rgb(0 0 0 / 0.04)',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.18), 0 0 0 1px var(--glass-hairline)',
               display: imageLoaded ? 'block' : 'none'
             }}
             onLoad={() => setImageLoaded(true)}
@@ -136,7 +117,7 @@ export default function ProfilePictureModal({
           />
         </div>
 
-        <p className="text-subtle" style={{ textAlign: 'center' }}>
+        <p className="text-subtle" style={{ textAlign: 'center', margin: 0 }}>
           Apăsați ESC sau faceți clic în afară pentru a închide
         </p>
       </div>

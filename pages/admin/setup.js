@@ -29,7 +29,7 @@ export default function AdminSetup() {
       const pin = Math.floor(Math.random() * Math.pow(10, length))
         .toString()
         .padStart(length, '0')
-      
+
       const { data, error } = await supabase
         .from('families')
         .select('id')
@@ -39,10 +39,10 @@ export default function AdminSetup() {
       if (error && error.code === 'PGRST116') {
         return pin
       }
-      
+
       attempts++
     }
-    
+
     throw new Error(`Nu s-a putut genera un PIN unic de ${length} cifre după ${maxAttempts} încercări`)
   }
 
@@ -69,10 +69,10 @@ export default function AdminSetup() {
         maxWidthOrHeight: 500,
         useWebWorker: true
       }
-      
+
       const compressedFile = await imageCompression(selectedFile, options)
       setProfilePicture(compressedFile)
-      
+
       // Create preview URL
       const previewUrl = URL.createObjectURL(compressedFile)
       setProfilePreview(previewUrl)
@@ -107,7 +107,7 @@ export default function AdminSetup() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    
+
     if (!familyName.trim()) {
       setError('Vă rugăm să introduceți numele familiei')
       return
@@ -140,7 +140,7 @@ export default function AdminSetup() {
       let profilePictureUrl = null
       if (profilePicture) {
         profilePictureUrl = await uploadProfilePicture(data.id)
-        
+
         // Update the family record with the profile picture URL
         const { error: updateError } = await supabase
           .from('families')
@@ -170,7 +170,7 @@ export default function AdminSetup() {
             })
 
             const postResult = await postResponse.json()
-            
+
             if (!postResponse.ok) {
               console.warn('Failed to create album post for profile picture:', postResult.error)
             } else {
@@ -210,34 +210,54 @@ export default function AdminSetup() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 px-4 py-8">
-      <div className="max-w-2xl mx-auto">
-        <div className="card">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-primary-900 mb-2">
+    <div data-theme="dark" style={{ minHeight: '100vh', padding: '40px 20px' }}>
+      <div style={{ maxWidth: '720px', margin: '0 auto' }}>
+        <div className="card-glass" style={{ padding: '36px' }}>
+          <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+            <div style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '20px',
+              background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '16px',
+              boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.30), 0 12px 32px -8px rgba(124,58,237,0.55)'
+            }}>
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+              </svg>
+            </div>
+            <h1 className="text-page-title" style={{ marginBottom: '6px' }}>
               🔧 Configurare Administrare
             </h1>
-            <p className="text-gray-600">
+            <p className="text-subtle">
               Creați un nou album de familie cu acces PIN
             </p>
           </div>
 
           {/* SECURITY NOTE BANNER */}
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
-            <div className="flex items-start">
-              <div className="text-amber-600 mr-3">⚠️</div>
-              <div className="text-sm">
-                <strong className="text-amber-800">Notă de Securitate:</strong> Această pagină ar trebui securizată 
-                în producție prin implementarea autentificării de administrator (de ex., verificarea dacă un utilizator 
+          <div className="glass-soft" style={{
+            padding: '16px 18px',
+            marginBottom: '24px',
+            borderColor: 'rgba(245,158,11,0.40)',
+            background: 'rgba(245,158,11,0.08)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+              <div style={{ color: 'var(--accent-amber)', fontSize: '18px', lineHeight: 1 }}>⚠️</div>
+              <div className="text-subtle" style={{ color: 'var(--ink-1)' }}>
+                <strong style={{ color: 'var(--accent-amber)' }}>Notă de Securitate:</strong> Această pagină ar trebui securizată
+                în producție prin implementarea autentificării de administrator (de ex., verificarea dacă un utilizator
                 admin specific este conectat, lista albă de IP-uri sau token-uri de admin securizate).
               </div>
             </div>
           </div>
 
           {!success ? (
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
               <div>
-                <label htmlFor="familyName" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="familyName" className="text-eyebrow" style={{ display: 'block', marginBottom: '8px' }}>
                   Numele Familiei *
                 </label>
                 <input
@@ -245,38 +265,46 @@ export default function AdminSetup() {
                   type="text"
                   value={familyName}
                   onChange={(e) => setFamilyName(e.target.value)}
-                  className="input"
+                  className="input-glass"
                   placeholder="Introduceți numele familiei (de ex., 'Familia Popescu')"
                   required
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-tertiary" style={{ marginTop: '6px' }}>
                   Acesta va fi afișat ca numele albumului familiei
                 </p>
               </div>
 
               <div>
-                <label htmlFor="profilePicture" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="profilePicture" className="text-eyebrow" style={{ display: 'block', marginBottom: '8px' }}>
                   Poza de Profil (Opțional)
                 </label>
-                <div className="space-y-3">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <input
                     id="profilePicture"
                     type="file"
                     accept="image/*"
                     onChange={handleProfilePictureChange}
-                    className="input"
+                    className="input-glass"
+                    style={{ paddingTop: '10px', paddingBottom: '10px' }}
                   />
-                  <p className="text-xs text-gray-500">
+                  <p className="text-tertiary">
                     Selectează o imagine pentru profilul familiei. Mărimea maximă: 10MB
                   </p>
-                  
+
                   {profilePreview && (
-                    <div className="mt-3 flex justify-center">
-                      <div className="relative">
+                    <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'center' }}>
+                      <div style={{ position: 'relative' }}>
                         <img
                           src={profilePreview}
                           alt="Preview profil"
-                          className="w-32 h-32 rounded-full object-cover border-4 border-primary-200"
+                          style={{
+                            width: '128px',
+                            height: '128px',
+                            borderRadius: '50%',
+                            objectFit: 'cover',
+                            border: '3px solid var(--glass-hairline-strong)',
+                            boxShadow: '0 12px 32px -8px rgba(0,0,0,0.40)'
+                          }}
                         />
                         <button
                           type="button"
@@ -285,9 +313,27 @@ export default function AdminSetup() {
                             setProfilePreview('')
                             document.getElementById('profilePicture').value = ''
                           }}
-                          className="absolute -top-2 -right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center text-sm hover:bg-red-600 transition-colors"
+                          style={{
+                            position: 'absolute',
+                            top: '-6px',
+                            right: '-6px',
+                            width: '32px',
+                            height: '32px',
+                            background: 'linear-gradient(135deg, #f87171, #dc2626)',
+                            color: 'white',
+                            borderRadius: '50%',
+                            border: '2px solid var(--glass-hairline-strong)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            boxShadow: '0 6px 18px -4px rgba(220,38,38,0.55)'
+                          }}
                         >
-                          ✕
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                          </svg>
                         </button>
                       </div>
                     </div>
@@ -296,7 +342,13 @@ export default function AdminSetup() {
               </div>
 
               {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-800 text-sm">
+                <div className="glass-soft" style={{
+                  padding: '14px 16px',
+                  borderColor: 'rgba(239,68,68,0.40)',
+                  background: 'rgba(239,68,68,0.10)',
+                  color: 'var(--accent-red)',
+                  fontSize: '14px'
+                }}>
                   {error}
                 </div>
               )}
@@ -304,86 +356,161 @@ export default function AdminSetup() {
               <button
                 type="submit"
                 disabled={loading}
-                className="btn btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                className="btn-iris sheen"
+                style={{ width: '100%', padding: '14px 22px', fontSize: '15px' }}
               >
                 {loading ? 'Creez Albumul Familiei...' : 'Creează Album Familie'}
               </button>
             </form>
           ) : (
-            <div className="text-center">
-              <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
-                <h2 className="text-xl font-semibold text-green-900 mb-4">
-                  ✅ Albumul Familiei a Fost Creat cu Succes!
-                </h2>
-                
-                <div className="text-left space-y-4">
+            <div>
+              <div className="glass-soft" style={{
+                padding: '24px',
+                marginBottom: '20px',
+                borderColor: 'rgba(52,211,153,0.40)',
+                background: 'rgba(52,211,153,0.08)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+                  <div style={{
+                    width: '44px',
+                    height: '44px',
+                    borderRadius: '14px',
+                    background: 'linear-gradient(135deg, #34d399, #10b981)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 8px 20px -6px rgba(16,185,129,0.55)'
+                  }}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                  </div>
+                  <h2 className="text-section-title" style={{ margin: 0 }}>
+                    Albumul Familiei a Fost Creat cu Succes!
+                  </h2>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
                   {success.profilePictureUrl && (
-                    <div className="flex justify-center mb-4">
+                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '4px' }}>
                       <img
                         src={success.profilePictureUrl}
                         alt="Profil familie"
-                        className="w-24 h-24 rounded-full object-cover border-4 border-green-200"
+                        style={{
+                          width: '96px',
+                          height: '96px',
+                          borderRadius: '50%',
+                          objectFit: 'cover',
+                          border: '3px solid var(--accent-mint)',
+                          boxShadow: '0 12px 28px -8px rgba(16,185,129,0.45)'
+                        }}
                       />
                     </div>
                   )}
-                  
+
                   <div>
-                    <strong className="text-green-800">Numele Familiei:</strong>
-                    <div className="font-mono bg-white p-2 rounded border mt-1">
+                    <div className="text-eyebrow" style={{ color: 'var(--accent-mint)', marginBottom: '6px' }}>Numele Familiei</div>
+                    <div className="glass-soft" style={{
+                      padding: '12px 14px',
+                      fontFamily: 'JetBrains Mono, monospace',
+                      fontSize: '15px',
+                      color: 'var(--ink-1)'
+                    }}>
                       {success.familyName}
                     </div>
                   </div>
 
                   <div>
-                    <strong className="text-green-800">PIN Vizualizator (Acces Doar Citire):</strong>
-                    <div className="font-mono text-2xl bg-white p-3 rounded border mt-1 text-center">
+                    <div className="text-eyebrow" style={{ color: 'var(--accent-mint)', marginBottom: '6px' }}>PIN Vizualizator (Acces Doar Citire)</div>
+                    <div className="glass-soft nums" style={{
+                      padding: '16px',
+                      fontFamily: 'JetBrains Mono, monospace',
+                      fontSize: '28px',
+                      fontWeight: 700,
+                      letterSpacing: '0.15em',
+                      textAlign: 'center',
+                      color: 'var(--ink-1)'
+                    }}>
                       {success.viewerPin}
                     </div>
-                    <p className="text-xs text-green-700 mt-1">
+                    <p className="text-tertiary" style={{ marginTop: '6px', color: 'var(--accent-mint)' }}>
                       PIN de 4 cifre pentru vizualizarea doar a fotografiilor și abilităților
                     </p>
                   </div>
 
                   <div>
-                    <strong className="text-green-800">PIN Editor (Acces Complet):</strong>
-                    <div className="font-mono text-2xl bg-white p-3 rounded border mt-1 text-center">
+                    <div className="text-eyebrow" style={{ color: 'var(--accent-mint)', marginBottom: '6px' }}>PIN Editor (Acces Complet)</div>
+                    <div className="glass-soft nums" style={{
+                      padding: '16px',
+                      fontFamily: 'JetBrains Mono, monospace',
+                      fontSize: '28px',
+                      fontWeight: 700,
+                      letterSpacing: '0.15em',
+                      textAlign: 'center',
+                      color: 'var(--ink-1)'
+                    }}>
                       {success.editorPin}
                     </div>
-                    <p className="text-xs text-green-700 mt-1">
+                    <p className="text-tertiary" style={{ marginTop: '6px', color: 'var(--accent-mint)' }}>
                       PIN de 8 cifre pentru încărcare, editare și gestionarea conținutului
                     </p>
                   </div>
                 </div>
 
-                <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                  <p className="text-blue-800 text-sm">
-                    <strong>Instrucțiuni pentru Client:</strong><br/>
-                    Împărtășiți ambele PIN-uri cu clientul dumneavoastră. Aceștia pot folosi PIN-ul de 4 cifre doar pentru vizualizare, 
+                <div className="glass-soft" style={{
+                  marginTop: '22px',
+                  padding: '16px 18px',
+                  borderColor: 'rgba(6,182,212,0.40)',
+                  background: 'rgba(6,182,212,0.08)'
+                }}>
+                  <p className="text-subtle" style={{ color: 'var(--ink-1)' }}>
+                    <strong style={{ color: 'var(--accent-aqua)' }}>Instrucțiuni pentru Client:</strong><br/>
+                    Împărtășiți ambele PIN-uri cu clientul dumneavoastră. Aceștia pot folosi PIN-ul de 4 cifre doar pentru vizualizare,
                     sau PIN-ul de 8 cifre pentru acces complet. Pagina de autentificare este la: <br/>
-                    <span className="font-mono">{window.location.origin}/login</span>
+                    <span style={{ fontFamily: 'JetBrains Mono, monospace', color: 'var(--accent-iris)' }}>{window.location.origin}/login</span>
                   </p>
                 </div>
               </div>
 
-              <button
-                onClick={handleCreateAnother}
-                className="btn btn-primary"
-              >
-                Creează Alt Album de Familie
-              </button>
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <button
+                  onClick={handleCreateAnother}
+                  className="btn-iris sheen"
+                >
+                  Creează Alt Album de Familie
+                </button>
+              </div>
             </div>
           )}
 
-          <div className="mt-8 pt-6 border-t border-gray-200">
-            <h3 className="text-lg font-semibold mb-3">Cum Funcționează</h3>
-            <div className="text-sm text-gray-600 space-y-2">
-              <div className="flex items-start">
-                <span className="font-mono bg-gray-100 px-2 py-1 rounded text-xs mr-3">4-digit</span>
-                <span><strong>PIN Vizualizator:</strong> Acces doar pentru citire pentru a vedea fotografiile și progresul abilităților</span>
+          <div style={{ marginTop: '32px', paddingTop: '24px', borderTop: '1px solid var(--glass-hairline)' }}>
+            <h3 className="text-section-title" style={{ marginBottom: '14px', fontSize: '17px' }}>Cum Funcționează</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                <span className="glass-pill nums" style={{
+                  padding: '4px 12px',
+                  fontSize: '11.5px',
+                  fontWeight: 600,
+                  fontFamily: 'JetBrains Mono, monospace',
+                  color: 'var(--accent-aqua)',
+                  borderColor: 'rgba(6,182,212,0.40)',
+                  background: 'rgba(6,182,212,0.10)',
+                  flexShrink: 0
+                }}>4-digit</span>
+                <span className="text-subtle"><strong style={{ color: 'var(--ink-1)' }}>PIN Vizualizator:</strong> Acces doar pentru citire pentru a vedea fotografiile și progresul abilităților</span>
               </div>
-              <div className="flex items-start">
-                <span className="font-mono bg-gray-100 px-2 py-1 rounded text-xs mr-3">8-digit</span>
-                <span><strong>PIN Editor:</strong> Acces complet pentru a încărca fotografii, gestiona abilități și edita conținut</span>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                <span className="glass-pill nums" style={{
+                  padding: '4px 12px',
+                  fontSize: '11.5px',
+                  fontWeight: 600,
+                  fontFamily: 'JetBrains Mono, monospace',
+                  color: 'var(--accent-iris)',
+                  borderColor: 'rgba(124,58,237,0.40)',
+                  background: 'rgba(124,58,237,0.12)',
+                  flexShrink: 0
+                }}>8-digit</span>
+                <span className="text-subtle"><strong style={{ color: 'var(--ink-1)' }}>PIN Editor:</strong> Acces complet pentru a încărca fotografii, gestiona abilități și edita conținut</span>
               </div>
             </div>
           </div>

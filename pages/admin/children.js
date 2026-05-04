@@ -18,7 +18,7 @@ export default function AdminDashboard() {
     profilePictureUrl: ''
   })
   const [uploading, setUploading] = useState(false)
-  
+
   // Family setup states
   const [showFamilySetup, setShowFamilySetup] = useState(false)
   const [familyName, setFamilyName] = useState('')
@@ -30,14 +30,14 @@ export default function AdminDashboard() {
   const [setupLoading, setSetupLoading] = useState(false)
   const [setupError, setSetupError] = useState('')
   const [setupSuccess, setSetupSuccess] = useState(null)
-  
+
   // Album title display state
   const [currentTitle, setCurrentTitle] = useState('Family Album')
-  
+
   // Family management states
   const [allFamilies, setAllFamilies] = useState([])
   const [selectedFamilyId, setSelectedFamilyId] = useState('')
-  
+
 
   useEffect(() => {
     checkAuth()
@@ -71,15 +71,15 @@ export default function AdminDashboard() {
         console.error('Supabase error:', error)
         throw error
       }
-      
+
       console.log('Families data:', data)
-      
+
       if (!data || data.length === 0) {
         console.log('No families found')
         setAllFamilies([])
         return
       }
-      
+
       // Process each family to add display info
       const processedFamilies = await Promise.all(
         data.map(async (family) => {
@@ -89,10 +89,10 @@ export default function AdminDashboard() {
               .from('children')
               .select('name')
               .eq('family_id', family.id)
-            
+
             const childrenCount = children?.length || 0
             const phoneDisplay = family.phone_number || 'Fără telefon'
-            
+
             // Generate correct display title based on children count
             let displayTitle
             if (childrenCount === 1) {
@@ -100,7 +100,7 @@ export default function AdminDashboard() {
             } else {
               displayTitle = `Albumul familiei ${family.name}`
             }
-            
+
             return {
               ...family,
               childrenCount,
@@ -120,7 +120,7 @@ export default function AdminDashboard() {
           }
         })
       )
-      
+
       console.log('Processed families:', processedFamilies)
       setAllFamilies(processedFamilies)
     } catch (error) {
@@ -134,7 +134,7 @@ export default function AdminDashboard() {
       // Fetch album settings
       const settingsResponse = await fetch(`/api/album-settings/get?familyId=${familyId}`)
       const settingsResult = await settingsResponse.json()
-      
+
       if (settingsResponse.ok) {
         setAlbumSettings(settingsResult.settings)
       }
@@ -142,7 +142,7 @@ export default function AdminDashboard() {
       // Fetch children
       const childrenResponse = await fetch(`/api/children/list?familyId=${familyId}`)
       const childrenResult = await childrenResponse.json()
-      
+
       if (childrenResponse.ok) {
         setChildren(childrenResult.children)
       }
@@ -150,7 +150,7 @@ export default function AdminDashboard() {
       // Fetch current album title
       const titleResponse = await fetch(`/api/album-settings/get-title?familyId=${familyId}`)
       const titleResult = await titleResponse.json()
-      
+
       if (titleResponse.ok) {
         setCurrentTitle(titleResult.title)
       }
@@ -181,7 +181,7 @@ export default function AdminDashboard() {
       })
 
       const result = await response.json()
-      
+
       if (response.ok) {
         setAlbumSettings(result.settings)
         alert(`Setările au fost actualizate! Multi-copil este acum ${result.settings.is_multi_child ? 'activat' : 'dezactivat'}.`)
@@ -196,12 +196,12 @@ export default function AdminDashboard() {
 
   const handleAddChild = async (e) => {
     e.preventDefault()
-    
+
     if (!selectedFamilyId) {
       alert('Vă rugăm să selectați o familie')
       return
     }
-    
+
     if (!newChild.name.trim()) {
       alert('Numele copilului este obligatoriu')
       return
@@ -209,7 +209,7 @@ export default function AdminDashboard() {
 
     try {
       setUploading(true)
-      
+
       const response = await fetch('/api/children/create', {
         method: 'POST',
         headers: {
@@ -225,7 +225,7 @@ export default function AdminDashboard() {
       })
 
       const result = await response.json()
-      
+
       if (response.ok) {
         setChildren([...children, result.child])
         setNewChild({ name: '', birthDate: '', profilePictureUrl: '' })
@@ -259,7 +259,7 @@ export default function AdminDashboard() {
       })
 
       const result = await response.json()
-      
+
       if (response.ok) {
         // Remove child from local state
         setChildren(children.filter(child => child.id !== childId))
@@ -285,7 +285,7 @@ export default function AdminDashboard() {
       const pin = Math.floor(Math.random() * Math.pow(10, length))
         .toString()
         .padStart(length, '0')
-      
+
       const { error } = await supabase
         .from('families')
         .select('id')
@@ -295,10 +295,10 @@ export default function AdminDashboard() {
       if (error && error.code === 'PGRST116') {
         return pin
       }
-      
+
       attempts++
     }
-    
+
     throw new Error(`Nu s-a putut genera un PIN unic de ${length} cifre după ${maxAttempts} încercări`)
   }
 
@@ -322,10 +322,10 @@ export default function AdminDashboard() {
         maxWidthOrHeight: 500,
         useWebWorker: true
       }
-      
+
       const compressedFile = await imageCompression(selectedFile, options)
       setProfilePicture(compressedFile)
-      
+
       const previewUrl = URL.createObjectURL(compressedFile)
       setProfilePreview(previewUrl)
       setSetupError('')
@@ -359,7 +359,7 @@ export default function AdminDashboard() {
 
   const handleFamilySetup = async (e) => {
     e.preventDefault()
-    
+
     if (!familyName.trim()) {
       setSetupError('Vă rugăm să introduceți numele familiei')
       return
@@ -416,7 +416,7 @@ export default function AdminDashboard() {
           console.log('Uploading profile picture for family:', data.id)
           profilePictureUrl = await uploadProfilePicture(data.id)
           console.log('Profile picture uploaded successfully:', profilePictureUrl)
-          
+
           const { data: updateData, error: updateError } = await supabase
             .from('families')
             .update({ profile_picture_url: profilePictureUrl })
@@ -428,7 +428,7 @@ export default function AdminDashboard() {
             setSetupError(`Eroare la salvarea pozei de profil: ${updateError.message}`)
           } else {
             console.log('Profile picture URL saved successfully:', updateData)
-            
+
             // Create a post in the album for the family profile picture
             try {
               const postResponse = await fetch('/api/posts/create', {
@@ -448,7 +448,7 @@ export default function AdminDashboard() {
               })
 
               const postResult = await postResponse.json()
-              
+
               if (!postResponse.ok) {
                 console.warn('Failed to create album post for profile picture:', postResult.error)
               } else {
@@ -483,7 +483,7 @@ export default function AdminDashboard() {
         })
 
         const childResult = await childResponse.json()
-        
+
         if (!childResponse.ok) {
           console.warn('Failed to create first child:', childResult.error)
           // Don't fail the family creation for this, but log it
@@ -511,7 +511,7 @@ export default function AdminDashboard() {
       setPhoneNumber('')
       setProfilePicture(null)
       setProfilePreview('')
-      
+
       // Refresh families list and select the new family
       fetchAllFamilies()
       setSelectedFamilyId(data.id)
@@ -544,8 +544,18 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600"></div>
+      <div data-theme="dark" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{
+          width: '64px',
+          height: '64px',
+          border: '3px solid var(--glass-hairline)',
+          borderTopColor: 'var(--accent-iris)',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }} />
+        <style jsx>{`
+          @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        `}</style>
       </div>
     )
   }
@@ -553,39 +563,45 @@ export default function AdminDashboard() {
   // Remove session dependency since we're not using album authentication
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-gray)' }}>      
-      <div className="main-container" style={{ paddingTop: '40px' }}>
-        <div className="card" style={{ marginBottom: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <h1 className="text-page-title" style={{ marginBottom: '8px' }}>
-                Administrare Album
-              </h1>
-              <p className="text-subtle">
-                Gestionează albumele de familie, setările pentru mai mulți copii și profilurile copiilor.
-              </p>
+    <div data-theme="dark" style={{ minHeight: '100vh' }}>
+      <div className="main-container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
+        <div className="glass" style={{ padding: '22px 26px', marginBottom: '24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '14px',
+                background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.30), 0 8px 24px -8px rgba(124,58,237,0.55)'
+              }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+              </div>
+              <div>
+                <h1 className="text-page-title" style={{ marginBottom: '2px' }}>
+                  Administrare Album
+                </h1>
+                <p className="text-subtle" style={{ margin: 0 }}>
+                  Gestionează albumele de familie, setările pentru mai mulți copii și profilurile copiilor.
+                </p>
+              </div>
             </div>
             <button
               onClick={handleLogout}
+              className="btn-glass"
               style={{
-                padding: '8px 16px',
-                backgroundColor: '#DC2626',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '600',
-                transition: 'all 0.2s ease',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}
-              onMouseOver={(e) => {
-                e.target.style.backgroundColor = '#B91C1C'
-              }}
-              onMouseOut={(e) => {
-                e.target.style.backgroundColor = '#DC2626'
+                background: 'linear-gradient(135deg, #f87171, #dc2626)',
+                color: '#fff',
+                border: '1px solid rgba(255,255,255,0.18)',
+                boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.30), 0 8px 24px -8px rgba(220,38,38,0.55)'
               }}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -599,15 +615,15 @@ export default function AdminDashboard() {
         </div>
 
         {/* Family Selection */}
-        <div className="card" style={{ marginBottom: '24px' }}>
-          <h2 className="text-section-title" style={{ marginBottom: '16px' }}>
+        <div className="card-glass" style={{ padding: '24px', marginBottom: '24px' }}>
+          <h2 className="text-section-title" style={{ marginBottom: '14px' }}>
             Selectează Familie
           </h2>
           <select
             value={selectedFamilyId}
             onChange={(e) => setSelectedFamilyId(e.target.value)}
-            className="input-field"
-            style={{ maxWidth: '400px' }}
+            className="input-glass"
+            style={{ maxWidth: '460px' }}
           >
             <option value="">Selectează o familie...</option>
             {allFamilies.map((family) => (
@@ -617,116 +633,119 @@ export default function AdminDashboard() {
             ))}
           </select>
           {allFamilies.length === 0 && (
-            <p className="text-subtle" style={{ marginTop: '8px', fontSize: '14px' }}>
+            <p className="text-subtle" style={{ marginTop: '10px' }}>
               Nu există familii create încă. Creează prima familie mai jos.
             </p>
           )}
         </div>
 
         {/* Family Setup Section */}
-        <div className="card" style={{ marginBottom: '24px' }}>
+        <div className="card-glass" style={{ padding: '24px', marginBottom: '24px' }}>
           <div style={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            marginBottom: '16px'
+            marginBottom: '16px',
+            gap: '12px',
+            flexWrap: 'wrap'
           }}>
-            <h2 className="text-section-title">
+            <h2 className="text-section-title" style={{ margin: 0 }}>
               Creare Album Familie
             </h2>
             <button
               onClick={() => setShowFamilySetup(!showFamilySetup)}
-              className="btn-primary"
+              className="btn-iris sheen"
             >
               {showFamilySetup ? 'Ascunde' : '+ Creează Album Nou'}
             </button>
           </div>
 
           {showFamilySetup && !setupSuccess && (
-            <form onSubmit={handleFamilySetup} style={{ marginTop: '20px' }}>
-              <div style={{ marginBottom: '20px' }}>
-                <label className="text-subtle" style={{ display: 'block', marginBottom: '8px' }}>
+            <form onSubmit={handleFamilySetup} style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div>
+                <label className="text-eyebrow" style={{ display: 'block', marginBottom: '8px' }}>
                   Numele Familiei *
                 </label>
                 <input
                   type="text"
                   value={familyName}
                   onChange={(e) => setFamilyName(e.target.value)}
-                  className="input-field"
+                  className="input-glass"
                   placeholder="Introduceți numele familiei (de ex., 'Familia Popescu')"
                   required
                 />
               </div>
 
-              <div style={{ marginBottom: '20px' }}>
-                <label className="text-subtle" style={{ display: 'block', marginBottom: '8px' }}>
+              <div>
+                <label className="text-eyebrow" style={{ display: 'block', marginBottom: '8px' }}>
                   Numele Părintelui *
                 </label>
                 <input
                   type="text"
                   value={parentName}
                   onChange={(e) => setParentName(e.target.value)}
-                  className="input-field"
+                  className="input-glass"
                   placeholder="Introduceți numele părintelui (de ex., 'Maria Popescu')"
                   required
                 />
               </div>
 
-              <div style={{ marginBottom: '20px' }}>
-                <label className="text-subtle" style={{ display: 'block', marginBottom: '8px' }}>
+              <div>
+                <label className="text-eyebrow" style={{ display: 'block', marginBottom: '8px' }}>
                   Numele Copilului *
                 </label>
                 <input
                   type="text"
                   value={childName}
                   onChange={(e) => setChildName(e.target.value)}
-                  className="input-field"
+                  className="input-glass"
                   placeholder="Introduceți numele copilului (de ex., 'Andrei')"
                   required
                 />
               </div>
 
-              <div style={{ marginBottom: '20px' }}>
-                <label className="text-subtle" style={{ display: 'block', marginBottom: '8px' }}>
+              <div>
+                <label className="text-eyebrow" style={{ display: 'block', marginBottom: '8px' }}>
                   Numărul de Telefon *
                 </label>
                 <input
                   type="tel"
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
-                  className="input-field"
+                  className="input-glass"
                   placeholder="Introduceți numărul de telefon (ex: 061234567)"
                   required
                 />
-                <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>
+                <div className="text-tertiary" style={{ marginTop: '6px' }}>
                   Format acceptat: 061234567 sau 61234567
                 </div>
               </div>
 
-              <div style={{ marginBottom: '20px' }}>
-                <label className="text-subtle" style={{ display: 'block', marginBottom: '8px' }}>
+              <div>
+                <label className="text-eyebrow" style={{ display: 'block', marginBottom: '8px' }}>
                   Poza de Profil (Opțional)
                 </label>
                 <input
                   type="file"
                   accept="image/*"
                   onChange={handleProfilePictureChange}
-                  className="input-field"
-                  style={{ paddingTop: '8px', paddingBottom: '8px' }}
+                  className="input-glass"
+                  style={{ paddingTop: '10px', paddingBottom: '10px' }}
                 />
-                
+
                 {profilePreview && (
-                  <div style={{ marginTop: '12px', textAlign: 'center' }}>
+                  <div style={{ marginTop: '14px', textAlign: 'center' }}>
                     <div style={{ position: 'relative', display: 'inline-block' }}>
                       <img
                         src={profilePreview}
                         alt="Preview profil"
                         style={{
-                          width: '80px',
-                          height: '80px',
+                          width: '88px',
+                          height: '88px',
                           borderRadius: '50%',
                           objectFit: 'cover',
-                          border: '2px solid var(--border-light)'
+                          border: '2px solid var(--glass-hairline-strong)',
+                          boxShadow: '0 8px 22px -6px rgba(0,0,0,0.40)'
                         }}
                       />
                       <button
@@ -737,22 +756,25 @@ export default function AdminDashboard() {
                         }}
                         style={{
                           position: 'absolute',
-                          top: '-5px',
-                          right: '-5px',
-                          width: '24px',
-                          height: '24px',
-                          backgroundColor: '#DC2626',
+                          top: '-6px',
+                          right: '-6px',
+                          width: '26px',
+                          height: '26px',
+                          background: 'linear-gradient(135deg, #f87171, #dc2626)',
                           color: 'white',
                           borderRadius: '50%',
-                          border: 'none',
+                          border: '2px solid var(--glass-hairline-strong)',
                           cursor: 'pointer',
-                          fontSize: '12px',
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'center'
+                          justifyContent: 'center',
+                          boxShadow: '0 6px 16px -4px rgba(220,38,38,0.55)'
                         }}
                       >
-                        ✕
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <line x1="18" y1="6" x2="6" y2="18"/>
+                          <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
                       </button>
                     </div>
                   </div>
@@ -760,13 +782,11 @@ export default function AdminDashboard() {
               </div>
 
               {setupError && (
-                <div style={{ 
-                  marginBottom: '20px', 
-                  padding: '12px', 
-                  backgroundColor: '#FEF2F2', 
-                  border: '1px solid #FECACA',
-                  borderRadius: '12px',
-                  color: '#DC2626'
+                <div className="glass-soft" style={{
+                  padding: '14px 16px',
+                  borderColor: 'rgba(239,68,68,0.40)',
+                  background: 'rgba(239,68,68,0.10)',
+                  color: 'var(--accent-red)'
                 }}>
                   {setupError}
                 </div>
@@ -776,23 +796,14 @@ export default function AdminDashboard() {
                 <button
                   type="button"
                   onClick={() => setShowFamilySetup(false)}
-                  style={{
-                    padding: '10px 20px',
-                    border: '1px solid var(--border-light)',
-                    borderRadius: '16px',
-                    backgroundColor: 'white',
-                    color: 'var(--text-primary)',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    fontWeight: '600'
-                  }}
+                  className="btn-glass"
                 >
                   {t('cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={setupLoading}
-                  className="btn-primary"
+                  className="btn-iris sheen"
                 >
                   {setupLoading ? 'Creez Albumul...' : 'Creează Album'}
                 </button>
@@ -801,83 +812,100 @@ export default function AdminDashboard() {
           )}
 
           {setupSuccess && (
-            <div style={{
+            <div className="glass-soft" style={{
               marginTop: '20px',
-              padding: '20px',
-              backgroundColor: '#F0FDF4',
-              border: '1px solid #DCFCE7',
-              borderRadius: '12px'
+              padding: '24px',
+              borderColor: 'rgba(52,211,153,0.40)',
+              background: 'rgba(52,211,153,0.08)'
             }}>
-              <h3 style={{ color: '#15803D', fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>
-                ✅ Albumul a fost creat cu succes!
-              </h3>
-              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, #34d399, #10b981)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 8px 20px -6px rgba(16,185,129,0.55)'
+                }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                </div>
+                <h3 className="text-section-title" style={{ margin: 0 }}>
+                  Albumul a fost creat cu succes!
+                </h3>
+              </div>
+
               {setupSuccess.profilePictureUrl && (
-                <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+                <div style={{ textAlign: 'center', marginBottom: '18px' }}>
                   <img
                     src={setupSuccess.profilePictureUrl}
                     alt="Profil familie"
                     style={{
-                      width: '60px',
-                      height: '60px',
+                      width: '72px',
+                      height: '72px',
                       borderRadius: '50%',
                       objectFit: 'cover',
-                      border: '2px solid #22C55E'
+                      border: '2px solid var(--accent-mint)',
+                      boxShadow: '0 8px 20px -6px rgba(16,185,129,0.45)'
                     }}
                   />
                 </div>
               )}
-              
-              <div style={{ marginBottom: '12px' }}>
-                <strong style={{ color: '#15803D' }}>Familie:</strong> {setupSuccess.familyName}
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', marginBottom: '18px' }}>
+                <div>
+                  <div className="text-eyebrow" style={{ color: 'var(--accent-mint)', marginBottom: '4px' }}>Familie</div>
+                  <div className="text-body" style={{ fontWeight: 600 }}>{setupSuccess.familyName}</div>
+                </div>
+                <div>
+                  <div className="text-eyebrow" style={{ color: 'var(--accent-mint)', marginBottom: '4px' }}>Părinte</div>
+                  <div className="text-body" style={{ fontWeight: 600 }}>{setupSuccess.parentName}</div>
+                </div>
+                <div>
+                  <div className="text-eyebrow" style={{ color: 'var(--accent-mint)', marginBottom: '4px' }}>Copil</div>
+                  <div className="text-body" style={{ fontWeight: 600 }}>{setupSuccess.childName}</div>
+                </div>
+                <div>
+                  <div className="text-eyebrow" style={{ color: 'var(--accent-mint)', marginBottom: '4px' }}>Telefon</div>
+                  <div className="text-body nums" style={{ fontWeight: 600 }}>{setupSuccess.phoneNumber}</div>
+                </div>
               </div>
-              
-              <div style={{ marginBottom: '12px' }}>
-                <strong style={{ color: '#15803D' }}>Părinte:</strong> {setupSuccess.parentName}
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginBottom: '18px' }}>
+                <div>
+                  <div className="text-eyebrow" style={{ color: 'var(--accent-mint)', marginBottom: '6px' }}>PIN Vizualizator</div>
+                  <div className="glass-soft nums" style={{
+                    padding: '12px',
+                    fontFamily: 'JetBrains Mono, monospace',
+                    fontSize: '20px',
+                    fontWeight: 700,
+                    letterSpacing: '0.12em',
+                    textAlign: 'center'
+                  }}>
+                    {setupSuccess.viewerPin}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-eyebrow" style={{ color: 'var(--accent-mint)', marginBottom: '6px' }}>PIN Editor</div>
+                  <div className="glass-soft nums" style={{
+                    padding: '12px',
+                    fontFamily: 'JetBrains Mono, monospace',
+                    fontSize: '20px',
+                    fontWeight: 700,
+                    letterSpacing: '0.12em',
+                    textAlign: 'center'
+                  }}>
+                    {setupSuccess.editorPin}
+                  </div>
+                </div>
               </div>
-              
-              <div style={{ marginBottom: '12px' }}>
-                <strong style={{ color: '#15803D' }}>Copil:</strong> {setupSuccess.childName}
-              </div>
-              
-              <div style={{ marginBottom: '12px' }}>
-                <strong style={{ color: '#15803D' }}>Telefon:</strong> {setupSuccess.phoneNumber}
-              </div>
-              
-              <div style={{ marginBottom: '12px' }}>
-                <strong style={{ color: '#15803D' }}>PIN Vizualizator:</strong>
-                <span style={{
-                  fontFamily: 'monospace',
-                  fontSize: '18px',
-                  backgroundColor: 'white',
-                  padding: '4px 8px',
-                  borderRadius: '8px',
-                  marginLeft: '8px',
-                  border: '1px solid #DCFCE7'
-                }}>
-                  {setupSuccess.viewerPin}
-                </span>
-              </div>
-              
-              <div style={{ marginBottom: '16px' }}>
-                <strong style={{ color: '#15803D' }}>PIN Editor:</strong>
-                <span style={{
-                  fontFamily: 'monospace',
-                  fontSize: '18px',
-                  backgroundColor: 'white',
-                  padding: '4px 8px',
-                  borderRadius: '8px',
-                  marginLeft: '8px',
-                  border: '1px solid #DCFCE7'
-                }}>
-                  {setupSuccess.editorPin}
-                </span>
-              </div>
-              
+
               <button
                 onClick={handleCreateAnother}
-                className="btn-primary"
-                style={{ fontSize: '14px' }}
+                className="btn-iris sheen"
               >
                 Creează Alt Album
               </button>
@@ -887,41 +915,45 @@ export default function AdminDashboard() {
 
         {/* Multi-Child Toggle - Only show when family is selected */}
         {selectedFamilyId && (
-          <div className="card" style={{ marginBottom: '24px' }}>
+          <div className="card-glass" style={{ padding: '24px', marginBottom: '24px' }}>
             <h2 className="text-section-title" style={{ marginBottom: '16px' }}>
-              Setări Album - {allFamilies.find(f => f.id === selectedFamilyId)?.name}
+              Setări Album <span className="text-subtle" style={{ fontWeight: 500 }}>— {allFamilies.find(f => f.id === selectedFamilyId)?.name}</span>
             </h2>
-          
-          <div style={{
+
+          <div className="glass-soft" style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '16px',
-            backgroundColor: 'var(--bg-gray)',
-            borderRadius: '12px',
-            border: '1px solid var(--border-light)',
-            marginBottom: '16px'
+            padding: '18px',
+            marginBottom: '16px',
+            gap: '14px',
+            flexWrap: 'wrap'
           }}>
             <div>
-              <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '4px' }}>
+              <h3 className="text-body" style={{ fontWeight: 600, marginBottom: '4px' }}>
                 Album cu mai mulți copii
               </h3>
-              <p className="text-subtle" style={{ fontSize: '14px' }}>
+              <p className="text-subtle">
                 Activează funcționalitatea pentru mai mulți copii în acest album
               </p>
             </div>
             <button
               onClick={toggleMultiChild}
               style={{
-                padding: '8px 16px',
-                borderRadius: '20px',
-                border: 'none',
+                padding: '9px 18px',
+                borderRadius: '999px',
+                border: albumSettings?.is_multi_child ? '1px solid rgba(255,255,255,0.18)' : '1px solid var(--glass-hairline)',
                 cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '600',
-                backgroundColor: albumSettings?.is_multi_child ? 'var(--accent-blue)' : '#E5E7EB',
-                color: albumSettings?.is_multi_child ? 'white' : '#6B7280',
-                transition: 'all 0.2s ease-in-out'
+                fontSize: '13.5px',
+                fontWeight: 600,
+                background: albumSettings?.is_multi_child
+                  ? 'linear-gradient(135deg, #8b5cf6, #6d28d9)'
+                  : 'var(--glass-2)',
+                color: albumSettings?.is_multi_child ? 'white' : 'var(--ink-2)',
+                boxShadow: albumSettings?.is_multi_child
+                  ? 'inset 0 1px 0 0 rgba(255,255,255,0.30), 0 6px 20px -6px rgba(124,58,237,0.55)'
+                  : 'inset 0 1px 0 0 var(--glass-hairline-strong)',
+                transition: 'all 220ms cubic-bezier(0.22,1,0.36,1)'
               }}
             >
               {albumSettings?.is_multi_child ? 'Activat' : 'Dezactivat'}
@@ -929,34 +961,24 @@ export default function AdminDashboard() {
           </div>
 
           {/* Album Title Display */}
-          <div style={{
-            padding: '16px',
-            backgroundColor: 'var(--bg-gray)',
-            borderRadius: '12px',
-            border: '1px solid var(--border-light)'
-          }}>
-            <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '8px' }}>
+          <div className="glass-soft" style={{ padding: '18px' }}>
+            <h3 className="text-body" style={{ fontWeight: 600, marginBottom: '10px' }}>
               Titlul Albumului
             </h3>
-            <div style={{
-              padding: '12px',
-              backgroundColor: 'white',
-              borderRadius: '8px',
-              border: '1px solid var(--border-light)'
-            }}>
-              <strong>Titlu actual:</strong> <span style={{ color: 'var(--accent-blue)' }}>{currentTitle}</span>
+            <div className="glass-soft" style={{ padding: '12px 14px' }}>
+              <strong className="text-eyebrow" style={{ marginRight: '8px' }}>Titlu actual:</strong>
+              <span style={{ color: 'var(--accent-iris)', fontWeight: 600 }}>{currentTitle}</span>
             </div>
-            <div style={{
-              padding: '12px',
-              backgroundColor: '#EFF6FF',
-              borderRadius: '8px',
-              border: '1px solid #DBEAFE',
-              marginTop: '12px'
+            <div className="glass-soft" style={{
+              padding: '14px 16px',
+              marginTop: '12px',
+              borderColor: 'rgba(6,182,212,0.40)',
+              background: 'rgba(6,182,212,0.08)'
             }}>
-              <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '8px', color: '#1E40AF' }}>
-                ℹ️ Logica titlului:
+              <h4 className="text-eyebrow" style={{ marginBottom: '8px', color: 'var(--accent-aqua)' }}>
+                ℹ️ Logica titlului
               </h4>
-              <ul style={{ fontSize: '12px', color: '#374151', margin: 0, paddingLeft: '16px' }}>
+              <ul className="text-subtle" style={{ margin: 0, paddingLeft: '18px', lineHeight: 1.7 }}>
                 <li>Un copil → "Albumul lui [numele copilului]"</li>
                 <li>Zero sau mai mulți copii → "Albumul familiei [numele familiei]"</li>
                 <li>Când se adaugă al doilea copil, titlul se schimbă automat la familia</li>
@@ -968,19 +990,21 @@ export default function AdminDashboard() {
 
         {/* Children Management - Only show if multi-child is enabled */}
         {albumSettings?.is_multi_child && (
-          <div className="card">
+          <div className="card-glass" style={{ padding: '24px' }}>
             <div style={{
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              marginBottom: '24px'
+              marginBottom: '24px',
+              gap: '12px',
+              flexWrap: 'wrap'
             }}>
-              <h2 className="text-section-title">
-                Copii ({children.length})
+              <h2 className="text-section-title" style={{ margin: 0 }}>
+                Copii <span className="text-subtle nums" style={{ fontWeight: 500 }}>({children.length})</span>
               </h2>
               <button
                 onClick={() => setShowAddChild(true)}
-                className="btn-primary"
+                className="btn-iris sheen"
               >
                 + Adaugă Copil
               </button>
@@ -990,28 +1014,25 @@ export default function AdminDashboard() {
             {children.length === 0 ? (
               <div style={{
                 textAlign: 'center',
-                padding: '40px',
-                color: 'var(--text-secondary)'
+                padding: '48px 20px'
               }}>
-                <p>Nu sunt copii adăugați încă.</p>
-                <p style={{ fontSize: '14px', marginTop: '8px' }}>
+                <p className="text-body" style={{ color: 'var(--ink-2)' }}>Nu sunt copii adăugați încă.</p>
+                <p className="text-subtle" style={{ marginTop: '8px' }}>
                   Adaugă primul copil pentru a începe să folosești funcționalitatea multi-copil.
                 </p>
               </div>
             ) : (
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-                gap: '20px'
+                gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+                gap: '18px'
               }}>
                 {children.map((child) => (
-                  <div key={child.id} style={{
-                    padding: '20px',
-                    backgroundColor: 'var(--bg-gray)',
-                    borderRadius: '16px',
-                    border: '1px solid var(--border-light)',
+                  <div key={child.id} className="glass-soft" style={{
+                    padding: '22px',
                     textAlign: 'center',
-                    position: 'relative'
+                    position: 'relative',
+                    transition: 'transform 220ms cubic-bezier(0.22,1,0.36,1)'
                   }}>
                     {/* Remove button */}
                     <button
@@ -1020,55 +1041,52 @@ export default function AdminDashboard() {
                         position: 'absolute',
                         top: '12px',
                         right: '12px',
-                        width: '28px',
-                        height: '28px',
+                        width: '30px',
+                        height: '30px',
                         borderRadius: '50%',
-                        border: 'none',
-                        backgroundColor: '#DC2626',
+                        border: '1px solid rgba(255,255,255,0.18)',
+                        background: 'linear-gradient(135deg, #f87171, #dc2626)',
                         color: 'white',
                         cursor: 'pointer',
-                        fontSize: '14px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        transition: 'all 0.2s ease-in-out',
-                        opacity: 0.8
-                      }}
-                      onMouseOver={(e) => {
-                        e.target.style.opacity = '1'
-                        e.target.style.transform = 'scale(1.1)'
-                      }}
-                      onMouseOut={(e) => {
-                        e.target.style.opacity = '0.8'
-                        e.target.style.transform = 'scale(1)'
+                        transition: 'transform 180ms cubic-bezier(0.22,1,0.36,1), filter 180ms cubic-bezier(0.22,1,0.36,1)',
+                        boxShadow: '0 6px 16px -4px rgba(220,38,38,0.55)'
                       }}
                       title={`Elimină copilul ${child.name}`}
                     >
-                      ✕
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                      </svg>
                     </button>
 
                     <div style={{
-                      width: '80px',
-                      height: '80px',
+                      width: '84px',
+                      height: '84px',
                       borderRadius: '50%',
-                      backgroundColor: 'var(--accent-blue)',
+                      background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
                       margin: '0 auto 16px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       fontSize: '32px',
+                      fontWeight: 700,
                       color: 'white',
-                      backgroundImage: child.profile_picture_url ? `url(${child.profile_picture_url})` : 'none',
+                      backgroundImage: child.profile_picture_url ? `url(${child.profile_picture_url})` : undefined,
                       backgroundSize: 'cover',
-                      backgroundPosition: 'center'
+                      backgroundPosition: 'center',
+                      border: '2px solid var(--glass-hairline-strong)',
+                      boxShadow: '0 10px 24px -6px rgba(124,58,237,0.45)'
                     }}>
                       {!child.profile_picture_url && child.name.charAt(0).toUpperCase()}
                     </div>
-                    <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '8px' }}>
+                    <h3 className="text-body" style={{ fontWeight: 600, marginBottom: '6px' }}>
                       {child.name}
                     </h3>
                     {child.birth_date && (
-                      <p className="text-subtle" style={{ fontSize: '14px' }}>
+                      <p className="text-subtle nums">
                         {new Date(child.birth_date).toLocaleDateString(language === 'ru' ? 'ru-RU' : 'ro-RO')}
                       </p>
                     )}
@@ -1081,49 +1099,62 @@ export default function AdminDashboard() {
 
         {/* Add Child Modal */}
         {showAddChild && (
-          <div className="modal-overlay">
-            <div className="modal-content" style={{ maxWidth: '500px', width: '100%' }}>
-              <div style={{ padding: '24px' }}>
-                <h2 className="text-section-title" style={{ marginBottom: '20px' }}>
+          <div className="modal-scrim">
+            <div className="modal-glass" style={{ maxWidth: '520px', width: '100%' }}>
+              <div style={{ padding: '28px' }}>
+                <button
+                  onClick={() => {
+                    setShowAddChild(false)
+                    setNewChild({ name: '', birthDate: '', profilePictureUrl: '' })
+                  }}
+                  className="btn-icon"
+                  style={{ position: 'absolute', top: 14, right: 14 }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+                <h2 className="text-section-title" style={{ marginBottom: '22px' }}>
                   Adaugă Copil Nou
                 </h2>
-                
-                <form onSubmit={handleAddChild}>
-                  <div style={{ marginBottom: '20px' }}>
-                    <label className="text-subtle" style={{ display: 'block', marginBottom: '8px' }}>
+
+                <form onSubmit={handleAddChild} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                  <div>
+                    <label className="text-eyebrow" style={{ display: 'block', marginBottom: '8px' }}>
                       Nume *
                     </label>
                     <input
                       type="text"
                       value={newChild.name}
                       onChange={(e) => setNewChild({ ...newChild, name: e.target.value })}
-                      className="input-field"
+                      className="input-glass"
                       placeholder="Numele copilului"
                       required
                     />
                   </div>
 
-                  <div style={{ marginBottom: '20px' }}>
-                    <label className="text-subtle" style={{ display: 'block', marginBottom: '8px' }}>
+                  <div>
+                    <label className="text-eyebrow" style={{ display: 'block', marginBottom: '8px' }}>
                       Data nașterii
                     </label>
                     <input
                       type="date"
                       value={newChild.birthDate}
                       onChange={(e) => setNewChild({ ...newChild, birthDate: e.target.value })}
-                      className="input-field"
+                      className="input-glass"
                     />
                   </div>
 
-                  <div style={{ marginBottom: '30px' }}>
-                    <label className="text-subtle" style={{ display: 'block', marginBottom: '8px' }}>
+                  <div style={{ marginBottom: '12px' }}>
+                    <label className="text-eyebrow" style={{ display: 'block', marginBottom: '8px' }}>
                       URL poză profil
                     </label>
                     <input
                       type="url"
                       value={newChild.profilePictureUrl}
                       onChange={(e) => setNewChild({ ...newChild, profilePictureUrl: e.target.value })}
-                      className="input-field"
+                      className="input-glass"
                       placeholder="https://..."
                     />
                   </div>
@@ -1135,23 +1166,14 @@ export default function AdminDashboard() {
                         setShowAddChild(false)
                         setNewChild({ name: '', birthDate: '', profilePictureUrl: '' })
                       }}
-                      style={{
-                        padding: '10px 20px',
-                        border: '1px solid var(--border-light)',
-                        borderRadius: '16px',
-                        backgroundColor: 'white',
-                        color: 'var(--text-primary)',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        fontWeight: '600'
-                      }}
+                      className="btn-glass"
                     >
                       {t('cancel')}
                     </button>
                     <button
                       type="submit"
                       disabled={uploading}
-                      className="btn-primary"
+                      className="btn-iris sheen"
                     >
                       {uploading ? 'Se adaugă...' : 'Adaugă Copil'}
                     </button>

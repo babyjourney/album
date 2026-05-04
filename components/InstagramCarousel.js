@@ -364,8 +364,8 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
                   console.error('Video failed to load:', url)
                   console.error('Video error event:', e)
                   // Show a fallback instead of hiding completely
-                  e.target.style.background = 'var(--bg-gray)'
-                  e.target.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-secondary);">⚠️ Video încărcare eșuată</div>'
+                  e.target.style.background = 'var(--glass-1)'
+                  e.target.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--ink-2);">⚠️ Video încărcare eșuată</div>'
                 }}
                 onLoadStart={() => console.log('Video load started:', url)}
                 onCanPlay={() => console.log('Video can play:', url)}
@@ -406,39 +406,19 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
                 e.stopPropagation()
                 navigateToIndex(index - 1)
               }}
+              className="modal-carousel-nav-arrow"
               style={{
                 position: 'absolute',
                 left: '20px',
                 top: '50%',
                 transform: 'translateY(-50%)',
-                width: '44px',
-                height: '44px',
-                borderRadius: '50%',
-                background: 'var(--overlay)',
-                border: 'none',
-                color: 'white',
-                fontSize: '18px',
-                cursor: 'pointer',
-                zIndex: 20,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.2s ease',
-                backdropFilter: 'blur(8px)'
-              }}
-              onMouseOver={(e) => {
-                e.target.style.background = 'var(--overlay)'
-                e.target.style.transform = 'translateY(-50%) scale(1.1)'
-              }}
-              onMouseOut={(e) => {
-                e.target.style.background = 'var(--overlay)'
-                e.target.style.transform = 'translateY(-50%) scale(1)'
+                zIndex: 20
               }}
             >
               ←
             </button>
           )}
-          
+
           {/* Next arrow */}
           {index < images.length - 1 && (
             <button
@@ -446,33 +426,13 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
                 e.stopPropagation()
                 navigateToIndex(index + 1)
               }}
+              className="modal-carousel-nav-arrow"
               style={{
                 position: 'absolute',
                 right: '20px',
                 top: '50%',
                 transform: 'translateY(-50%)',
-                width: '44px',
-                height: '44px',
-                borderRadius: '50%',
-                background: 'var(--overlay)',
-                border: 'none',
-                color: 'white',
-                fontSize: '18px',
-                cursor: 'pointer',
-                zIndex: 20,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.2s ease',
-                backdropFilter: 'blur(8px)'
-              }}
-              onMouseOver={(e) => {
-                e.target.style.background = 'var(--overlay)'
-                e.target.style.transform = 'translateY(-50%) scale(1.1)'
-              }}
-              onMouseOut={(e) => {
-                e.target.style.background = 'var(--overlay)'
-                e.target.style.transform = 'translateY(-50%) scale(1)'
+                zIndex: 20
               }}
             >
               →
@@ -481,34 +441,32 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
         </>
       )}
 
-      {/* Modern minimalistic progress indicators */}
+      {/* Glass progress indicators */}
       {images.length > 1 && (() => {
         return (
-          <div style={{
-            position: 'absolute',
-            top: '20px',
-            left: '50%',
-            transform: 'translateX(-50%)', // Center horizontally
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            zIndex: 30, // Higher z-index
-            padding: '6px 12px',
-            background: 'var(--overlay)', // Match post counter style
-            borderRadius: '16px',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
-            // Compact design for top positioning
-            fontSize: '12px',
-            color: 'white',
-            fontWeight: '500'
-          }}>
+          <div
+            className="glass-pill"
+            style={{
+              position: 'absolute',
+              top: '20px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              zIndex: 30,
+              padding: '6px 12px',
+              borderRadius: '14px',
+              fontSize: '12px',
+              color: 'var(--ink-1)',
+              fontWeight: '500'
+            }}
+          >
           {/* Photo count text */}
           <span style={{ marginRight: '6px' }}>
             {index + 1}/{images.length}
           </span>
-          
+
           {/* Compact dots */}
           {images.map((_, dotIndex) => (
             <div
@@ -521,11 +479,11 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
                 width: dotIndex === index ? '12px' : '3px',
                 height: '3px',
                 borderRadius: '2px',
-                background: dotIndex === index 
-                  ? 'rgba(255, 255, 255, 1)' 
-                  : 'rgba(255, 255, 255, 0.5)',
+                background: dotIndex === index
+                  ? 'var(--ink-1)'
+                  : 'var(--ink-3)',
                 cursor: 'pointer',
-                transition: 'all 0.2s ease',
+                transition: 'all 220ms cubic-bezier(0.22, 1, 0.36, 1)',
                 WebkitTapHighlightColor: 'transparent',
                 outline: 'none'
               }}

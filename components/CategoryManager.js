@@ -51,7 +51,7 @@ export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate })
         label: newCategory.label.trim(),
         emoji: newCategory.emoji
       }
-      
+
       console.log('Adding category:', categoryToAdd)
       const updatedCategories = await addCategory(categoryToAdd)
       console.log('Category added, updated list:', updatedCategories)
@@ -116,107 +116,95 @@ export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate })
   if (!isOpen) return null
 
   return (
-    <div style={{
-      position: 'fixed',
-      inset: 0,
-      background: 'rgba(0, 0, 0, 0.5)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000,
-      backdropFilter: 'blur(4px)'
-    }}>
-      <div ref={modalRef} style={{
-        background: 'white',
-        borderRadius: '16px',
-        padding: '24px',
-        width: '90%',
-        maxWidth: '600px',
-        maxHeight: '80vh',
-        overflowY: 'auto',
-        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.2)'
-      }}>
+    <div className="modal-scrim">
+      <div
+        ref={modalRef}
+        className="modal-glass"
+        style={{
+          position: 'relative',
+          width: '90%',
+          maxWidth: '600px',
+          maxHeight: '82vh',
+          overflowY: 'auto',
+          padding: '28px',
+          borderRadius: '24px'
+        }}
+      >
         {/* Header */}
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          marginBottom: '24px'
+          marginBottom: '20px',
+          paddingRight: '44px'
         }}>
-          <h2 style={{
-            fontSize: '20px',
-            fontWeight: '600',
-            margin: 0,
-            color: 'var(--text-primary)'
-          }}>
-{t('categoryManagement')}
+          <h2 className="text-section-title" style={{ margin: 0, color: 'var(--ink-1)' }}>
+            {t('categoryManagement')}
           </h2>
           <button
             onClick={onClose}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '8px',
-              borderRadius: '8px',
-              color: 'var(--text-secondary)'
-            }}
+            className="btn-icon"
+            style={{ position: 'absolute', top: 14, right: 14 }}
+            aria-label="Închide"
           >
-            <X size={20} />
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
           </button>
         </div>
 
         {/* Reset Button */}
-        <div style={{ marginBottom: '20px' }}>
+        <div style={{ marginBottom: '18px' }}>
           <button
             onClick={handleResetToDefaults}
+            className="btn-glass"
             style={{
-              padding: '8px 16px',
-              background: 'var(--bg-gray)',
-              border: '1px solid var(--border-light)',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              display: 'flex',
+              fontSize: '13px',
+              display: 'inline-flex',
               alignItems: 'center',
               gap: '8px',
-              color: 'var(--text-secondary)'
+              padding: '8px 14px',
+              borderRadius: '14px'
             }}
           >
-            <RotateCcw size={16} />
+            <RotateCcw size={15} />
             {t('resetToDefaults')}
           </button>
         </div>
 
         {/* Add New Category */}
-        <div style={{
-          background: 'var(--bg-gray)',
-          padding: '16px',
-          borderRadius: '12px',
-          marginBottom: '20px'
-        }}>
-          <h3 style={{
-            fontSize: '16px',
-            fontWeight: '500',
-            marginBottom: '12px',
-            color: 'var(--text-primary)'
-          }}>
+        <div
+          className="glass-soft"
+          style={{
+            padding: '18px',
+            borderRadius: '18px',
+            marginBottom: '20px',
+            border: '1px solid var(--glass-hairline)'
+          }}
+        >
+          <h3
+            className="text-eyebrow"
+            style={{
+              marginTop: 0,
+              marginBottom: '12px',
+              color: 'var(--ink-2)'
+            }}
+          >
             {t('addNewCategory')}
           </h3>
-          
+
           {isAdding ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ display: 'flex', gap: '12px' }}>
+              <div style={{ display: 'flex', gap: '10px' }}>
                 <input
                   type="text"
                   placeholder="emoji (ex: 🎨)"
                   value={newCategory.emoji}
                   onChange={(e) => setNewCategory(prev => ({ ...prev, emoji: e.target.value }))}
+                  className="input-glass"
                   style={{
-                    width: '80px',
-                    padding: '8px 12px',
-                    border: '1px solid var(--border-light)',
-                    borderRadius: '8px',
+                    width: '88px',
                     textAlign: 'center'
                   }}
                 />
@@ -225,26 +213,20 @@ export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate })
                   placeholder="Numele categoriei"
                   value={newCategory.label}
                   onChange={(e) => setNewCategory(prev => ({ ...prev, label: e.target.value, value: e.target.value.toLowerCase().replace(/\s+/g, '-') }))}
-                  style={{
-                    flex: 1,
-                    padding: '8px 12px',
-                    border: '1px solid var(--border-light)',
-                    borderRadius: '8px'
-                  }}
+                  className="input-glass"
+                  style={{ flex: 1 }}
                 />
               </div>
-              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
                 <button
                   onClick={() => {
                     setIsAdding(false)
                     setNewCategory({ value: '', label: '', emoji: '📝' })
                   }}
+                  className="btn-glass"
                   style={{
                     padding: '8px 16px',
-                    background: 'white',
-                    border: '1px solid var(--border-light)',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
+                    borderRadius: '14px',
                     fontSize: '14px'
                   }}
                 >
@@ -252,15 +234,12 @@ export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate })
                 </button>
                 <button
                   onClick={handleAddCategory}
+                  className="btn-iris sheen"
                   style={{
                     padding: '8px 16px',
-                    background: 'var(--accent-blue)',
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: 'white',
-                    cursor: 'pointer',
+                    borderRadius: '14px',
                     fontSize: '14px',
-                    display: 'flex',
+                    display: 'inline-flex',
                     alignItems: 'center',
                     gap: '6px'
                   }}
@@ -273,15 +252,12 @@ export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate })
           ) : (
             <button
               onClick={() => setIsAdding(true)}
+              className="btn-iris sheen"
               style={{
                 padding: '8px 16px',
-                background: 'var(--accent-blue)',
-                border: 'none',
-                borderRadius: '8px',
-                color: 'white',
-                cursor: 'pointer',
+                borderRadius: '14px',
                 fontSize: '14px',
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px'
               }}
@@ -297,14 +273,15 @@ export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate })
           {categories.map((category) => (
             <div
               key={category.value}
+              className="glass-soft"
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '12px',
-                padding: '12px',
-                background: 'white',
-                border: '1px solid var(--border-light)',
-                borderRadius: '8px'
+                padding: '12px 14px',
+                borderRadius: '14px',
+                border: '1px solid var(--glass-hairline)',
+                transition: 'all 220ms cubic-bezier(0.22, 1, 0.36, 1)'
               }}
             >
               {editingCategory && editingCategory.value === category.value ? (
@@ -313,11 +290,10 @@ export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate })
                     type="text"
                     value={editingCategory.emoji}
                     onChange={(e) => setEditingCategory(prev => ({ ...prev, emoji: e.target.value }))}
+                    className="input-glass"
                     style={{
-                      width: '50px',
-                      padding: '4px 8px',
-                      border: '1px solid var(--border-light)',
-                      borderRadius: '4px',
+                      width: '60px',
+                      padding: '6px 8px',
                       textAlign: 'center'
                     }}
                   />
@@ -325,36 +301,32 @@ export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate })
                     type="text"
                     value={editingCategory.label}
                     onChange={(e) => setEditingCategory(prev => ({ ...prev, label: e.target.value }))}
+                    className="input-glass"
                     style={{
                       flex: 1,
-                      padding: '4px 8px',
-                      border: '1px solid var(--border-light)',
-                      borderRadius: '4px'
+                      padding: '6px 10px'
                     }}
                   />
-                  <div style={{ display: 'flex', gap: '4px' }}>
+                  <div style={{ display: 'flex', gap: '6px' }}>
                     <button
                       onClick={() => handleUpdateCategory(category.value)}
+                      className="btn-icon"
                       style={{
-                        padding: '6px',
-                        background: 'var(--accent-blue)',
-                        border: 'none',
-                        borderRadius: '4px',
-                        color: 'white',
-                        cursor: 'pointer'
+                        width: 34,
+                        height: 34,
+                        background: 'linear-gradient(135deg, var(--accent-iris), #6366f1)',
+                        color: '#fff',
+                        borderColor: 'transparent'
                       }}
+                      aria-label={t('save')}
                     >
                       <Save size={14} />
                     </button>
                     <button
                       onClick={() => setEditingCategory(null)}
-                      style={{
-                        padding: '6px',
-                        background: 'var(--bg-gray)',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer'
-                      }}
+                      className="btn-icon"
+                      style={{ width: 34, height: 34 }}
+                      aria-label={t('cancel')}
                     >
                       <X size={14} />
                     </button>
@@ -365,37 +337,31 @@ export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate })
                   <span style={{ fontSize: '20px', width: '30px', textAlign: 'center' }}>
                     {category.emoji}
                   </span>
-                  <span style={{ flex: 1, fontWeight: '500' }}>
+                  <span style={{ flex: 1, fontWeight: 500, color: 'var(--ink-1)' }}>
                     {category.label}
                   </span>
-                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  <span className="text-tertiary" style={{ fontSize: '12px' }}>
                     {category.value}
                   </span>
-                  <div style={{ display: 'flex', gap: '4px' }}>
+                  <div style={{ display: 'flex', gap: '6px' }}>
                     <button
                       onClick={() => setEditingCategory({ ...category })}
-                      style={{
-                        padding: '6px',
-                        background: 'var(--bg-gray)',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        color: 'var(--text-secondary)'
-                      }}
+                      className="btn-icon"
+                      style={{ width: 34, height: 34 }}
+                      aria-label="Edit"
                     >
                       <Edit2 size={14} />
                     </button>
                     {!['memories', 'family'].includes(category.value) && (
                       <button
                         onClick={() => handleDeleteCategory(category.value)}
+                        className="btn-icon"
                         style={{
-                          padding: '6px',
-                          background: 'transparent',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          color: '#dc2626'
+                          width: 34,
+                          height: 34,
+                          color: 'var(--accent-red)'
                         }}
+                        aria-label="Delete"
                       >
                         <Trash2 size={14} />
                       </button>

@@ -3,19 +3,19 @@ import { useState, useEffect, useCallback } from 'react'
 // Helper function to clean description from old multi-photo format
 const getCleanDescription = (post) => {
   if (!post.description) return ''
-  
+
   // If this is a new format multi-photo post, just return the description as-is
   if (post.type === 'multi-photo' && post.file_urls) {
     return post.description
   }
-  
+
   // Clean up old format descriptions that contain URLs
   if (post.description.includes('__MULTI_PHOTO_URLS__:')) {
     const marker = '__MULTI_PHOTO_URLS__:'
     const markerIndex = post.description.indexOf(marker)
     return post.description.substring(0, markerIndex).trim()
   }
-  
+
   return post.description
 }
 
@@ -27,11 +27,11 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
   const [shuffledMemories, setShuffledMemories] = useState([])
 
   // Debug logging
-  console.log('MemorySlideshow rendered:', { 
-    isOpen, 
-    memoriesCount: memories.length, 
+  console.log('MemorySlideshow rendered:', {
+    isOpen,
+    memoriesCount: memories.length,
     memories,
-    shouldRender: isOpen && memories.length > 0 
+    shouldRender: isOpen && memories.length > 0
   })
 
   // Initialize shuffled memories
@@ -109,12 +109,12 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
     console.log('MemorySlideshow not rendering - isOpen is false')
     return null
   }
-  
+
   if (memories.length === 0) {
     console.log('MemorySlideshow not rendering - no memories')
     return null
   }
-  
+
   console.log('MemorySlideshow WILL RENDER with', memories.length, 'memories')
 
   const currentMemory = currentMemories[currentIndex]
@@ -126,12 +126,14 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
       style={{
         position: 'fixed',
         inset: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.95)',
+        background: 'rgba(0, 0, 0, 0.85)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
         zIndex: 1000,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        animation: 'fadeIn 0.3s ease-out'
+        animation: 'fadeIn 0.3s cubic-bezier(0.22, 1, 0.36, 1)'
       }}
       onClick={onClose}
     >
@@ -142,7 +144,7 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
         left: '20px',
         right: '20px',
         display: 'flex',
-        gap: '4px',
+        gap: '6px',
         zIndex: 1001
       }}>
         {currentMemories.map((_, index) => (
@@ -151,19 +153,21 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
             style={{
               flex: 1,
               height: '3px',
-              backgroundColor: 'rgba(255, 255, 255, 0.3)',
-              borderRadius: '2px',
-              overflow: 'hidden'
+              background: 'rgba(255, 255, 255, 0.18)',
+              borderRadius: '999px',
+              overflow: 'hidden',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)'
             }}
           >
             <div
               style={{
-                width: index < currentIndex ? '100%' : 
+                width: index < currentIndex ? '100%' :
                        index === currentIndex ? `${progress}%` : '0%',
                 height: '100%',
-                backgroundColor: 'white',
-                borderRadius: '2px',
-                transition: index !== currentIndex ? 'width 0.2s ease' : 'none'
+                background: 'linear-gradient(90deg, var(--accent-iris), var(--accent-aqua))',
+                borderRadius: '999px',
+                transition: index !== currentIndex ? 'width 220ms cubic-bezier(0.22, 1, 0.36, 1)' : 'none'
               }}
             />
           </div>
@@ -173,10 +177,10 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
       {/* Control buttons */}
       <div style={{
         position: 'absolute',
-        top: '20px',
+        top: '40px',
         right: '20px',
         display: 'flex',
-        gap: '8px',
+        gap: '10px',
         zIndex: 1001
       }}>
         {/* Shuffle button */}
@@ -185,55 +189,42 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
             e.stopPropagation()
             toggleShuffle()
           }}
+          className="btn-icon"
           style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '50%',
-            border: 'none',
-            backgroundColor: isShuffled ? 'rgba(59, 130, 246, 0.8)' : 'rgba(0, 0, 0, 0.5)',
-            color: 'white',
-            fontSize: '16px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'background-color 0.2s'
-          }}
-          onMouseOver={(e) => {
-            e.target.style.backgroundColor = isShuffled ? 'rgba(59, 130, 246, 1)' : 'rgba(0, 0, 0, 0.8)'
-          }}
-          onMouseOut={(e) => {
-            e.target.style.backgroundColor = isShuffled ? 'rgba(59, 130, 246, 0.8)' : 'rgba(0, 0, 0, 0.5)'
+            color: isShuffled ? '#fff' : 'rgba(255,255,255,0.85)',
+            background: isShuffled
+              ? 'linear-gradient(135deg, var(--accent-iris), #6366f1)'
+              : 'rgba(255, 255, 255, 0.10)',
+            borderColor: isShuffled ? 'transparent' : 'rgba(255,255,255,0.18)'
           }}
           title={isShuffled ? 'Dezactivează shuffle' : 'Activează shuffle'}
         >
-          🔀
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="16 3 21 3 21 8" />
+            <line x1="4" y1="20" x2="21" y2="3" />
+            <polyline points="21 16 21 21 16 21" />
+            <line x1="15" y1="15" x2="21" y2="21" />
+            <line x1="4" y1="4" x2="9" y2="9" />
+          </svg>
         </button>
-        
+
         {/* Close button */}
         <button
           onClick={(e) => {
             e.stopPropagation()
             onClose()
           }}
+          className="btn-icon"
           style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '50%',
-            border: 'none',
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            color: 'white',
-            fontSize: '18px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'background-color 0.2s'
+            color: 'rgba(255,255,255,0.9)',
+            background: 'rgba(255, 255, 255, 0.10)',
+            borderColor: 'rgba(255,255,255,0.18)'
           }}
-          onMouseOver={(e) => e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.8)'}
-          onMouseOut={(e) => e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.5)'}
         >
-          ✕
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
         </button>
       </div>
 
@@ -258,8 +249,8 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
             style={{
               maxWidth: '100%',
               maxHeight: '100%',
-              borderRadius: '8px',
-              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)'
+              borderRadius: '20px',
+              boxShadow: '0 30px 80px rgba(0, 0, 0, 0.6)'
             }}
             onPlay={() => setIsPlaying(false)}
             onPause={() => setIsPlaying(true)}
@@ -274,8 +265,8 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
               maxWidth: '100%',
               maxHeight: '100%',
               objectFit: 'contain',
-              borderRadius: '8px',
-              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)'
+              borderRadius: '20px',
+              boxShadow: '0 30px 80px rgba(0, 0, 0, 0.6)'
             }}
           />
         )}
@@ -285,68 +276,44 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
           <>
             <button
               onClick={goToPrevious}
+              className="btn-icon"
               style={{
                 position: 'absolute',
-                left: window.innerWidth < 768 ? '10px' : '-60px',
+                left: window.innerWidth < 768 ? '10px' : '-72px',
                 top: '50%',
                 transform: 'translateY(-50%)',
                 width: '50px',
                 height: '50px',
-                borderRadius: '50%',
-                border: 'none',
-                backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                color: 'white',
-                fontSize: '20px',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                color: 'rgba(255,255,255,0.95)',
+                background: 'rgba(255, 255, 255, 0.10)',
+                borderColor: 'rgba(255,255,255,0.18)',
                 zIndex: 1002
               }}
-              onMouseOver={(e) => {
-                e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.8)'
-                e.target.style.transform = 'translateY(-50%) scale(1.1)'
-              }}
-              onMouseOut={(e) => {
-                e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.5)'
-                e.target.style.transform = 'translateY(-50%) scale(1)'
-              }}
             >
-              ‹
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
             </button>
-            
+
             <button
               onClick={goToNext}
+              className="btn-icon"
               style={{
                 position: 'absolute',
-                right: window.innerWidth < 768 ? '10px' : '-60px',
+                right: window.innerWidth < 768 ? '10px' : '-72px',
                 top: '50%',
                 transform: 'translateY(-50%)',
                 width: '50px',
                 height: '50px',
-                borderRadius: '50%',
-                border: 'none',
-                backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                color: 'white',
-                fontSize: '20px',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                color: 'rgba(255,255,255,0.95)',
+                background: 'rgba(255, 255, 255, 0.10)',
+                borderColor: 'rgba(255,255,255,0.18)',
                 zIndex: 1002
               }}
-              onMouseOver={(e) => {
-                e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.8)'
-                e.target.style.transform = 'translateY(-50%) scale(1.1)'
-              }}
-              onMouseOut={(e) => {
-                e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.5)'
-                e.target.style.transform = 'translateY(-50%) scale(1)'
-              }}
             >
-              ›
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
             </button>
           </>
         )}
@@ -354,25 +321,29 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
 
       {/* Memory info */}
       {(currentMemory.title || getCleanDescription(currentMemory)) && (
-        <div style={{
-          position: 'absolute',
-          bottom: '40px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          backgroundColor: 'rgba(0, 0, 0, 0.7)',
-          color: 'white',
-          padding: '16px 24px',
-          borderRadius: '12px',
-          maxWidth: '80vw',
-          textAlign: 'center'
-        }}>
+        <div
+          className="glass-strong"
+          style={{
+            position: 'absolute',
+            bottom: '40px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            color: '#fff',
+            padding: '14px 22px',
+            borderRadius: '20px',
+            maxWidth: '80vw',
+            textAlign: 'center',
+            background: 'rgba(20, 20, 24, 0.55)',
+            border: '1px solid rgba(255,255,255,0.14)'
+          }}
+        >
           {currentMemory.title && (
-            <h3 style={{ margin: 0, marginBottom: '8px', fontSize: '18px' }}>
+            <h3 style={{ margin: 0, marginBottom: '6px', fontSize: '17px', fontWeight: 600, letterSpacing: '-0.01em' }}>
               {currentMemory.title}
             </h3>
           )}
           {getCleanDescription(currentMemory) && (
-            <p style={{ margin: 0, fontSize: '14px', opacity: 0.9 }}>
+            <p style={{ margin: 0, fontSize: '14px', opacity: 0.85, lineHeight: 1.5 }}>
               {getCleanDescription(currentMemory)}
             </p>
           )}
@@ -385,46 +356,45 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
           e.stopPropagation()
           setIsPlaying(!isPlaying)
         }}
+        className="btn-icon"
         style={{
           position: 'absolute',
           bottom: '20px',
           right: '20px',
           width: '50px',
           height: '50px',
-          borderRadius: '50%',
-          border: 'none',
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          color: 'white',
-          fontSize: '20px',
-          cursor: 'pointer',
-          transition: 'all 0.2s',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}
-        onMouseOver={(e) => {
-          e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.8)'
-          e.target.style.transform = 'scale(1.1)'
-        }}
-        onMouseOut={(e) => {
-          e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.5)'
-          e.target.style.transform = 'scale(1)'
+          color: 'rgba(255,255,255,0.95)',
+          background: 'rgba(255, 255, 255, 0.10)',
+          borderColor: 'rgba(255,255,255,0.18)'
         }}
       >
-        {isPlaying ? '⏸' : '▶'}
+        {isPlaying ? (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <rect x="6" y="5" width="4" height="14" rx="1" />
+            <rect x="14" y="5" width="4" height="14" rx="1" />
+          </svg>
+        ) : (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="6 4 20 12 6 20 6 4" />
+          </svg>
+        )}
       </button>
 
       {/* Counter */}
-      <div style={{
-        position: 'absolute',
-        bottom: '20px',
-        left: '20px',
-        color: 'white',
-        fontSize: '14px',
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        padding: '8px 12px',
-        borderRadius: '20px'
-      }}>
+      <div
+        className="glass-pill nums"
+        style={{
+          position: 'absolute',
+          bottom: '20px',
+          left: '20px',
+          color: '#fff',
+          fontSize: '13px',
+          fontWeight: 500,
+          padding: '8px 14px',
+          background: 'rgba(255, 255, 255, 0.10)',
+          border: '1px solid rgba(255,255,255,0.18)'
+        }}
+      >
         {currentIndex + 1} / {memories.length}
       </div>
     </div>

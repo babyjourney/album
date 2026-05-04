@@ -1,356 +1,350 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
-import { getSession, isAuthenticated, isEditor, authenticatedFetch } from '../lib/pinAuth'
+import { getSession, isAuthenticated, isEditor, authenticatedFetch, clearSession } from '../lib/pinAuth'
 import { supabase } from '../lib/supabaseClient'
-import HeaderIsland from '../components/HeaderIsland'
-import InstagramFeed from '../components/InstagramFeed'
+import { useChildren } from '../lib/useChildren'
+
+import FloatingDock from '../components/layout/FloatingDock'
+import VerticalRail from '../components/layout/VerticalRail'
+import ActionCluster from '../components/layout/ActionCluster'
+import SettingsDrawer from '../components/layout/SettingsDrawer'
+import FilterDrawer from '../components/layout/FilterDrawer'
+import SideSheet from '../components/layout/SideSheet'
+import BentoMasonry from '../components/layout/BentoMasonry'
+
 import PostModal from '../components/PostModal'
 import UploadForm from '../components/UploadForm'
 import CreatePost from '../components/CreatePost'
-import Header from '../components/Header'
 import ProfilePictureModal from '../components/ProfilePictureModal'
-import ChildrenFilter from '../components/ChildrenFilter'
-import SidebarFilter from '../components/SidebarFilter'
-import FloatingSlideshowButton from '../components/FloatingSlideshowButton'
-
-// Add CSS animations for the modal
-const modalStyles = `
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-
-  @keyframes modalSlideUp {
-    from { 
-      opacity: 0;
-      transform: translateY(30px) scale(0.95);
-    }
-    to { 
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-  }
-
-  @keyframes slideUpFromBottom {
-    from { 
-      transform: translateY(100%);
-    }
-    to { 
-      transform: translateY(0);
-    }
-  }
-
-  @keyframes fadeInScale {
-    from { 
-      opacity: 0;
-      transform: scale(0.8);
-    }
-    to { 
-      opacity: 1;
-      transform: scale(1);
-    }
-  }
-
-  @keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-5px); }
-    75% { transform: translateX(5px); }
-  }
-
-  @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
-`
+import MemorySlideshow from '../components/MemorySlideshow'
 
 export default function Dashboard() {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
-  const [showUploadForm, setShowUploadForm] = useState(false)
-  const [showTextPost, setShowTextPost] = useState(false)
+
   const [searchQuery, setSearchQuery] = useState('')
+  const [filters, setFilters] = useState({ date: '', category: 'all', hashtag: '', sort: 'newest' })
+  const [selectedChildId, setSelectedChildId] = useState(null)
+  const [postCount, setPostCount] = useState(0)
+  const [albumTitle, setAlbumTitle] = useState('Family Album')
+  const [familyProfilePicture, setFamilyProfilePicture] = useState('')
+
+  // Drawers
+  const [showSettings, setShowSettings] = useState(false)
+  const [showFilters, setShowFilters] = useState(false)
+  const [showSearch, setShowSearch] = useState(false)
+  const [showUpload, setShowUpload] = useState(false)
+  const [showTextPost, setShowTextPost] = useState(false)
+  const [showProfilePicture, setShowProfilePicture] = useState(false)
+  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false)
+
+  // Modal
   const [selectedPost, setSelectedPost] = useState(null)
   const [allPosts, setAllPosts] = useState([])
   const [currentPostIndex, setCurrentPostIndex] = useState(0)
-  const [postCount, setPostCount] = useState(0)
-  const [showProfilePicture, setShowProfilePicture] = useState(false)
-  const [showFilters, setShowFilters] = useState(false)
-  const [selectedChildId, setSelectedChildId] = useState(null)
-  const [filters, setFilters] = useState({
-    date: '',
-    category: 'all',
-    hashtag: '',
-    sort: 'newest'
-  })
-  const [isMobile, setIsMobile] = useState(false)
-  const [albumTitle, setAlbumTitle] = useState('Family Album')
-  const [familyProfilePicture, setFamilyProfilePicture] = useState('')
-  const router = useRouter()
 
-  useEffect(() => {
-    checkAuth()
-    
-    // Check mobile on mount and resize
-    const checkMobile = () => setIsMobile(window.innerWidth <= 768)
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
-  }, [])
+  // Slideshow
+  const [showSlideshow, setShowSlideshow] = useState(false)
+  const [slideshowMemories, setSlideshowMemories] = useState([])
+  const [slideshowLoading, setSlideshowLoading] = useState(false)
+
+  const router = useRouter()
+  const { children, isMultiChild } = useChildren(session?.familyId)
+
+  useEffect(() => { checkAuth() }, [])
 
   const checkAuth = async () => {
-    if (!isAuthenticated()) {
-      router.push('/login')
-      return
-    }
-
+    if (!isAuthenticated()) { router.push('/login'); return }
     const userSession = getSession()
     setSession(userSession)
-    
-    // Set loading to false immediately to show the interface
     setLoading(false)
-    
-    // Fetch album title and family profile picture in parallel with caching
-    if (userSession?.familyId) {
-      const familyId = userSession.familyId
-      
-      // Check cache first
-      const cachedTitle = sessionStorage.getItem(`albumTitle_${familyId}`)
-      const cachedPicture = sessionStorage.getItem(`familyPicture_${familyId}`)
-      
-      if (cachedTitle) {
-        setAlbumTitle(cachedTitle)
-      }
-      if (cachedPicture) {
-        setFamilyProfilePicture(cachedPicture)
-      }
-      
-      // Only fetch if not cached or cache is old (5 minutes)
-      const titleCacheTime = sessionStorage.getItem(`albumTitle_${familyId}_time`)
-      const pictureCacheTime = sessionStorage.getItem(`familyPicture_${familyId}_time`)
-      const now = Date.now()
-      const cacheAge = 5 * 60 * 1000 // 5 minutes
-      
-      const promises = []
-      
-      if (!cachedTitle || !titleCacheTime || (now - titleCacheTime) > cacheAge) {
-        const albumTitlePromise = fetch(`/api/album-settings/get-title?familyId=${familyId}`)
-          .then(response => response.json())
-          .then(result => {
-            if (result.title) {
-              setAlbumTitle(result.title)
-              sessionStorage.setItem(`albumTitle_${familyId}`, result.title)
-              sessionStorage.setItem(`albumTitle_${familyId}_time`, now.toString())
-            }
-          })
-          .catch(error => console.error('Error fetching album title:', error))
-        promises.push(albumTitlePromise)
-      }
-      
-      if (!cachedPicture || !pictureCacheTime || (now - pictureCacheTime) > cacheAge) {
-        const familyPicturePromise = supabase
-          .from('families')
-          .select('profile_picture_url')
-          .eq('id', familyId)
-          .single()
-          .then(({ data, error }) => {
-            if (!error && data?.profile_picture_url) {
-              setFamilyProfilePicture(data.profile_picture_url)
-              sessionStorage.setItem(`familyPicture_${familyId}`, data.profile_picture_url)
-              sessionStorage.setItem(`familyPicture_${familyId}_time`, now.toString())
-            }
-          })
-          .catch(error => console.error('Error fetching family profile picture:', error))
-        promises.push(familyPicturePromise)
-      }
-      
-      // Execute any needed requests in parallel
-      if (promises.length > 0) {
-        Promise.all(promises)
-      }
+
+    if (!userSession?.familyId) return
+    const familyId = userSession.familyId
+
+    const cachedTitle   = sessionStorage.getItem(`albumTitle_${familyId}`)
+    const cachedPicture = sessionStorage.getItem(`familyPicture_${familyId}`)
+    if (cachedTitle)   setAlbumTitle(cachedTitle)
+    if (cachedPicture) setFamilyProfilePicture(cachedPicture)
+
+    const titleAge = sessionStorage.getItem(`albumTitle_${familyId}_time`)
+    const picAge   = sessionStorage.getItem(`familyPicture_${familyId}_time`)
+    const now = Date.now()
+    const cacheAge = 5 * 60 * 1000
+
+    if (!cachedTitle || !titleAge || (now - titleAge) > cacheAge) {
+      fetch(`/api/album-settings/get-title?familyId=${familyId}`)
+        .then(r => r.json()).then(({ title }) => {
+          if (title) {
+            setAlbumTitle(title)
+            sessionStorage.setItem(`albumTitle_${familyId}`, title)
+            sessionStorage.setItem(`albumTitle_${familyId}_time`, now.toString())
+          }
+        }).catch(() => {})
+    }
+    if (!cachedPicture || !picAge || (now - picAge) > cacheAge) {
+      supabase.from('families').select('profile_picture_url').eq('id', familyId).single()
+        .then(({ data, error }) => {
+          if (!error && data?.profile_picture_url) {
+            setFamilyProfilePicture(data.profile_picture_url)
+            sessionStorage.setItem(`familyPicture_${familyId}`, data.profile_picture_url)
+            sessionStorage.setItem(`familyPicture_${familyId}_time`, now.toString())
+          }
+        }).catch(() => {})
     }
   }
 
-  const handleUploadSuccess = () => {
-    setRefreshTrigger(prev => prev + 1)
-    setShowUploadForm(false)
-  }
-
-  const handlePostSuccess = () => {
-    setRefreshTrigger(prev => prev + 1)
-    setShowTextPost(false)
-  }
-
+  const handleUploadSuccess = () => { setRefreshTrigger(p => p + 1); setShowUpload(false) }
+  const handlePostSuccess   = () => { setRefreshTrigger(p => p + 1); setShowTextPost(false) }
 
   const handlePostClick = (post, posts, index) => {
-    setSelectedPost(post)
-    setAllPosts(posts)
-    setCurrentPostIndex(index)
+    setSelectedPost(post); setAllPosts(posts); setCurrentPostIndex(index)
   }
-
-  const handleModalClose = () => {
-    setSelectedPost(null)
-    setAllPosts([])
-    setCurrentPostIndex(0)
-  }
-
+  const handleModalClose = () => { setSelectedPost(null); setAllPosts([]); setCurrentPostIndex(0) }
   const handlePostDelete = (postId) => {
-    setRefreshTrigger(prev => prev + 1)
-    // Remove the deleted post from allPosts
-    const updatedPosts = allPosts.filter(post => post.id !== postId)
-    setAllPosts(updatedPosts)
+    setRefreshTrigger(p => p + 1)
+    setAllPosts(prev => prev.filter(p => p.id !== postId))
   }
-
   const handlePostUpdate = (updatedPost) => {
-    // Update the post in allPosts array
-    setAllPosts(prevPosts => 
-      prevPosts.map(post => 
-        post.id === updatedPost.id ? updatedPost : post
-      )
-    )
-    // Update the selected post
+    setAllPosts(prev => prev.map(p => p.id === updatedPost.id ? updatedPost : p))
     setSelectedPost(updatedPost)
-    // Trigger refresh to update the main feed
-    setRefreshTrigger(prev => prev + 1)
+    setRefreshTrigger(p => p + 1)
   }
-
-  const handleModalNavigate = (post, index) => {
-    setSelectedPost(post)
-    setCurrentPostIndex(index)
-  }
+  const handleModalNavigate = (post, index) => { setSelectedPost(post); setCurrentPostIndex(index) }
 
   const handleHashtagClick = (hashtag) => {
-    // Clear search query and set hashtag filter
     setSearchQuery('')
-    setFilters(prev => ({
-      ...prev,
-      hashtag: hashtag
-    }))
-    setSelectedPost(null) // Close modal if open
+    setFilters(prev => ({ ...prev, hashtag }))
+    setSelectedPost(null)
   }
 
-  const handleSearchChange = (query) => {
-    setSearchQuery(query)
-    // Reset filters when user starts typing in search
-    if (query.trim()) {
-      setFilters({
-        date: '',
-        category: 'all',
-        hashtag: '',
-        sort: 'newest'
-      })
-      setSelectedChildId(null) // Also reset child filter
+  const handleSearchChange = (q) => {
+    setSearchQuery(q)
+    if (q.trim()) {
+      setFilters({ date: '', category: 'all', hashtag: '', sort: 'newest' })
+      setSelectedChildId(null)
     }
   }
 
   const handleChildFilterChange = (childId) => {
     setSelectedChildId(childId)
-    // Clear search when filtering by child
-    if (childId) {
-      setSearchQuery('')
-    }
+    if (childId) setSearchQuery('')
   }
 
+  const confirmSignOut = () => {
+    clearSession()
+    router.push('/login')
+  }
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600"></div>
+      <div style={{
+        minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexDirection: 'column', gap: 16,
+      }}>
+        <div style={{
+          width: 56, height: 56, borderRadius: '50%',
+          border: '3px solid var(--glass-hairline)',
+          borderTopColor: 'var(--accent-iris)',
+          animation: 'spin 0.9s linear infinite',
+          boxShadow: '0 8px 24px -6px rgba(124,58,237,0.30)',
+        }} />
+        <div className="text-eyebrow" style={{ color: 'var(--ink-3)' }}>
+          Se încarcă albumul…
+        </div>
       </div>
     )
   }
 
-  if (!session) {
-    return null
-  }
+  if (!session) return null
 
   const hasEditorAccess = isEditor()
 
+  const railChildren = isMultiChild ? children : []
+  const actionItems = []
+  if (hasEditorAccess) {
+    actionItems.push({
+      tone: 'aqua',
+      label: 'New text post',
+      onClick: () => setShowTextPost(true),
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="9"  y1="13" x2="15" y2="13"/>
+          <line x1="9"  y1="17" x2="15" y2="17"/>
+        </svg>
+      ),
+    })
+  }
+  const handleOpenSlideshow = async () => {
+    if (!session?.familyId || slideshowLoading) return
+    setSlideshowLoading(true)
+    try {
+      const res = await fetch(`/api/photos/list?familyId=${session.familyId}&sort=newest`)
+      const json = await res.json()
+      if (res.ok && json.photos) {
+        const media = json.photos.filter(p => p.type !== 'text' && (p.fileUrl || p.file_url))
+        if (media.length > 0) {
+          setSlideshowMemories(media)
+          setShowSlideshow(true)
+        }
+      }
+    } catch (e) { console.error('Slideshow fetch error:', e) }
+    finally { setSlideshowLoading(false) }
+  }
+
+  // Slideshow always available
+  actionItems.push({
+    tone: 'peach',
+    label: 'Slideshow',
+    onClick: handleOpenSlideshow,
+    icon: slideshowLoading ? (
+      <div style={{ width: 16, height: 16, border: '2px solid var(--glass-hairline-strong)', borderTopColor: 'var(--accent-peach)', borderRadius: '50%', animation: 'spin 0.9s linear infinite' }} />
+    ) : (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+        <polygon points="5 3 19 12 5 21 5 3"/>
+      </svg>
+    ),
+  })
+
+  // Upload as primary (last so it's the rightmost in the dock)
+  if (hasEditorAccess) {
+    actionItems.push({
+      tone: 'iris',
+      label: 'Upload',
+      primary: true,
+      onClick: () => setShowUpload(true),
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 5v14"/>
+          <path d="M5 12h14"/>
+        </svg>
+      ),
+    })
+  }
+
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-gray)' }}>
-      {/* Add modal styles */}
-      <style jsx global>{modalStyles}</style>
-      
-      {/* Navbar */}
-      <Header 
-        familyName={session.familyName} 
-        role={session.role}
+    <div style={{ minHeight: '100vh', position: 'relative' }}>
+      {/* Top center: floating dock */}
+      <FloatingDock
         albumTitle={albumTitle}
+        onSearch={() => setShowFilters(true)}
+        onSettings={() => setShowSettings(true)}
+        onSignOut={() => setShowSignOutConfirm(true)}
       />
-      
-      {/* Header Island with Create Post */}
-      <HeaderIsland
-        childName={session.familyName}
-        albumTitle={albumTitle}
-        postCount={postCount}
-        childImage={familyProfilePicture || "/api/placeholder/80/80"}
-        onCreatePost={async (postData) => {
-          // Handle text post creation directly from header
-          const response = await authenticatedFetch('/api/posts/create', {
-            method: 'POST',
-            body: JSON.stringify({
-              type: 'text',
-              title: '',
-              description: postData.text,
-              fileUrl: null,
-              category: postData.category,
-              hashtags: postData.hashtags
-            })
-          })
-          
-          if (!response.ok) {
-            throw new Error('Crearea postării a eșuat')
-          }
-          
-          setRefreshTrigger(prev => prev + 1)
-        }}
-        onPhotoUpload={() => setShowUploadForm(true)}
-        onVideoUpload={() => setShowUploadForm(true)}
-        onProfilePictureClick={() => setShowProfilePicture(true)}
-        hasEditorAccess={hasEditorAccess}
+
+      {/* Left: vertical rail (desktop only) */}
+      <VerticalRail
+        selectedId={selectedChildId}
+        onSelect={handleChildFilterChange}
+        onFilters={() => setShowFilters(true)}
+        onSearch={handleSearchChange}
         searchQuery={searchQuery}
-        onSearchChange={handleSearchChange}
+        children={railChildren}
       />
 
-      {/* Sidebar Filter - Desktop only */}
-      <SidebarFilter
-        searchQuery={searchQuery}
-        onSearchChange={handleSearchChange}
-        filters={filters}
-        onFiltersChange={setFilters}
-        selectedChildId={selectedChildId}
-        onChildFilterChange={handleChildFilterChange}
-        onCategoryAdded={() => setRefreshTrigger(prev => prev + 1)}
-      />
+      {/* Bottom right: action cluster */}
+      <ActionCluster items={actionItems} />
 
-      {/* Children Filter */}
-      <ChildrenFilter
-        familyId={session?.familyId}
-        isVisible={true} // Always visible if multi-child is enabled
-        selectedChildId={selectedChildId}
-        onChildFilterChange={handleChildFilterChange}
-      />
-
-      {/* Main Feed */}
-      <main style={{ 
-        paddingBottom: '32px',
-        // Sidebar floats over content on desktop, no layout adjustment needed
+      {/* Main content */}
+      <main style={{
         position: 'relative',
-        zIndex: 1
+        zIndex: 1,
+        paddingTop: 'max(96px, calc(env(safe-area-inset-top) + 80px))',
+        paddingLeft: 'max(20px, env(safe-area-inset-left))',
+        paddingRight: 'max(20px, env(safe-area-inset-right))',
+        paddingBottom: 'max(120px, env(safe-area-inset-bottom))',
+        maxWidth: 1480,
+        margin: '0 auto',
       }}>
-        <InstagramFeed
+        {/* Hero greeting */}
+        <header style={{ marginBottom: 32 }}>
+          <p className="text-eyebrow" style={{ color: 'var(--accent-iris)', marginBottom: 10 }}>
+            Family memories
+          </p>
+          <h1 className="text-display" style={{ fontSize: 'clamp(36px, 6vw, 64px)', marginBottom: 8 }}>
+            {albumTitle}
+          </h1>
+          <p className="text-body" style={{ color: 'var(--ink-2)', fontSize: 16 }}>
+            <span className="nums">{postCount}</span> {postCount === 1 ? 'amintire' : 'amintiri'}
+            <span style={{ margin: '0 8px', opacity: 0.4 }}>·</span>
+            <span style={{
+              background: 'linear-gradient(90deg, #7c3aed, #06b6d4)',
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text', fontWeight: 600,
+            }}>
+              Crește în fiecare zi
+            </span>
+          </p>
+        </header>
+
+        {/* Children pill row on mobile (since rail is hidden) */}
+        {isMultiChild && children.length > 0 && (
+          <div className="mobile-children-row" style={{
+            display: 'none',
+            gap: 8, marginBottom: 22,
+            overflowX: 'auto', WebkitOverflowScrolling: 'touch',
+            scrollbarWidth: 'none', msOverflowStyle: 'none',
+            paddingBottom: 4,
+          }}>
+            <button
+              onClick={() => handleChildFilterChange(null)}
+              className={!selectedChildId ? 'category-pill category-pill--selected' : 'category-pill'}
+              style={{ flexShrink: 0 }}
+            >
+              👶 Toate
+            </button>
+            {children.map((c) => (
+              <button
+                key={c.id}
+                onClick={() => handleChildFilterChange(c.id)}
+                className={selectedChildId === c.id ? 'category-pill category-pill--selected' : 'category-pill'}
+                style={{ flexShrink: 0 }}
+              >
+                {c.name}
+              </button>
+            ))}
+            <style jsx>{`
+              @media (max-width: 900px) {
+                .mobile-children-row { display: flex !important; }
+              }
+              .mobile-children-row::-webkit-scrollbar { display: none; }
+            `}</style>
+          </div>
+        )}
+
+        <BentoMasonry
           familyId={session.familyId}
           searchQuery={searchQuery}
           refreshTrigger={refreshTrigger}
           onPostClick={handlePostClick}
-          onPostCountUpdate={(count) => setPostCount(count)}
+          onPostCountUpdate={setPostCount}
           onHashtagClick={handleHashtagClick}
           filters={filters}
           selectedChildId={selectedChildId}
         />
       </main>
 
-      {/* Modals */}
+      {/* Drawers */}
+      <SettingsDrawer
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        onProfilePicture={() => { setShowSettings(false); setShowProfilePicture(true) }}
+        onSignOut={() => { setShowSettings(false); setShowSignOutConfirm(true) }}
+      />
+
+      <FilterDrawer
+        isOpen={showFilters}
+        onClose={() => setShowFilters(false)}
+        filters={filters}
+        onFiltersChange={setFilters}
+        searchQuery={searchQuery}
+        onSearchChange={handleSearchChange}
+      />
+
+      {/* Post detail */}
       {selectedPost && (
         <PostModal
           selectedPost={selectedPost}
@@ -365,171 +359,126 @@ export default function Dashboard() {
         />
       )}
 
-      {/* Enhanced Upload Modal */}
-      {hasEditorAccess && showUploadForm && (
-        <div 
-          className="upload-modal-overlay"
-          onClick={(e) => {
-            e.stopPropagation()
-            setShowUploadForm(false)
-          }}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0, 0, 0, 0.8)',
-            backdropFilter: 'blur(8px)',
-            zIndex: 1000,
-            display: 'flex',
-            alignItems: isMobile ? 'stretch' : 'center',
-            justifyContent: 'center',
-            padding: isMobile ? '0' : '20px',
-            animation: 'fadeIn 0.3s ease-out'
-          }}
-        >
-          <div 
-            className="upload-modal-container" 
+      {/* Upload — centered modal (it has a 2-col grid that needs room) */}
+      {hasEditorAccess && showUpload && (
+        <div className="modal-scrim" style={{ zIndex: 1000 }} onClick={() => setShowUpload(false)}>
+          <div
+            className="modal-glass upload-modal-content"
             onClick={(e) => e.stopPropagation()}
-            style={{ 
-              width: '100%',
-              maxWidth: isMobile ? '100%' : '900px',
-              height: isMobile ? '100%' : 'auto',
-              maxHeight: isMobile ? '100%' : '80vh',
-              background: 'white',
-              borderRadius: isMobile ? '0' : '12px',
-              boxShadow: isMobile 
-                ? 'none' 
-                : '0 10px 25px rgba(0, 0, 0, 0.1)',
-              position: 'relative',
-              display: 'flex',
-              flexDirection: 'column',
-              animation: isMobile 
-                ? 'slideUpFromBottom 0.3s ease-out'
-                : 'modalSlideUp 0.3s ease-out'
-            }}
+            style={{ width: '100%', maxWidth: 920, maxHeight: '92vh', position: 'relative' }}
           >
             <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                // Use setTimeout to ensure the modal closes after all events have processed
-                setTimeout(() => {
-                  setShowUploadForm(false);
-                }, 10);
-              }}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-              }}
-              onTouchStart={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-              }}
+              onClick={() => setShowUpload(false)}
+              className="btn-icon"
+              aria-label="Close"
               style={{
-                position: 'absolute',
-                top: isMobile ? '16px' : '20px',
-                right: isMobile ? '16px' : '20px',
-                zIndex: 10001,
-                width: isMobile ? '36px' : '44px',
-                height: isMobile ? '36px' : '44px',
-                backgroundColor: isMobile ? 'rgba(0, 0, 0, 0.08)' : 'rgba(0, 0, 0, 0.06)',
-                border: 'none',
-                cursor: 'pointer',
-                color: 'var(--text-secondary)',
-                borderRadius: isMobile ? '10px' : '12px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-                fontSize: isMobile ? '14px' : '16px',
-                fontWeight: '700',
-                backdropFilter: 'blur(20px)'
-              }}
-              onMouseOver={(e) => {
-                e.target.style.backgroundColor = 'rgba(239, 68, 68, 0.15)'
-                e.target.style.color = '#EF4444'
-                e.target.style.transform = 'scale(1.1) rotate(90deg)'
-                e.target.style.boxShadow = '0 8px 20px rgba(239, 68, 68, 0.25)'
-              }}
-              onMouseOut={(e) => {
-                e.target.style.backgroundColor = isMobile ? 'rgba(0, 0, 0, 0.08)' : 'rgba(0, 0, 0, 0.06)'
-                e.target.style.color = 'var(--text-secondary)'
-                e.target.style.transform = 'scale(1) rotate(0deg)'
-                e.target.style.boxShadow = 'none'
+                position: 'absolute', top: 14, right: 14, zIndex: 10001,
+                width: 40, height: 40,
               }}
             >
-              ✕
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6"  y1="6" x2="18" y2="18"/>
+              </svg>
             </button>
-            <UploadForm 
-              familyId={session.familyId} 
+            <UploadForm
+              familyId={session.familyId}
               onUploadSuccess={handleUploadSuccess}
-              onClose={() => setShowUploadForm(false)}
+              onClose={() => setShowUpload(false)}
               refreshTrigger={refreshTrigger}
             />
           </div>
         </div>
       )}
 
-      {/* Text Post Modal */}
+      {/* Text post — centered modal */}
       {hasEditorAccess && showTextPost && (
-        <div className="modal-overlay">
-          <div className="modal-content animate-fade-in" style={{ maxWidth: '500px', width: '100%' }}>
+        <div className="modal-scrim" style={{ zIndex: 1000 }} onClick={() => setShowTextPost(false)}>
+          <div
+            className="modal-glass"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: 560, width: '100%', position: 'relative' }}
+          >
             <button
               onClick={() => setShowTextPost(false)}
-              style={{
-                position: 'absolute',
-                top: '16px',
-                right: '16px',
-                zIndex: 10,
-                padding: '8px',
-                backgroundColor: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                color: 'var(--text-secondary)',
-                borderRadius: '10px'
-              }}
-              onMouseOver={(e) => {
-                e.target.style.backgroundColor = 'var(--bg-gray)'
-                e.target.style.color = 'var(--accent-red)'
-              }}
-              onMouseOut={(e) => {
-                e.target.style.backgroundColor = 'transparent'
-                e.target.style.color = 'var(--text-secondary)'
-              }}
+              className="btn-icon"
+              aria-label="Close"
+              style={{ position: 'absolute', top: 14, right: 14, zIndex: 10, width: 40, height: 40 }}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="m18 6-12 12"/>
-                <path d="m6 6 12 12"/>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6"  y1="6" x2="18" y2="18"/>
               </svg>
             </button>
             <CreatePost
               familyId={session.familyId}
               onPostSuccess={handlePostSuccess}
-              onPhotoClick={() => {
-                setShowTextPost(false)
-                setShowUploadForm(true)
-              }}
-              onVideoClick={() => {
-                setShowTextPost(false)
-                setShowUploadForm(true)
-              }}
+              onPhotoClick={() => { setShowTextPost(false); setShowUpload(true) }}
+              onVideoClick={() => { setShowTextPost(false); setShowUpload(true) }}
             />
           </div>
         </div>
       )}
 
-      {/* Profile Picture Modal */}
+      {/* Profile picture */}
       <ProfilePictureModal
         isOpen={showProfilePicture}
         onClose={() => setShowProfilePicture(false)}
         childName={session?.familyName}
-        childImage={familyProfilePicture || "/api/placeholder/80/80"}
+        childImage={familyProfilePicture || '/api/placeholder/80/80'}
       />
 
-      {/* Floating Slideshow Button */}
-      <FloatingSlideshowButton
-        familyId={session?.familyId}
+      {/* Slideshow */}
+      <MemorySlideshow
+        isOpen={showSlideshow}
+        onClose={() => setShowSlideshow(false)}
+        memories={slideshowMemories}
       />
-      
+
+      {/* Sign out confirmation */}
+      {showSignOutConfirm && (
+        <div className="modal-scrim" style={{ zIndex: 10000 }} onClick={() => setShowSignOutConfirm(false)}>
+          <div className="modal-glass" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 380, padding: 28, textAlign: 'center' }}>
+            <div style={{
+              width: 56, height: 56, margin: '0 auto 14px',
+              borderRadius: 18,
+              background: 'linear-gradient(135deg, #fde68a, #f59e0b)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 8px 24px -6px rgba(245,158,11,0.45), inset 0 1px 0 0 rgba(255,255,255,0.45)',
+              border: '1px solid rgba(255,255,255,0.30)',
+            }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                <polyline points="16 17 21 12 16 7"/>
+                <line x1="21" y1="12" x2="9" y2="12"/>
+              </svg>
+            </div>
+            <h3 className="text-section-title" style={{ fontSize: 18, marginBottom: 6 }}>Ieși din album?</h3>
+            <p style={{ fontSize: 13.5, color: 'var(--ink-2)', lineHeight: 1.55, marginBottom: 20 }}>
+              Va trebui să te autentifici din nou cu PIN-ul.
+            </p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => setShowSignOutConfirm(false)} className="btn-glass" style={{ flex: 1 }}>
+                Rămân
+              </button>
+              <button
+                onClick={confirmSignOut}
+                className="sheen"
+                style={{
+                  flex: 1, padding: '12px 16px',
+                  background: 'linear-gradient(135deg, #f87171, #dc2626)',
+                  color: '#fff', border: '1px solid rgba(255,255,255,0.18)',
+                  borderRadius: 14, fontSize: 14, fontWeight: 600,
+                  cursor: 'pointer',
+                  boxShadow: '0 8px 20px -6px rgba(220,38,38,0.45), inset 0 1px 0 0 rgba(255,255,255,0.30)',
+                }}
+              >
+                Ieși
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

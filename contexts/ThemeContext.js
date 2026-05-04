@@ -2,148 +2,71 @@ import React, { createContext, useContext, useState, useEffect } from 'react'
 
 const ThemeContext = createContext()
 
+// Liquid Glass theme registry. Each theme just toggles a data-theme attribute;
+// the heavy lifting (canvas color, aurora tints, glass tints, ink colors) lives
+// in styles/globals.css under [data-theme='...'] selectors.
 export const themes = {
   light: {
     name: 'light',
-    label: 'Светлая / Deschisă',
+    label: 'Lumină / Light',
     icon: '☀️',
-    colors: {
-      '--bg-primary': '#fafafa',
-      '--bg-secondary': '#ffffff',
-      '--bg-gray': '#f3f4f6',
-      '--text-primary': '#111827',
-      '--text-secondary': '#6b7280',
-      '--text-subtle': '#9ca3af',
-      '--border-light': '#e5e7eb',
-      '--border-primary': '#d1d5db',
-      '--accent-blue': '#3b82f6',
-      '--accent-blue-light': '#eff6ff',
-      '--accent-red': '#ef4444',
-      '--accent-green': '#10b981',
-      '--shadow-sm': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-      '--shadow-md': '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-      '--shadow-lg': '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-      '--overlay': 'rgba(0, 0, 0, 0.5)'
-    }
+    swatch: 'linear-gradient(135deg, #c4b5fd 0%, #7dd3fc 50%, #fda4af 100%)',
   },
   dark: {
     name: 'dark',
-    label: 'Темная / Întunecată',
+    label: 'Întuneric / Dark',
     icon: '🌙',
-    colors: {
-      '--bg-primary': '#393939',
-      '--bg-secondary': '#2d2d2d',
-      '--bg-gray': '#4a4a4a',
-      '--text-primary': '#ffffff',
-      '--text-secondary': '#d1d5db',
-      '--text-subtle': '#9ca3af',
-      '--border-light': '#525252',
-      '--border-primary': '#6b7280',
-      '--accent-blue': '#60a5fa',
-      '--accent-blue-light': 'rgba(96, 165, 250, 0.1)',
-      '--accent-red': '#f87171',
-      '--accent-green': '#34d399',
-      '--shadow-sm': '0 1px 2px 0 rgba(0, 0, 0, 0.3)',
-      '--shadow-md': '0 4px 6px -1px rgba(0, 0, 0, 0.4)',
-      '--shadow-lg': '0 10px 15px -3px rgba(0, 0, 0, 0.5)',
-      '--overlay': 'rgba(0, 0, 0, 0.7)'
-    }
+    swatch: 'linear-gradient(135deg, #4c1d95 0%, #0e7490 50%, #831843 100%)',
   },
   blue: {
     name: 'blue',
-    label: 'Голубая / Albастră',
+    label: 'Cer / Sky',
     icon: '💙',
-    colors: {
-      '--bg-primary': '#b0cbdc',
-      '--bg-secondary': '#ffffff',
-      '--bg-gray': '#e0eff7',
-      '--text-primary': '#1f2937',
-      '--text-secondary': '#6b7280',
-      '--text-subtle': '#9ca3af',
-      '--border-light': '#e5e7eb',
-      '--border-primary': '#d1d5db',
-      '--accent-blue': '#0369a1',
-      '--accent-blue-light': 'rgba(3, 105, 161, 0.1)',
-      '--accent-red': '#dc2626',
-      '--accent-green': '#059669',
-      '--shadow-sm': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-      '--shadow-md': '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-      '--shadow-lg': '0 10px 15px -3px rgba(0, 0, 0, 0.15)',
-      '--overlay': 'rgba(0, 0, 0, 0.5)'
-    }
+    swatch: 'linear-gradient(135deg, #38bdf8 0%, #6366f1 100%)',
   },
   pink: {
     name: 'pink',
-    label: 'Розовая / Roz',
+    label: 'Înflorit / Bloom',
     icon: '🌸',
-    colors: {
-      '--bg-primary': '#f5dbf1',
-      '--bg-secondary': '#ffffff',
-      '--bg-gray': '#f9e8f5',
-      '--text-primary': '#1f2937',
-      '--text-secondary': '#6b7280',
-      '--text-subtle': '#9ca3af',
-      '--border-light': '#e5e7eb',
-      '--border-primary': '#d1d5db',
-      '--accent-blue': '#7c3aed',
-      '--accent-blue-light': 'rgba(124, 58, 237, 0.1)',
-      '--accent-red': '#e11d48',
-      '--accent-green': '#059669',
-      '--shadow-sm': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-      '--shadow-md': '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-      '--shadow-lg': '0 10px 15px -3px rgba(0, 0, 0, 0.15)',
-      '--overlay': 'rgba(0, 0, 0, 0.5)'
-    }
-  }
+    swatch: 'linear-gradient(135deg, #fb7185 0%, #c4b5fd 100%)',
+  },
 }
 
 export function ThemeProvider({ children }) {
   const [currentTheme, setCurrentTheme] = useState('light')
 
-  // Load saved theme from localStorage on mount
   useEffect(() => {
-    const savedTheme = localStorage.getItem('album-theme')
-    if (savedTheme && themes[savedTheme]) {
-      setCurrentTheme(savedTheme)
-    }
+    const saved = typeof window !== 'undefined' && localStorage.getItem('album-theme')
+    if (saved && themes[saved]) setCurrentTheme(saved)
   }, [])
 
-  // Apply theme CSS variables when theme changes
   useEffect(() => {
-    const theme = themes[currentTheme]
-    if (theme && typeof document !== 'undefined') {
-      const root = document.documentElement
-      Object.entries(theme.colors).forEach(([property, value]) => {
-        root.style.setProperty(property, value)
-      })
+    if (typeof document === 'undefined') return
+    document.documentElement.setAttribute('data-theme', currentTheme)
+    // Update <meta name="theme-color"> for mobile browser chrome.
+    const meta = document.querySelector('meta[name="theme-color"]')
+    if (meta) {
+      const map = { light: '#f4f5fb', dark: '#07070d', blue: '#dde9f4', pink: '#faecf2' }
+      meta.setAttribute('content', map[currentTheme] || '#f4f5fb')
     }
   }, [currentTheme])
 
   const changeTheme = (themeName) => {
     if (themes[themeName]) {
       setCurrentTheme(themeName)
-      localStorage.setItem('album-theme', themeName)
+      if (typeof window !== 'undefined') localStorage.setItem('album-theme', themeName)
     }
   }
 
-  const value = {
-    currentTheme,
-    themes,
-    changeTheme,
-    themeData: themes[currentTheme]
-  }
-
   return (
-    <ThemeContext.Provider value={value}>
+    <ThemeContext.Provider value={{ currentTheme, themes, changeTheme, themeData: themes[currentTheme] }}>
       {children}
     </ThemeContext.Provider>
   )
 }
 
 export function useTheme() {
-  const context = useContext(ThemeContext)
-  if (!context) {
-    throw new Error('useTheme must be used within a ThemeProvider')
-  }
-  return context
+  const ctx = useContext(ThemeContext)
+  if (!ctx) throw new Error('useTheme must be used within a ThemeProvider')
+  return ctx
 }

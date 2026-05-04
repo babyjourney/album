@@ -29,10 +29,8 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
   const { t } = useLanguage()
   const modalRef = useRef(null)
 
-  // Handle click outside to close modal
   useOnClickOutside(modalRef, onClose)
 
-  // Load categories on mount and when refreshTrigger changes
   useEffect(() => {
     const loadCategories = async () => {
       try {
@@ -46,7 +44,6 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
     loadCategories()
   }, [refreshTrigger])
 
-  // Handle hashtag input
   const handleHashtagKeyDown = (e) => {
     if (e.key === ' ' && currentHashtagInput.trim()) {
       e.preventDefault()
@@ -60,20 +57,19 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
     }
   }
 
-  // Fetch children and album settings when component mounts
   useEffect(() => {
     const fetchChildrenData = async () => {
       try {
         const settingsResponse = await fetch(`/api/album-settings/get?familyId=${familyId}`)
         const settingsResult = await settingsResponse.json()
-        
+
         if (settingsResponse.ok) {
           setAlbumSettings(settingsResult.settings)
-          
+
           if (settingsResult.settings?.is_multi_child) {
             const childrenResponse = await fetch(`/api/children/list?familyId=${familyId}`)
             const childrenResult = await childrenResponse.json()
-            
+
             if (childrenResponse.ok) {
               setChildren(childrenResult.children)
             }
@@ -129,10 +125,10 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
     setLoading(true)
 
     for (const selectedFile of selectedFiles) {
-      const fileExists = processedFiles.some(existingFile => 
+      const fileExists = processedFiles.some(existingFile =>
         existingFile.name === selectedFile.name && existingFile.size === selectedFile.size
       )
-      
+
       if (fileExists) {
         console.log(`File ${selectedFile.name} already selected, skipping`)
         continue
@@ -168,7 +164,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
             initialQuality: 0.8,
             alwaysKeepResolution: false
           }
-          
+
           const compressedFile = await imageCompression(selectedFile, options)
           processedFiles.push(compressedFile)
         } else {
@@ -182,11 +178,11 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
 
     setFiles(processedFiles)
     setLoading(false)
-    
+
     if (coverIndex >= processedFiles.length) {
       setCoverIndex(0)
     }
-    
+
     const fileInput = document.getElementById('file-upload')
     if (fileInput) {
       fileInput.value = ''
@@ -195,12 +191,12 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    
+
     if (!title.trim()) {
       setError(t('title'))
       return
     }
-    
+
     if (files.length === 0) {
       setError(t('uploadPhotos'))
       return
@@ -211,7 +207,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
 
     try {
       const imageUrls = []
-      
+
       for (const [index, fileToUpload] of files.entries()) {
         const fileExt = fileToUpload.name.split('.').pop()
         const fileName = `${Date.now()}-${index}-${Math.random().toString(36).substring(2)}.${fileExt}`
@@ -252,7 +248,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
       })
 
       const result = await response.json()
-      
+
       if (!response.ok) {
         throw new Error(result.error || t('error'))
       }
@@ -273,7 +269,6 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
 
       const successMessage = t('success')
 
-      // Reset form
       setTitle('')
       setDescription('')
       setCategory('memories')
@@ -283,13 +278,13 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
       setCompressionInfo(null)
       setSelectedChildren([])
       setCoverIndex(0)
-      
+
       showSuccess(successMessage)
-      
+
       if (onUploadSuccess) {
         onUploadSuccess()
       }
-      
+
       const fileInput = document.getElementById('file-upload')
       if (fileInput) {
         fileInput.value = ''
@@ -307,138 +302,146 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
 
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768
 
+  const ease = 'cubic-bezier(0.22, 1, 0.36, 1)'
+  const transition = `all 220ms ${ease}`
+
   return (
-    <div ref={modalRef} style={{ 
-      display: 'flex', 
-      flexDirection: 'column', 
+    <div ref={modalRef} style={{
+      display: 'flex',
+      flexDirection: 'column',
       height: '100%',
       width: '100%',
-      background: isMobile 
-        ? 'var(--bg-gray)'
-        : 'var(--bg-secondary)'
+      background: 'transparent',
+      color: 'var(--ink-1)'
     }}>
-      {/* Header */}
       <div style={{
-        padding: isMobile ? '8px 16px' : '8px 16px',
-        borderBottom: '1px solid var(--border-light)',
+        padding: isMobile ? '14px 18px' : '18px 22px',
+        borderBottom: '1px solid var(--glass-hairline)',
         flexShrink: 0,
-        background: 'var(--bg-secondary)'
+        background: 'transparent'
       }}>
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: isMobile ? '10px' : '12px'
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: isMobile ? '12px' : '14px'
         }}>
           <div style={{
-            width: isMobile ? '32px' : '36px',
-            height: isMobile ? '32px' : '36px',
-            background: 'var(--accent-blue)',
-            borderRadius: isMobile ? '6px' : '8px',
+            width: isMobile ? '40px' : '44px',
+            height: isMobile ? '40px' : '44px',
+            background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 50%, #6d28d9 100%)',
+            borderRadius: '14px',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center'
+            justifyContent: 'center',
+            border: '1px solid rgba(255, 255, 255, 0.18)',
+            boxShadow: 'inset 0 1px 0 0 rgba(255, 255, 255, 0.35), 0 8px 24px -8px rgba(124, 58, 237, 0.55)'
           }}>
-            <svg width={isMobile ? "16" : "18"} height={isMobile ? "16" : "18"} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+            <svg width={isMobile ? "18" : "20"} height={isMobile ? "18" : "20"} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
               <polyline points="7,10 12,15 17,10"/>
               <line x1="12" x2="12" y1="15" y2="3"/>
             </svg>
           </div>
           <div>
-            <h1 style={{ 
-              margin: 0, 
-              fontSize: isMobile ? '14px' : '15px', 
-              fontWeight: '600',
-              color: 'var(--text-primary)'
-            }}>{t('createPost')}</h1>
-            <p style={{
-              margin: '1px 0 0 0',
-              fontSize: isMobile ? '11px' : '11px',
-              color: 'var(--text-secondary)'
-            }}>{t('sharePhotosMemories')}</p>
+            <h1 className="text-section-title" style={{ margin: 0 }}>
+              {t('createPost')}
+            </h1>
+            <p className="text-subtle" style={{ margin: '2px 0 0 0' }}>
+              {t('sharePhotosMemories')}
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Content */}
       <div style={{
         flex: 1,
         overflowY: 'auto',
-        padding: isMobile ? '10px 16px' : '10px 16px',
+        padding: isMobile ? '14px 18px' : '18px 22px',
         minHeight: 0,
-        background: 'var(--bg-gray)'
+        background: 'transparent'
       }}>
-        <div style={{
+        <div className="upload-form-grid" style={{
           display: isMobile ? 'flex' : 'grid',
           flexDirection: isMobile ? 'column' : 'initial',
-          gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
-          gap: isMobile ? '10px' : '16px',
+          gap: isMobile ? '12px' : '18px',
           maxWidth: isMobile ? '500px' : '100%',
           margin: '0 auto'
         }}>
-          
-          {/* File Upload Section */}
+
           <div>
-            <div style={{
-              background: 'var(--bg-secondary)',
-              borderRadius: isMobile ? '6px' : '8px',
-              padding: isMobile ? '10px' : '12px',
-              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-              border: '1px solid var(--border-light)'
+            <div className="card-glass" style={{
+              padding: isMobile ? '14px' : '16px',
+              borderRadius: isMobile ? '20px' : '22px'
             }}>
-              <h3 style={{
-                margin: '0 0 8px 0',
-                fontSize: isMobile ? '13px' : '14px',
-                fontWeight: '600',
-                color: 'var(--text-primary)'
+              <h3 className="text-eyebrow" style={{
+                margin: '0 0 12px 0'
               }}>
                 {t('uploadPhotosVideos')}
               </h3>
-              
-              {/* Drag & Drop Area */}
+
               <div
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
                 style={{
-                  border: `2px dashed ${dragOver ? 'var(--accent-blue)' : 'var(--border-primary)'}`,
-                  borderRadius: isMobile ? '8px' : '10px',
-                  padding: isMobile ? '16px 12px' : '20px 16px',
+                  border: `2px dashed ${dragOver ? 'var(--accent-iris)' : 'var(--glass-hairline-strong)'}`,
+                  borderRadius: isMobile ? '16px' : '18px',
+                  padding: isMobile ? '20px 14px' : '26px 18px',
                   textAlign: 'center',
-                  background: dragOver ? 'var(--accent-blue-light)' : 'var(--bg-gray)',
-                  transition: 'all 0.2s ease',
+                  background: dragOver ? 'rgba(124, 58, 237, 0.10)' : 'var(--glass-1)',
+                  backdropFilter: 'blur(12px)',
+                  WebkitBackdropFilter: 'blur(12px)',
+                  transition,
                   cursor: 'pointer',
-                  marginBottom: '12px'
+                  marginBottom: '14px',
+                  boxShadow: dragOver
+                    ? 'inset 0 1px 0 0 var(--glass-hairline-strong), 0 0 0 4px rgba(124, 58, 237, 0.18)'
+                    : 'inset 0 1px 0 0 var(--glass-hairline)'
                 }}
                 onClick={() => document.getElementById('file-upload').click()}
               >
                 <div style={{
-                  fontSize: isMobile ? '28px' : '32px',
-                  marginBottom: isMobile ? '6px' : '8px',
-                  opacity: dragOver ? 1 : 0.6
+                  width: isMobile ? '44px' : '52px',
+                  height: isMobile ? '44px' : '52px',
+                  margin: '0 auto',
+                  marginBottom: isMobile ? '10px' : '12px',
+                  borderRadius: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: dragOver
+                    ? 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 50%, #6d28d9 100%)'
+                    : 'var(--glass-2)',
+                  border: `1px solid ${dragOver ? 'rgba(255,255,255,0.18)' : 'var(--glass-hairline)'}`,
+                  color: dragOver ? '#fff' : 'var(--accent-iris)',
+                  transition,
+                  boxShadow: dragOver
+                    ? 'inset 0 1px 0 0 rgba(255, 255, 255, 0.35), 0 8px 24px -8px rgba(124, 58, 237, 0.55)'
+                    : 'inset 0 1px 0 0 var(--glass-hairline-strong)'
                 }}>
-                  {dragOver ? '📤' : '📁'}
+                  <svg width={isMobile ? "20" : "24"} height={isMobile ? "20" : "24"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17,8 12,3 7,8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                  </svg>
                 </div>
-                <h4 style={{
+                <h4 className="text-body" style={{
                   margin: '0 0 4px 0',
-                  fontSize: isMobile ? '13px' : '14px',
-                  fontWeight: '600',
-                  color: 'var(--text-primary)'
+                  fontWeight: 600,
+                  color: 'var(--ink-1)'
                 }}>
                   {dragOver ? t('dropFilesHere') : t('chooseFiles')}
                 </h4>
-                <p style={{
+                <p className="text-tertiary" style={{
                   margin: 0,
-                  fontSize: isMobile ? '11px' : '12px',
-                  color: 'var(--text-secondary)',
-                  lineHeight: '1.3'
+                  lineHeight: 1.4
                 }}>
-                  {isMobile 
+                  {isMobile
                     ? `${t('fileTypesSupported')} • ${t('maxFiles')}`
                     : `${t('dragAndDropBrowse')} • ${t('fileTypesSupported')} • ${t('maxFiles')}`
                   }
                 </p>
-                
+
                 <input
                   id="file-upload"
                   type="file"
@@ -451,67 +454,54 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                 />
               </div>
 
-              {/* File Preview Grid with Thumbnail Selection */}
               {files.length > 0 && (
-                <div style={{
-                  padding: isMobile ? '10px' : '12px',
-                  background: 'var(--bg-gray)',
-                  borderRadius: isMobile ? '8px' : '10px',
-                  border: '1px solid var(--border-light)',
-                  marginBottom: '10px'
+                <div className="glass-soft" style={{
+                  padding: isMobile ? '12px' : '14px',
+                  marginBottom: '12px'
                 }}>
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    marginBottom: isMobile ? '6px' : '8px'
+                    marginBottom: isMobile ? '8px' : '10px'
                   }}>
-                    <h4 style={{
-                      margin: 0,
-                      fontSize: isMobile ? '12px' : '13px',
-                      fontWeight: '600',
-                      color: 'var(--text-primary)'
-                    }}>
+                    <h4 className="text-eyebrow nums" style={{ margin: 0 }}>
                       {files.length} {t('filesSelected')}
                     </h4>
                     {files.length > 1 && (
-                      <span style={{
-                        fontSize: isMobile ? '10px' : '11px',
-                        color: 'var(--text-secondary)',
-                        fontWeight: '500'
-                      }}>
+                      <span className="text-tertiary">
                         {t('tapForThumbnail')}
                       </span>
                     )}
                   </div>
-                  
+
                   <div style={{
                     display: 'grid',
-                    gridTemplateColumns: isMobile 
-                      ? 'repeat(auto-fill, minmax(60px, 1fr))' 
-                      : 'repeat(auto-fill, minmax(70px, 1fr))',
-                    gap: isMobile ? '6px' : '8px'
+                    gridTemplateColumns: isMobile
+                      ? 'repeat(auto-fill, minmax(64px, 1fr))'
+                      : 'repeat(auto-fill, minmax(74px, 1fr))',
+                    gap: isMobile ? '8px' : '10px'
                   }}>
                     {files.map((file, index) => (
                       <div key={index} style={{
                         position: 'relative',
                         aspectRatio: '1',
-                        borderRadius: isMobile ? '8px' : '10px',
+                        borderRadius: '14px',
                         overflow: 'hidden',
-                        background: 'var(--bg-secondary)',
-                        border: index === coverIndex 
-                          ? '2px solid var(--accent-blue)' 
-                          : '1px solid var(--border-primary)',
-                        transition: 'all 0.2s ease',
+                        background: 'var(--glass-2)',
+                        border: index === coverIndex
+                          ? '2px solid var(--accent-iris)'
+                          : '1px solid var(--glass-hairline)',
+                        transition,
                         cursor: 'pointer',
-                        boxShadow: index === coverIndex 
-                          ? '0 4px 12px rgba(59, 130, 246, 0.15)' 
-                          : 'var(--shadow-sm)'
+                        boxShadow: index === coverIndex
+                          ? '0 8px 24px -6px rgba(124, 58, 237, 0.45), inset 0 1px 0 0 rgba(255,255,255,0.20)'
+                          : 'inset 0 1px 0 0 var(--glass-hairline-strong)'
                       }}
                       onClick={() => setCoverIndex(index)}
                       >
                         {file.type.startsWith('image/') ? (
-                          <img 
+                          <img
                             src={URL.createObjectURL(file)}
                             alt="Preview"
                             style={{
@@ -527,34 +517,36 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontSize: isMobile ? '16px' : '18px',
-                            background: 'var(--accent-blue)',
-                            color: 'white'
+                            background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
+                            color: '#fff'
                           }}>
-                            🎥
+                            <svg width={isMobile ? "18" : "22"} height={isMobile ? "18" : "22"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polygon points="23 7 16 12 23 17 23 7"/>
+                              <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                            </svg>
                           </div>
                         )}
-                        
-                        {/* Thumbnail Badge */}
+
                         {index === coverIndex && files.length > 1 && (
                           <div style={{
                             position: 'absolute',
-                            bottom: '3px',
-                            left: '3px',
-                            background: 'var(--accent-blue)',
-                            color: 'white',
-                            borderRadius: '4px',
-                            padding: '2px 4px',
+                            bottom: '4px',
+                            left: '4px',
+                            background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
+                            color: '#fff',
+                            borderRadius: '8px',
+                            padding: '2px 6px',
                             fontSize: isMobile ? '8px' : '9px',
-                            fontWeight: '600',
+                            fontWeight: 700,
                             textTransform: 'uppercase',
-                            letterSpacing: '0.5px'
+                            letterSpacing: '0.06em',
+                            border: '1px solid rgba(255,255,255,0.2)',
+                            boxShadow: '0 4px 10px -2px rgba(124, 58, 237, 0.45)'
                           }}>
                             {t('thumbnail')}
                           </div>
                         )}
-                        
-                        {/* Remove Button */}
+
                         <div
                           onClick={(e) => {
                             e.stopPropagation()
@@ -568,26 +560,30 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                           }}
                           style={{
                             position: 'absolute',
-                            top: isMobile ? '2px' : '3px',
-                            right: isMobile ? '2px' : '3px',
-                            padding: isMobile ? '2px 4px' : '3px 6px',
-                            background: 'rgba(239, 68, 68, 0.9)',
-                            color: 'white',
+                            top: '4px',
+                            right: '4px',
+                            width: isMobile ? '20px' : '22px',
+                            height: isMobile ? '20px' : '22px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            background: 'rgba(0, 0, 0, 0.55)',
+                            backdropFilter: 'blur(10px)',
+                            WebkitBackdropFilter: 'blur(10px)',
+                            color: '#fff',
                             cursor: 'pointer',
-                            fontSize: isMobile ? '12px' : '11px',
-                            fontWeight: '600',
-                            borderRadius: isMobile ? '8px' : '6px',
-                            lineHeight: '1',
-                            transition: 'all 0.2s ease'
+                            borderRadius: '999px',
+                            lineHeight: 1,
+                            transition,
+                            border: '1px solid rgba(255,255,255,0.2)'
                           }}
-                          onMouseOver={(e) => {
-                            e.target.style.background = 'var(--accent-red)'
-                          }}
-                          onMouseOut={(e) => {
-                            e.target.style.background = 'rgba(239, 68, 68, 0.9)'
-                          }}
+                          onMouseOver={(e) => { e.currentTarget.style.background = 'var(--accent-red)' }}
+                          onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(0, 0, 0, 0.55)' }}
                         >
-                          ×
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                          </svg>
                         </div>
                       </div>
                     ))}
@@ -595,21 +591,17 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                 </div>
               )}
 
-              {/* Categories, Date Picker, and Children (Desktop only in left column) */}
               {!isMobile && (
                 <>
-                  <div style={{ marginTop: '10px' }}>
-                    <label style={{ 
-                      display: 'block', 
-                      marginBottom: '6px', 
-                      fontSize: '12px', 
-                      fontWeight: '600',
-                      color: 'var(--text-primary)'
+                  <div style={{ marginTop: '14px' }}>
+                    <label className="text-eyebrow" style={{
+                      display: 'block',
+                      marginBottom: '8px'
                     }}>
                       {t('category')}
                     </label>
-                    <div style={{ 
-                      display: 'flex', 
+                    <div style={{
+                      display: 'flex',
                       flexWrap: 'wrap',
                       gap: '6px'
                     }}>
@@ -618,18 +610,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                           key={cat.value}
                           type="button"
                           onClick={() => setCategory(cat.value)}
-                          style={{
-                            padding: '6px 10px',
-                            fontSize: '11px',
-                            fontWeight: '500',
-                            border: '1px solid',
-                            borderColor: category === cat.value ? 'var(--accent-blue)' : 'var(--border-primary)',
-                            borderRadius: '6px',
-                            background: category === cat.value ? 'var(--accent-blue)' : 'var(--bg-secondary)',
-                            color: category === cat.value ? 'white' : 'var(--text-primary)',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease'
-                          }}
+                          className={`category-pill${category === cat.value ? ' category-pill--selected sheen' : ''}`}
                         >
                           {cat.label}
                         </button>
@@ -637,13 +618,10 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                     </div>
                   </div>
 
-                  <div style={{ marginTop: '10px' }}>
-                    <label style={{ 
+                  <div style={{ marginTop: '14px' }}>
+                    <label className="text-eyebrow" style={{
                       display: 'block',
-                      marginBottom: '6px',
-                      fontSize: '12px',
-                      fontWeight: '600',
-                      color: 'var(--text-primary)'
+                      marginBottom: '8px'
                     }}>
                       {t('postDate')}
                     </label>
@@ -654,15 +632,11 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                     />
                   </div>
 
-                  {/* Children Selection - Desktop */}
                   {albumSettings?.is_multi_child && children.length > 0 && (
-                    <div style={{ marginTop: '10px' }}>
-                      <label style={{ 
+                    <div style={{ marginTop: '14px' }}>
+                      <label className="text-eyebrow" style={{
                         display: 'block',
-                        marginBottom: '6px',
-                        fontSize: '12px',
-                        fontWeight: '600',
-                        color: 'var(--text-primary)'
+                        marginBottom: '8px'
                       }}>
                         {t('associatedChildren')}
                       </label>
@@ -671,58 +645,50 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                         flexWrap: 'wrap',
                         gap: '6px'
                       }}>
-                        {children.map((child) => (
-                          <label
-                            key={child.id}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '6px',
-                              cursor: 'pointer',
-                              padding: '6px 8px',
-                              borderRadius: '6px',
-                              background: selectedChildren.includes(child.id) ? 'var(--accent-blue)' : 'var(--bg-secondary)',
-                              color: selectedChildren.includes(child.id) ? 'white' : 'var(--text-primary)',
-                              border: '1px solid',
-                              borderColor: selectedChildren.includes(child.id) ? 'var(--accent-blue)' : 'var(--border-primary)',
-                              transition: 'all 0.2s ease',
-                              fontSize: '11px'
-                            }}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={selectedChildren.includes(child.id)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setSelectedChildren([...selectedChildren, child.id])
-                                } else {
-                                  setSelectedChildren(selectedChildren.filter(id => id !== child.id))
-                                }
-                              }}
-                              style={{ display: 'none' }}
-                            />
-                            <div style={{
-                              width: '16px',
-                              height: '16px',
-                              borderRadius: '50%',
-                              background: selectedChildren.includes(child.id) ? 'rgba(255, 255, 255, 0.3)' : 'var(--accent-blue)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontSize: '8px',
-                              fontWeight: '600',
-                              color: 'white',
-                              backgroundImage: child.profile_picture_url ? `url(${child.profile_picture_url})` : 'none',
-                              backgroundSize: 'cover',
-                              backgroundPosition: 'center'
-                            }}>
-                              {!child.profile_picture_url && child.name.charAt(0).toUpperCase()}
-                            </div>
-                            <span style={{ fontWeight: '500' }}>
-                              {child.name}
-                            </span>
-                          </label>
-                        ))}
+                        {children.map((child) => {
+                          const isSelected = selectedChildren.includes(child.id)
+                          return (
+                            <label
+                              key={child.id}
+                              className={`category-pill${isSelected ? ' category-pill--selected sheen' : ''}`}
+                              style={{ cursor: 'pointer', gap: '8px' }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedChildren([...selectedChildren, child.id])
+                                  } else {
+                                    setSelectedChildren(selectedChildren.filter(id => id !== child.id))
+                                  }
+                                }}
+                                style={{ display: 'none' }}
+                              />
+                              <div style={{
+                                width: '20px',
+                                height: '20px',
+                                borderRadius: '50%',
+                                background: isSelected ? 'rgba(255, 255, 255, 0.30)' : 'var(--glass-3)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '9px',
+                                fontWeight: 700,
+                                color: isSelected ? '#fff' : 'var(--ink-1)',
+                                backgroundImage: child.profile_picture_url ? `url(${child.profile_picture_url})` : 'none',
+                                backgroundSize: 'cover',
+                                backgroundPosition: 'center',
+                                border: '1px solid rgba(255,255,255,0.20)'
+                              }}>
+                                {!child.profile_picture_url && child.name.charAt(0).toUpperCase()}
+                              </div>
+                              <span style={{ fontWeight: 500 }}>
+                                {child.name}
+                              </span>
+                            </label>
+                          )
+                        })}
                       </div>
                     </div>
                   )}
@@ -731,32 +697,21 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
             </div>
           </div>
 
-          {/* Form Fields Section */}
           <div>
-            <div style={{
-              background: 'var(--bg-secondary)',
-              borderRadius: isMobile ? '6px' : '8px',
-              padding: isMobile ? '10px' : '12px',
-              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-              border: '1px solid var(--border-light)'
+            <div className="card-glass" style={{
+              padding: isMobile ? '14px' : '16px',
+              borderRadius: isMobile ? '20px' : '22px'
             }}>
-              <h3 style={{
-                margin: '0 0 10px 0',
-                fontSize: isMobile ? '13px' : '14px',
-                fontWeight: '600',
-                color: 'var(--text-primary)'
+              <h3 className="text-eyebrow" style={{
+                margin: '0 0 12px 0'
               }}>
                 {t('postDetails')}
               </h3>
 
-              {/* Title Input */}
-              <div style={{ marginBottom: '8px' }}>
-                <label style={{ 
-                  display: 'block', 
-                  marginBottom: '4px', 
-                  fontSize: '12px', 
-                  fontWeight: '600',
-                  color: 'var(--text-primary)'
+              <div style={{ marginBottom: '12px' }}>
+                <label className="text-eyebrow" style={{
+                  display: 'block',
+                  marginBottom: '6px'
                 }}>
                   {t('title')} *
                 </label>
@@ -764,138 +719,112 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 10px',
-                    border: '1px solid var(--border-primary)',
-                    borderRadius: '6px',
-                    fontSize: '13px',
-                    background: 'var(--bg-secondary)',
-                    color: 'var(--text-primary)',
-                    transition: 'border-color 0.2s ease',
-                    outline: 'none'
-                  }}
+                  className="input-glass"
                   placeholder={t('enterPostTitle')}
                   required
-                  onFocus={(e) => e.target.style.borderColor = 'var(--accent-blue)'}
-                  onBlur={(e) => e.target.style.borderColor = 'var(--border-primary)'}
                 />
               </div>
 
-              {/* Description */}
-              <div style={{ marginBottom: '8px' }}>
-                <label style={{ 
-                  display: 'block', 
-                  marginBottom: '4px', 
-                  fontSize: '12px', 
-                  fontWeight: '600',
-                  color: 'var(--text-primary)'
+              <div style={{ marginBottom: '12px' }}>
+                <label className="text-eyebrow" style={{
+                  display: 'block',
+                  marginBottom: '6px'
                 }}>
                   {t('description')}
                 </label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 10px',
-                    border: '1px solid var(--border-primary)',
-                    borderRadius: '6px',
-                    fontSize: '12px',
-                    background: 'var(--bg-secondary)',
-                    color: 'var(--text-primary)',
-                    resize: 'none',
-                    minHeight: '50px',
-                    fontFamily: 'inherit',
-                    transition: 'border-color 0.2s ease',
-                    outline: 'none',
-                    lineHeight: '1.3'
-                  }}
+                  className="input-glass"
                   rows="2"
                   placeholder={t('tellStory')}
-                  onFocus={(e) => e.target.style.borderColor = 'var(--accent-blue)'}
-                  onBlur={(e) => e.target.style.borderColor = 'var(--border-primary)'}
+                  style={{
+                    resize: 'none',
+                    minHeight: '64px',
+                    lineHeight: 1.4
+                  }}
                 />
               </div>
 
-              {/* Hashtags */}
-              <div style={{ marginBottom: '8px' }}>
+              <div style={{ marginBottom: '12px' }}>
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  marginBottom: '4px'
+                  marginBottom: '6px'
                 }}>
-                  <label style={{ 
-                    fontSize: '12px', 
-                    fontWeight: '600',
-                    color: 'var(--text-primary)'
-                  }}>
+                  <label className="text-eyebrow">
                     {t('hashtags')}
                   </label>
-                  <span style={{
-                    fontSize: '10px',
-                    color: 'var(--text-secondary)',
-                    background: 'var(--bg-gray)',
-                    padding: '1px 4px',
-                    borderRadius: '3px'
+                  <span className="glass-pill nums" style={{
+                    fontSize: '10.5px',
+                    color: 'var(--ink-2)',
+                    padding: '2px 8px',
+                    fontWeight: 600
                   }}>
                     {hashtags.length}/10
                   </span>
                 </div>
-                <div style={{
-                  border: '1px solid var(--border-primary)',
-                  borderRadius: '6px',
-                  padding: '6px 8px',
-                  background: 'var(--bg-secondary)',
-                  minHeight: '32px',
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  alignItems: 'center',
-                  gap: '3px',
-                  transition: 'border-color 0.2s ease',
-                  cursor: 'text'
-                }}
-                onClick={() => document.querySelector('#hashtag-input').focus()}
+                <div
+                  className="input-glass"
+                  style={{
+                    minHeight: '44px',
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                    gap: '6px',
+                    cursor: 'text',
+                    padding: '8px 10px'
+                  }}
+                  onClick={() => document.querySelector('#hashtag-input').focus()}
                 >
                   {hashtags.map((tag, index) => (
                     <span
                       key={index}
+                      className="glass-pill sheen"
                       style={{
-                        background: 'var(--accent-blue)',
-                        color: 'white',
-                        padding: isMobile ? '2px 4px' : '2px 6px',
-                        borderRadius: '4px',
-                        fontSize: '10px',
-                        fontWeight: '500',
+                        background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.22), rgba(109, 40, 217, 0.22))',
+                        color: 'var(--ink-1)',
+                        padding: '3px 4px 3px 10px',
+                        fontSize: '11.5px',
+                        fontWeight: 600,
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: '3px'
+                        gap: '6px',
+                        border: '1px solid rgba(124, 58, 237, 0.30)'
                       }}
                     >
                       #{tag}
                       <div
-                        onClick={() => setHashtags(hashtags.filter((_, i) => i !== index))}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setHashtags(hashtags.filter((_, i) => i !== index))
+                        }}
                         style={{
-                          background: 'rgba(255, 255, 255, 0.3)',
-                          color: 'white',
+                          background: 'rgba(124, 58, 237, 0.20)',
+                          color: 'var(--accent-iris)',
                           cursor: 'pointer',
-                          fontSize: isMobile ? '8px' : '10px',
-                          padding: isMobile ? '1px' : '2px',
+                          padding: '2px',
                           borderRadius: '50%',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          fontWeight: '600',
-                          minWidth: isMobile ? '12px' : '14px',
-                          minHeight: isMobile ? '12px' : '14px'
+                          fontWeight: 700,
+                          width: '16px',
+                          height: '16px',
+                          transition
                         }}
+                        onMouseOver={(e) => { e.currentTarget.style.background = 'var(--accent-iris)'; e.currentTarget.style.color = '#fff' }}
+                        onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(124, 58, 237, 0.20)'; e.currentTarget.style.color = 'var(--accent-iris)' }}
                       >
-                        ×
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="18" y1="6" x2="6" y2="18"/>
+                          <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
                       </div>
                     </span>
                   ))}
-                  
+
                   <input
                     id="hashtag-input"
                     type="text"
@@ -910,28 +839,25 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                       flex: 1,
                       minWidth: '60px',
                       padding: '2px 0',
-                      fontSize: '11px',
+                      fontSize: '13px',
                       backgroundColor: 'transparent',
-                      color: 'var(--text-primary)'
+                      color: 'var(--ink-1)',
+                      fontFamily: 'inherit'
                     }}
                   />
                 </div>
               </div>
 
-              {/* Categories (Mobile only) */}
               {isMobile && (
-                <div style={{ marginBottom: '8px' }}>
-                  <label style={{ 
-                    display: 'block', 
-                    marginBottom: '6px', 
-                    fontSize: '12px', 
-                    fontWeight: '600',
-                    color: 'var(--text-primary)'
+                <div style={{ marginBottom: '12px' }}>
+                  <label className="text-eyebrow" style={{
+                    display: 'block',
+                    marginBottom: '8px'
                   }}>
                     {t('category')}
                   </label>
-                  <div style={{ 
-                    display: 'flex', 
+                  <div style={{
+                    display: 'flex',
                     flexWrap: 'wrap',
                     gap: '6px'
                   }}>
@@ -940,18 +866,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                         key={cat.value}
                         type="button"
                         onClick={() => setCategory(cat.value)}
-                        style={{
-                          padding: '8px 12px',
-                          fontSize: '12px',
-                          fontWeight: '500',
-                          border: '1px solid',
-                          borderColor: category === cat.value ? 'var(--accent-blue)' : 'var(--border-primary)',
-                          borderRadius: '6px',
-                          background: category === cat.value ? 'var(--accent-blue)' : 'var(--bg-secondary)',
-                          color: category === cat.value ? 'white' : 'var(--text-primary)',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease'
-                        }}
+                        className={`category-pill${category === cat.value ? ' category-pill--selected sheen' : ''}`}
                       >
                         {cat.label}
                       </button>
@@ -960,15 +875,11 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                 </div>
               )}
 
-              {/* Date Picker (Mobile only) */}
               {isMobile && (
-                <div style={{ marginBottom: '8px' }}>
-                  <label style={{ 
+                <div style={{ marginBottom: '12px' }}>
+                  <label className="text-eyebrow" style={{
                     display: 'block',
-                    marginBottom: '6px',
-                    fontSize: '12px',
-                    fontWeight: '600',
-                    color: 'var(--text-primary)'
+                    marginBottom: '8px'
                   }}>
                     {t('postDate')}
                   </label>
@@ -981,106 +892,107 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
               )}
             </div>
 
-            {/* Children Selection - Mobile Only */}
             {isMobile && albumSettings?.is_multi_child && children.length > 0 && (
-              <div style={{
-                background: 'var(--bg-secondary)',
-                borderRadius: '8px',
-                padding: '12px',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-                border: '1px solid var(--border-light)',
-                marginBottom: '8px'
+              <div className="card-glass" style={{
+                padding: '14px',
+                marginTop: '12px',
+                marginBottom: '12px',
+                borderRadius: '20px'
               }}>
-                <label style={{ 
-                  display: 'block', 
-                  marginBottom: '8px', 
-                  fontSize: '12px', 
-                  fontWeight: '600',
-                  color: 'var(--text-primary)'
+                <label className="text-eyebrow" style={{
+                  display: 'block',
+                  marginBottom: '10px'
                 }}>
                   {t('associatedChildren')}
                 </label>
                 <div style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
-                  gap: '6px'
+                  gap: '8px'
                 }}>
-                  {children.map((child) => (
-                    <label
-                      key={child.id}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        cursor: 'pointer',
-                        padding: '8px 10px',
-                        borderRadius: '6px',
-                        background: selectedChildren.includes(child.id) ? 'var(--accent-blue)' : 'var(--bg-gray)',
-                        color: selectedChildren.includes(child.id) ? 'white' : 'var(--text-primary)',
-                        border: '1px solid',
-                        borderColor: selectedChildren.includes(child.id) ? 'var(--accent-blue)' : 'var(--border-light)',
-                        transition: 'all 0.2s ease',
-                        fontSize: '11px'
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedChildren.includes(child.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedChildren([...selectedChildren, child.id])
-                          } else {
-                            setSelectedChildren(selectedChildren.filter(id => id !== child.id))
-                          }
-                        }}
-                        style={{ display: 'none' }}
-                      />
-                      <div style={{
-                        width: '20px',
-                        height: '20px',
-                        borderRadius: '50%',
-                        background: selectedChildren.includes(child.id) ? 'rgba(255, 255, 255, 0.3)' : 'var(--accent-blue)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '10px',
-                        fontWeight: '600',
-                        color: 'white',
-                        backgroundImage: child.profile_picture_url ? `url(${child.profile_picture_url})` : 'none',
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center'
-                      }}>
-                        {!child.profile_picture_url && child.name.charAt(0).toUpperCase()}
-                      </div>
-                      <span style={{ fontWeight: '500', flex: 1 }}>
-                        {child.name}
-                      </span>
-                    </label>
-                  ))}
+                  {children.map((child) => {
+                    const isSelected = selectedChildren.includes(child.id)
+                    return (
+                      <label
+                        key={child.id}
+                        className={`category-pill${isSelected ? ' category-pill--selected sheen' : ''}`}
+                        style={{ cursor: 'pointer', gap: '8px' }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedChildren([...selectedChildren, child.id])
+                            } else {
+                              setSelectedChildren(selectedChildren.filter(id => id !== child.id))
+                            }
+                          }}
+                          style={{ display: 'none' }}
+                        />
+                        <div style={{
+                          width: '22px',
+                          height: '22px',
+                          borderRadius: '50%',
+                          background: isSelected ? 'rgba(255, 255, 255, 0.30)' : 'var(--glass-3)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          color: isSelected ? '#fff' : 'var(--ink-1)',
+                          backgroundImage: child.profile_picture_url ? `url(${child.profile_picture_url})` : 'none',
+                          backgroundSize: 'cover',
+                          backgroundPosition: 'center',
+                          border: '1px solid rgba(255,255,255,0.20)'
+                        }}>
+                          {!child.profile_picture_url && child.name.charAt(0).toUpperCase()}
+                        </div>
+                        <span style={{ fontWeight: 500, flex: 1 }}>
+                          {child.name}
+                        </span>
+                      </label>
+                    )
+                  })}
                 </div>
               </div>
             )}
 
-            {/* Error Message */}
             {error && (
-              <div style={{
-                background: 'var(--bg-secondary)',
-                borderRadius: '6px',
-                padding: '10px 12px',
-                border: '1px solid var(--accent-red)',
-                marginBottom: '8px'
+              <div className="glass-soft" style={{
+                padding: '12px 14px',
+                border: '1px solid rgba(239, 68, 68, 0.45)',
+                background: 'rgba(239, 68, 68, 0.10)',
+                marginBottom: '10px',
+                borderRadius: '14px'
               }}>
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px'
+                  gap: '10px'
                 }}>
-                  <span style={{ color: 'var(--accent-red)', fontSize: '14px' }}>⚠️</span>
+                  <div style={{
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '50%',
+                    background: 'rgba(239, 68, 68, 0.20)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--accent-red)',
+                    flexShrink: 0
+                  }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10"/>
+                      <line x1="12" y1="8" x2="12" y2="12"/>
+                      <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                  </div>
                   <p style={{
                     margin: 0,
-                    fontSize: '12px',
+                    fontSize: '13px',
                     color: 'var(--accent-red)',
-                    fontWeight: '500'
+                    fontWeight: 600
                   }}>
                     {error}
                   </p>
@@ -1091,12 +1003,11 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
         </div>
       </div>
 
-      {/* Footer */}
       <div style={{
-        padding: isMobile ? '8px 16px' : '10px 16px',
-        borderTop: '1px solid var(--border-light)',
+        padding: isMobile ? '12px 18px' : '14px 22px',
+        borderTop: '1px solid var(--glass-hairline)',
         flexShrink: 0,
-        background: 'var(--bg-secondary)'
+        background: 'transparent'
       }}>
         <div style={{
           display: 'flex',
@@ -1108,64 +1019,42 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
-            color: 'var(--text-secondary)',
+            gap: '10px',
+            color: 'var(--ink-2)',
             fontSize: isMobile ? '12px' : '13px',
             order: isMobile ? '2' : '1'
           }}>
             {files.length > 0 && (
               <>
-                <span style={{
-                  background: 'var(--accent-blue-light)',
-                  color: 'var(--accent-blue)',
-                  padding: '2px 6px',
-                  borderRadius: '4px',
+                <span className="glass-pill nums" style={{
+                  color: 'var(--accent-iris)',
+                  padding: '3px 10px',
                   fontSize: isMobile ? '11px' : '12px',
-                  fontWeight: '500'
+                  fontWeight: 600,
+                  background: 'rgba(124, 58, 237, 0.12)',
+                  border: '1px solid rgba(124, 58, 237, 0.30)'
                 }}>
                   {files.length} file{files.length !== 1 ? 's' : ''}
                 </span>
-                <span>•</span>
+                <span style={{ color: 'var(--ink-3)' }}>•</span>
               </>
             )}
-            <span>
-              {files.length > 0 
+            <span className="text-subtle">
+              {files.length > 0
                 ? t('readyToPublish')
                 : t('selectFilesToStart')}
             </span>
           </div>
-          
+
           <button
             onClick={handleSubmit}
             disabled={loading || !title.trim() || files.length === 0}
+            className="btn-iris sheen"
             style={{
-              padding: isMobile ? '12px 20px' : '14px 24px',
-              background: loading || !title.trim() || files.length === 0
-                ? 'var(--border-light)'
-                : 'var(--accent-blue)',
-              color: loading || !title.trim() || files.length === 0 ? 'var(--text-subtle)' : 'white',
-              border: 'none',
-              borderRadius: isMobile ? '8px' : '10px',
+              padding: isMobile ? '13px 22px' : '13px 26px',
               fontSize: isMobile ? '14px' : '15px',
-              fontWeight: '600',
-              cursor: loading || !title.trim() || files.length === 0 ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              transition: 'all 0.2s ease',
-              minWidth: isMobile ? '100%' : '120px',
+              minWidth: isMobile ? '100%' : '160px',
               order: isMobile ? '1' : '2'
-            }}
-            onMouseOver={(e) => {
-              if (!loading && title.trim() && files.length > 0) {
-                e.target.style.background = 'var(--accent-blue)'
-              }
-            }}
-            onMouseOut={(e) => {
-              if (!loading && title.trim() && files.length > 0) {
-                e.target.style.background = 'var(--accent-blue)'
-              }
             }}
           >
             {loading ? (

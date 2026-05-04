@@ -119,57 +119,47 @@ function MobileActionMenu({ currentPost, isTextPost, onDownload, onDelete, onEdi
   useOnClickOutside(menuRef, () => setShowMenu(false))
 
   return (
-    <div 
+    <div
       ref={menuRef}
       style={{
         position: 'fixed',
         bottom: isDescriptionExpanded ? '200px' : '40px',
         right: '16px',
         zIndex: 30,
-        transition: 'bottom 0.3s ease'
+        transition: 'bottom 220ms cubic-bezier(0.22, 1, 0.36, 1)'
       }}
     >
-      {/* Menu items */}
       {showMenu && (
-        <div style={{
-          position: 'absolute',
-          bottom: '70px',
-          right: '0',
-          background: 'var(--bg-secondary)',
-          backdropFilter: 'blur(20px)',
-          borderRadius: '16px',
-          padding: '8px',
-          boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)',
-          minWidth: '160px',
-          animation: 'slideUpFloat 0.2s ease-out'
-        }}>
+        <div
+          className="glass-strong specular animate-slide-up"
+          style={{
+            position: 'absolute',
+            bottom: '70px',
+            right: '0',
+            borderRadius: '20px',
+            padding: '8px',
+            minWidth: '180px',
+            boxShadow: '0 24px 60px -16px rgba(15,15,30,0.28), inset 0 1px 0 0 var(--glass-hairline-strong)'
+          }}
+        >
           {!isTextPost && currentPost.file_url && (
             <button
               onClick={() => {
                 if (onDownload) onDownload()
                 setShowMenu(false)
               }}
+              className="btn-ghost"
               style={{
                 width: '100%',
-                padding: '12px 16px',
-                background: 'transparent',
-                border: 'none',
-                borderRadius: '12px',
-                cursor: 'pointer',
-                color: 'var(--text-primary)',
+                padding: '12px 14px',
+                borderRadius: '14px',
+                color: 'var(--ink-1)',
                 fontSize: '14px',
-                fontWeight: '500',
+                fontWeight: 500,
                 textAlign: 'left',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '12px',
-                transition: 'background 0.2s ease'
-              }}
-              onMouseOver={(e) => {
-                e.currentTarget.style.background = 'rgba(0, 149, 246, 0.1)'
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.background = 'transparent'
+                gap: '12px'
               }}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -177,72 +167,53 @@ function MobileActionMenu({ currentPost, isTextPost, onDownload, onDelete, onEdi
                 <polyline points="7,10 12,15 17,10"/>
                 <line x1="12" x2="12" y1="15" y2="3"/>
               </svg>
-{t('download')}
+              {t('download')}
             </button>
           )}
-          
-          {/* Edit button */}
+
           <button
             onClick={() => {
               onEdit()
               setShowMenu(false)
             }}
+            className="btn-ghost"
             style={{
               width: '100%',
-              padding: '12px 16px',
-              background: 'transparent',
-              border: 'none',
-              borderRadius: '12px',
-              cursor: 'pointer',
-              color: 'var(--text-primary)',
+              padding: '12px 14px',
+              borderRadius: '14px',
+              color: 'var(--ink-1)',
               fontSize: '14px',
-              fontWeight: '500',
+              fontWeight: 500,
               textAlign: 'left',
               display: 'flex',
               alignItems: 'center',
-              gap: '12px',
-              transition: 'background 0.2s ease'
-            }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.background = 'rgba(156, 163, 175, 0.1)'
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.background = 'transparent'
+              gap: '12px'
             }}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
               <path d="m18.5 2.5 2 2L13 12l-4 1 1-4 7.5-7.5z"/>
             </svg>
-{t('edit')}
+            {t('edit')}
           </button>
-          
+
           <button
             onClick={() => {
               onDelete()
               setShowMenu(false)
             }}
+            className="btn-ghost"
             style={{
               width: '100%',
-              padding: '12px 16px',
-              background: 'transparent',
-              border: 'none',
-              borderRadius: '12px',
-              cursor: 'pointer',
-              color: '#dc2626',
+              padding: '12px 14px',
+              borderRadius: '14px',
+              color: 'var(--accent-red)',
               fontSize: '14px',
-              fontWeight: '500',
+              fontWeight: 500,
               textAlign: 'left',
               display: 'flex',
               alignItems: 'center',
-              gap: '12px',
-              transition: 'background 0.2s ease'
-            }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.background = 'rgba(220, 38, 38, 0.1)'
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.background = 'transparent'
+              gap: '12px'
             }}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -250,30 +221,21 @@ function MobileActionMenu({ currentPost, isTextPost, onDownload, onDelete, onEdi
               <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
               <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
             </svg>
-{t('delete')}
+            {t('delete')}
           </button>
         </div>
       )}
-      
-      {/* 3-dot menu button */}
+
       <button
         onClick={() => setShowMenu(!showMenu)}
+        className="btn-icon"
         style={{
-          padding: '8px',
-          background: 'rgba(0, 0, 0, 0.6)',
-          backdropFilter: 'blur(10px)',
-          border: 'none',
-          borderRadius: '50%',
-          cursor: 'pointer',
-          color: 'white',
-          boxShadow: '0 2px 12px rgba(0, 0, 0, 0.3)',
-          width: '36px',
-          height: '36px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          width: '40px',
+          height: '40px',
+          borderRadius: '999px',
+          color: 'var(--ink-1)',
           transform: showMenu ? 'rotate(90deg)' : 'rotate(0deg)',
-          transition: 'all 0.2s ease'
+          transition: 'transform 220ms cubic-bezier(0.22, 1, 0.36, 1)'
         }}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -772,8 +734,8 @@ export default function PostModal({
   // Mobile: Instagram-style vertical scroll
   if (isMobile) {
     return (
-      <div 
-        style={{ 
+      <div
+        style={{
           zIndex: 1000,
           background: '#000',
           position: 'fixed',
@@ -788,30 +750,25 @@ export default function PostModal({
           padding: 0
         }}
       >
-        <div 
+        <div
           ref={modalRef}
           style={{ width: '100%', height: '100%' }}
           onClick={(e) => e.stopPropagation()}
         >
-        {/* Close button only on mobile */}
         <button
           onClick={(e) => {
             e.stopPropagation()
             onClose()
           }}
+          className="btn-icon"
           style={{
             position: 'fixed',
             top: '20px',
             left: '20px',
             zIndex: 30,
-            padding: '12px',
-            background: 'rgba(0, 0, 0, 0.7)',
-            backdropFilter: 'blur(10px)',
-            border: 'none',
-            borderRadius: '50%',
-            cursor: 'pointer',
-            color: 'white',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
+            width: '40px',
+            height: '40px',
+            color: 'var(--ink-1)'
           }}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -820,20 +777,19 @@ export default function PostModal({
           </svg>
         </button>
 
-        {/* Post counter */}
-        <div style={{
-          position: 'fixed',
-          top: '20px',
-          right: '20px',
-          zIndex: 30,
-          padding: '8px 16px',
-          background: 'rgba(0, 0, 0, 0.7)',
-          color: 'white',
-          borderRadius: '20px',
-          fontSize: '14px',
-          fontWeight: '500',
-          backdropFilter: 'blur(10px)'
-        }}>
+        <div
+          className="glass-pill nums"
+          style={{
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            zIndex: 30,
+            padding: '8px 14px',
+            color: 'var(--ink-1)',
+            fontSize: '13px',
+            fontWeight: 600
+          }}
+        >
           {currentIdx + 1} / {allPosts.length}
         </div>
 
@@ -890,7 +846,7 @@ export default function PostModal({
                   <div style={{
                     width: '100%',
                     height: '100%',
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 60%, #4338ca 100%)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -898,17 +854,17 @@ export default function PostModal({
                     textAlign: 'center'
                   }}>
                     <div>
-                      <div style={{ 
-                        fontSize: '40px', 
+                      <div style={{
+                        fontSize: '40px',
                         marginBottom: '24px',
-                        filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1))'
+                        filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.18))'
                       }}>💭</div>
-                      <p style={{ 
-                        color: 'white',
+                      <p style={{
+                        color: '#ffffff',
                         fontSize: '18px',
-                        fontWeight: '500',
-                        lineHeight: '1.5',
-                        textShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
+                        fontWeight: 500,
+                        lineHeight: '1.55',
+                        textShadow: '0 1px 2px rgba(0, 0, 0, 0.18)',
                         maxWidth: '400px'
                       }}>
                         {getCleanDescription(post) || 'Postare text'}
@@ -990,29 +946,29 @@ export default function PostModal({
           />
         )}
 
-        {/* Bottom info bar - only for current post */}
         {(currentPost.title || getCleanDescription(currentPost) || (currentPost.hashtags && currentPost.hashtags.length > 0)) && (
           <div style={{
             position: 'fixed',
             bottom: '-10px',
             left: '0',
             right: '0',
-            background: 'linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.6) 60%, transparent 100%)',
-            color: 'white',
+            background: 'linear-gradient(to top, rgba(0, 0, 0, 0.88) 0%, rgba(0, 0, 0, 0.6) 60%, transparent 100%)',
+            color: '#ffffff',
             padding: isDescriptionExpanded ? '18px 16px 20px' : '10px 16px 20px',
             maxHeight: isDescriptionExpanded ? '60vh' : '120px',
             overflow: isDescriptionExpanded ? 'visible' : 'hidden',
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            transition: 'all 220ms cubic-bezier(0.22, 1, 0.36, 1)',
             transform: isDescriptionExpanded ? 'translateY(0)' : 'translateY(0)',
             zIndex: 15
           }}>
             {currentPost.title && (
-              <h3 style={{ 
-                fontSize: '14px',
-                fontWeight: '600',
+              <h3 style={{
+                fontSize: '15px',
+                fontWeight: 600,
                 marginBottom: '4px',
-                color: isMobile ? 'white' : 'var(--text-primary)', 
+                color: '#ffffff',
                 lineHeight: '1.3',
+                letterSpacing: '-0.01em',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: isDescriptionExpanded ? 'normal' : 'nowrap'
@@ -1020,15 +976,15 @@ export default function PostModal({
                 {currentPost.title}
               </h3>
             )}
-            
+
             {getCleanDescription(currentPost) && !isTextPost && (() => {
               const { text, needsTruncation } = getTruncatedDescription(getCleanDescription(currentPost), isDescriptionExpanded)
               return (
                 <div style={{ marginBottom: isDescriptionExpanded ? '8px' : '4px' }}>
                   <p style={{
                     fontSize: '12px',
-                    lineHeight: isDescriptionExpanded ? '1.4' : '1.3',
-                    color: 'rgba(255, 255, 255, 0.9)',
+                    lineHeight: isDescriptionExpanded ? '1.45' : '1.3',
+                    color: 'rgba(255, 255, 255, 0.92)',
                     marginBottom: needsTruncation ? '3px' : '0',
                     overflow: 'hidden',
                     display: isDescriptionExpanded ? 'block' : '-webkit-box',
@@ -1047,12 +1003,12 @@ export default function PostModal({
                       style={{
                         background: 'none',
                         border: 'none',
-                        color: 'rgba(255, 255, 255, 0.7)', 
+                        color: 'rgba(255, 255, 255, 0.72)',
                         fontSize: '11px',
                         cursor: 'pointer',
                         padding: '2px 0',
                         textDecoration: 'none',
-                        fontWeight: '400'
+                        fontWeight: 500
                       }}
                     >
                       {isDescriptionExpanded ? t('seeLess') : t('seeMore')}
@@ -1061,11 +1017,11 @@ export default function PostModal({
                 </div>
               )
             })()}
-            
+
             {currentPost.hashtags && currentPost.hashtags.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '6px' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '6px' }}>
                 {(isDescriptionExpanded ? currentPost.hashtags : currentPost.hashtags.slice(0, 3)).map((hashtag, index) => (
-                  <button 
+                  <button
                     key={index}
                     onClick={(e) => {
                       e.stopPropagation()
@@ -1073,28 +1029,27 @@ export default function PostModal({
                       onClose()
                     }}
                     style={{
-                      padding: '1px 6px',
-                      backgroundColor: 'rgba(0, 149, 246, 0.8)', 
-                      color: 'white', 
-                      borderRadius: '10px',
-                      fontSize: '10px',
-                      fontWeight: '400',
-                      border: '1px solid rgba(0, 149, 246, 0.8)',
+                      padding: '4px 10px',
+                      background: 'rgba(167, 139, 250, 0.28)',
+                      color: '#ffffff',
+                      borderRadius: '999px',
+                      fontSize: '11px',
+                      fontWeight: 500,
+                      border: '1px solid rgba(167, 139, 250, 0.45)',
                       cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      background: 'rgba(0, 149, 246, 0.8)',
-                      lineHeight: '2',
-                      height: 'auto',
-                      minHeight: 'unset',
+                      transition: 'all 220ms cubic-bezier(0.22, 1, 0.36, 1)',
+                      backdropFilter: 'blur(8px)',
+                      WebkitBackdropFilter: 'blur(8px)',
+                      lineHeight: 1.4,
                       display: 'inline-block',
                       verticalAlign: 'baseline'
                     }}
                     onTouchStart={(e) => {
-                      e.currentTarget.style.backgroundColor = 'rgba(0, 149, 246, 1)'
+                      e.currentTarget.style.background = 'rgba(167, 139, 250, 0.42)'
                       e.currentTarget.style.transform = 'scale(0.95)'
                     }}
                     onTouchEnd={(e) => {
-                      e.currentTarget.style.backgroundColor = 'rgba(0, 149, 246, 0.8)'
+                      e.currentTarget.style.background = 'rgba(167, 139, 250, 0.28)'
                       e.currentTarget.style.transform = 'scale(1)'
                     }}
                   >
@@ -1105,7 +1060,7 @@ export default function PostModal({
                   <span style={{
                     padding: '4px 10px',
                     color: 'rgba(255, 255, 255, 0.6)',
-                    fontSize: '12px',
+                    fontSize: '11px',
                     fontStyle: 'italic'
                   }}>
                     +{currentPost.hashtags.length - 3} {t('more')}
@@ -1113,13 +1068,14 @@ export default function PostModal({
                 )}
               </div>
             )}
-            
+
             {isDescriptionExpanded && (
-              <div style={{ 
-                fontSize: '9px', // Very small
-                color: 'rgba(255, 255, 255, 0.4)', // Very transparent
+              <div style={{
+                fontSize: '10px',
+                color: 'rgba(255, 255, 255, 0.5)',
                 marginTop: '2px',
-                textAlign: 'center'
+                textAlign: 'center',
+                letterSpacing: '0.04em'
               }}>
                 {formatDate(currentPost.created_at)}
               </div>
@@ -1127,37 +1083,42 @@ export default function PostModal({
           </div>
         )}
 
-        {/* Mobile Edit Modal */}
         {showEditModal && (
-          <div 
+          <div
             onClick={() => setShowEditModal(false)}
-            style={{
-              position: 'fixed',
-              inset: 0,
-              background: 'rgba(0, 0, 0, 0.8)',
-              zIndex: 2000,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '20px'
-            }}>
-            <div 
+            className="modal-scrim"
+            style={{ zIndex: 2000 }}
+          >
+            <div
               onClick={(e) => e.stopPropagation()}
+              className="modal-glass specular"
               style={{
-                background: 'white',
-                borderRadius: '16px',
-                padding: '20px',
+                padding: '24px',
                 width: '100%',
-                maxWidth: '400px',
-                maxHeight: '80vh',
-                overflow: 'auto'
-              }}>
-              <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>
-{t('editPost')}
+                maxWidth: '420px',
+                maxHeight: '85vh',
+                overflow: 'auto',
+                position: 'relative'
+              }}
+            >
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="btn-icon"
+                style={{ position: 'absolute', top: 14, right: 14, width: 40, height: 40 }}
+                aria-label="Close"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="m18 6-12 12"/>
+                  <path d="m6 6 12 12"/>
+                </svg>
+              </button>
+
+              <h3 className="text-section-title" style={{ marginBottom: '20px', paddingRight: '40px' }}>
+                {t('editPost')}
               </h3>
-              
+
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
+                <label className="text-eyebrow" style={{ display: 'block', marginBottom: '8px' }}>
                   {t('title')}
                 </label>
                 <input
@@ -1165,13 +1126,8 @@ export default function PostModal({
                   value={editTitle}
                   onChange={(e) => setEditTitle(e.target.value)}
                   placeholder={t('titlePlaceholder')}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '1px solid #ddd',
-                    borderRadius: '8px',
-                    fontSize: '14px'
-                  }}
+                  className="input-glass"
+                  style={{ width: '100%' }}
                   autoComplete="off"
                   autoCorrect="off"
                   autoCapitalize="off"
@@ -1184,21 +1140,19 @@ export default function PostModal({
               </div>
 
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
+                <label className="text-eyebrow" style={{ display: 'block', marginBottom: '8px' }}>
                   {t('description')}
                 </label>
                 <textarea
                   value={editDescription}
                   onChange={(e) => setEditDescription(e.target.value)}
                   placeholder={t('addDescription')}
+                  className="input-glass"
                   style={{
                     width: '100%',
-                    padding: '12px',
-                    border: '1px solid #ddd',
-                    borderRadius: '8px',
-                    fontSize: '14px',
                     resize: 'vertical',
-                    minHeight: '80px'
+                    minHeight: '88px',
+                    fontFamily: 'inherit'
                   }}
                   autoComplete="off"
                   autoCorrect="off"
@@ -1212,33 +1166,33 @@ export default function PostModal({
               </div>
 
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
+                <label className="text-eyebrow" style={{ display: 'block', marginBottom: '8px' }}>
                   {t('tags')}
                 </label>
-                <div style={{
-                  border: '1px solid #ddd',
-                  borderRadius: '8px',
-                  padding: '8px',
-                  minHeight: '40px',
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}>
+                <div
+                  className="input-glass"
+                  style={{
+                    minHeight: '44px',
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px'
+                  }}
+                >
                   {editHashtags.map((tag, index) => (
                     <span key={index} style={{
-                      background: 'var(--accent-blue)',
-                      color: 'white',
-                      padding: '1px 8px',
-                      borderRadius: '10px',
-                      fontSize: '10px',
-                      fontWeight: '400',
+                      background: 'rgba(124,58,237,0.10)',
+                      color: 'var(--accent-iris)',
+                      border: '1px solid rgba(124,58,237,0.18)',
+                      padding: '4px 10px',
+                      borderRadius: '999px',
+                      fontSize: '11px',
+                      fontWeight: 500,
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '4px',
-                      lineHeight: '1',
-                      height: 'auto',
-                      minHeight: 'unset'
+                      gap: '6px',
+                      lineHeight: 1.2
                     }}>
                       {tag.startsWith('#') ? tag : `#${tag}`}
                       <button
@@ -1246,17 +1200,22 @@ export default function PostModal({
                         style={{
                           background: 'none',
                           border: 'none',
-                          color: 'white',
+                          color: 'var(--accent-iris)',
                           cursor: 'pointer',
-                          padding: '0',
-                          fontSize: '12px'
+                          padding: 0,
+                          display: 'inline-flex',
+                          alignItems: 'center'
                         }}
+                        aria-label="Remove tag"
                       >
-                        ×
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <path d="m18 6-12 12"/>
+                          <path d="m6 6 12 12"/>
+                        </svg>
                       </button>
                     </span>
                   ))}
-                  
+
                   <input
                     type="text"
                     value={editHashtagInput}
@@ -1270,7 +1229,8 @@ export default function PostModal({
                       minWidth: '120px',
                       padding: '4px 0',
                       fontSize: '14px',
-                      backgroundColor: 'transparent'
+                      background: 'transparent',
+                      color: 'var(--ink-1)'
                     }}
                     autoComplete="off"
                     autoCorrect="off"
@@ -1282,12 +1242,11 @@ export default function PostModal({
                     data-bwignore="true"
                   />
                 </div>
-                <p style={{ marginTop: '4px', fontSize: '12px', color: '#6B7280' }}>
+                <p className="text-subtle" style={{ marginTop: '6px', fontSize: '12px' }}>
                   {t('hashtagInputHelp')}
                 </p>
               </div>
 
-              {/* Date Picker */}
               <div style={{ marginBottom: '20px' }}>
                 <DatePicker
                   value={editDate}
@@ -1296,35 +1255,30 @@ export default function PostModal({
                 />
               </div>
 
-              {/* Cover Selection - Mobile */}
               {(() => {
                 const multiUrls = editPhotoOrder.length > 0 ? editPhotoOrder : getMultiPhotoUrls(currentPost)
                 if (multiUrls && multiUrls.length > 1) {
                   return (
                     <div style={{ marginBottom: '20px' }}>
-                      <label style={{ 
-                        display: 'block', 
-                        marginBottom: '8px', 
-                        fontSize: '14px', 
-                        fontWeight: '500' 
-                      }}>
-                        📸 Cover/Thumbnail
+                      <label className="text-eyebrow" style={{ display: 'block', marginBottom: '8px' }}>
+                        Cover / Thumbnail
                       </label>
-                      <div style={{ 
-                        display: 'grid', 
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(60px, 1fr))', 
-                        gap: '8px',
-                        padding: '12px',
-                        backgroundColor: '#F3F4F6',
-                        borderRadius: '8px',
-                        border: '1px solid #D1D5DB'
-                      }}>
+                      <div
+                        className="glass-soft"
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fill, minmax(60px, 1fr))',
+                          gap: '8px',
+                          padding: '12px',
+                          borderRadius: '14px'
+                        }}
+                      >
                         {multiUrls.map((url, index) => {
-                          const isVideo = url.toLowerCase().includes('.mp4') || 
-                                         url.toLowerCase().includes('.mov') || 
+                          const isVideo = url.toLowerCase().includes('.mp4') ||
+                                         url.toLowerCase().includes('.mov') ||
                                          url.toLowerCase().includes('.webm') ||
                                          url.toLowerCase().includes('.avi')
-                          
+
                           return (
                             <button
                               key={index}
@@ -1339,27 +1293,30 @@ export default function PostModal({
                                 position: 'relative',
                                 width: '60px',
                                 height: '60px',
-                                borderRadius: '6px',
-                                backgroundColor: '#E5E7EB',
-                                backgroundImage: !isVideo ? `url(${url})` : 'none',
-                                backgroundSize: 'cover',
-                                backgroundPosition: 'center',
+                                borderRadius: '10px',
+                                background: !isVideo ? `url(${url}) center/cover no-repeat` : 'var(--glass-2)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                border: index === editCoverIndex ? '2px solid #10B981' : '1px solid #D1D5DB',
+                                border: index === editCoverIndex
+                                  ? '2px solid var(--accent-iris)'
+                                  : '1px solid var(--glass-hairline)',
+                                boxShadow: index === editCoverIndex
+                                  ? '0 0 0 3px rgba(124,58,237,0.18)'
+                                  : 'none',
                                 cursor: 'pointer',
-                                transition: 'all 0.2s ease'
+                                transition: 'all 220ms cubic-bezier(0.22, 1, 0.36, 1)',
+                                padding: 0
                               }}
                             >
                               {isVideo && (
                                 <div style={{
-                                  color: '#6B7280',
-                                  fontSize: '20px',
-                                  background: 'var(--bg-secondary)',
+                                  color: 'var(--ink-2)',
+                                  fontSize: '16px',
+                                  background: 'var(--glass-3)',
                                   borderRadius: '50%',
-                                  width: '30px',
-                                  height: '30px',
+                                  width: '28px',
+                                  height: '28px',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center'
@@ -1367,22 +1324,23 @@ export default function PostModal({
                                   ▶
                                 </div>
                               )}
-                              
+
                               {index === editCoverIndex && (
                                 <div style={{
                                   position: 'absolute',
                                   top: '2px',
                                   right: '2px',
-                                  width: '16px',
-                                  height: '16px',
+                                  width: '18px',
+                                  height: '18px',
                                   borderRadius: '50%',
-                                  backgroundColor: '#10B981',
-                                  color: 'white',
+                                  background: 'var(--accent-iris)',
+                                  color: '#ffffff',
                                   fontSize: '10px',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
-                                  fontWeight: 'bold'
+                                  fontWeight: 700,
+                                  boxShadow: '0 2px 8px rgba(124,58,237,0.45)'
                                 }}>
                                   ✓
                                 </div>
@@ -1391,11 +1349,7 @@ export default function PostModal({
                           )
                         })}
                       </div>
-                      <p style={{ 
-                        marginTop: '4px', 
-                        fontSize: '12px', 
-                        color: '#6B7280' 
-                      }}>
+                      <p className="text-subtle" style={{ marginTop: '6px', fontSize: '12px' }}>
                         Selectează care imagine/video să fie afișat ca thumbnail în grid.
                       </p>
                     </div>
@@ -1404,33 +1358,21 @@ export default function PostModal({
                 return null
               })()}
 
-              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
                 <button
                   onClick={() => setShowEditModal(false)}
-                  style={{
-                    padding: '10px 20px',
-                    border: '1px solid #ddd',
-                    borderRadius: '8px',
-                    background: 'white',
-                    cursor: 'pointer'
-                  }}
+                  className="btn-glass"
+                  style={{ padding: '10px 18px' }}
                 >
-{t('cancel')}
+                  {t('cancel')}
                 </button>
                 <button
                   onClick={handleEditSave}
                   disabled={editLoading}
-                  style={{
-                    padding: '10px 20px',
-                    border: 'none',
-                    borderRadius: '8px',
-                    background: 'var(--accent-blue)',
-                    color: 'white',
-                    cursor: 'pointer',
-                    opacity: editLoading ? 0.6 : 1
-                  }}
+                  className="btn-iris sheen"
+                  style={{ padding: '10px 18px', opacity: editLoading ? 0.7 : 1 }}
                 >
-{editLoading ? t('saving') : t('save')}
+                  {editLoading ? t('saving') : t('save')}
                 </button>
               </div>
             </div>
@@ -1443,65 +1385,57 @@ export default function PostModal({
 
   // Desktop: Modern layout with padding
   return (
-    <div 
-      className="modal-overlay animate-fade-in" 
+    <div
+      className="modal-scrim"
       onClick={handleOverlayClick}
-      style={{ 
+      style={{
         zIndex: 1000,
-        background: 'rgba(0, 0, 0, 0.95)',
         padding: '20px'
       }}
     >
-      {/* Desktop navigation arrows */}
       {currentIdx > 0 && (
         <button
           onClick={(e) => {
             e.stopPropagation()
             navigateToPost(currentIdx - 1)
           }}
+          className="btn-icon"
           style={{
             position: 'absolute',
             left: '36px',
             top: '50%',
             transform: 'translateY(-50%)',
             zIndex: 1002,
-            padding: '12px',
-            background: 'white',
-            border: '1px solid var(--border-light)',
-            borderRadius: '50%',
-            cursor: 'pointer',
-            color: 'var(--text-primary)',
-            transition: 'all 0.2s ease-in-out',
-            boxShadow: 'var(--shadow-soft)'
+            width: '44px',
+            height: '44px',
+            color: 'var(--ink-1)'
           }}
+          aria-label="Previous"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="m15 18-6-6 6-6"/>
           </svg>
         </button>
       )}
-      
+
       {currentIdx < allPosts.length - 1 && (
         <button
           onClick={(e) => {
             e.stopPropagation()
             navigateToPost(currentIdx + 1)
           }}
+          className="btn-icon"
           style={{
             position: 'absolute',
             right: '36px',
             top: '50%',
             transform: 'translateY(-50%)',
             zIndex: 1002,
-            padding: '12px',
-            background: 'white',
-            border: '1px solid var(--border-light)',
-            borderRadius: '50%',
-            cursor: 'pointer',
-            color: 'var(--text-primary)',
-            transition: 'all 0.2s ease-in-out',
-            boxShadow: 'var(--shadow-soft)'
+            width: '44px',
+            height: '44px',
+            color: 'var(--ink-1)'
           }}
+          aria-label="Next"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="m9 18 6-6-6-6"/>
@@ -1509,7 +1443,6 @@ export default function PostModal({
         </button>
       )}
 
-      {/* Action buttons in top right */}
       <div style={{
         position: 'absolute',
         top: '24px',
@@ -1517,113 +1450,83 @@ export default function PostModal({
         zIndex: 1002,
         display: 'flex',
         flexDirection: 'column',
-        gap: '12px'
+        gap: '10px'
       }}>
-        {/* Download button */}
         {!isTextPost && currentPost.file_url && (
           <button
             onClick={handleDownload}
-            style={{
-              padding: '14px',
-              background: 'rgba(0, 0, 0, 0.7)',
-              backdropFilter: 'blur(10px)',
-              border: 'none',
-              borderRadius: '50%',
-              cursor: 'pointer',
-              color: 'white',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
-            }}
+            className="btn-icon"
+            style={{ width: '40px', height: '40px', color: 'var(--ink-1)' }}
             title={t('download')}
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
               <polyline points="7,10 12,15 17,10"/>
               <line x1="12" x2="12" y1="15" y2="3"/>
             </svg>
           </button>
         )}
-        
-        {/* Edit button */}
+
         {!readOnly && (
           <button
             onClick={handleEdit}
-            style={{
-              padding: '14px',
-              background: 'rgba(0, 0, 0, 0.7)',
-              backdropFilter: 'blur(10px)',
-              border: 'none',
-              borderRadius: '50%',
-              cursor: 'pointer',
-              color: 'white',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
-            }}
+            className="btn-icon"
+            style={{ width: '40px', height: '40px', color: 'var(--ink-1)' }}
             title={t('edit')}
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
               <path d="m18.5 2.5 2 2L13 12l-4 1 1-4 7.5-7.5z"/>
             </svg>
           </button>
         )}
-        
-        {/* Close button */}
+
         <button
           onClick={(e) => {
             e.stopPropagation()
             onClose()
           }}
-          style={{
-            padding: '14px',
-            background: 'rgba(0, 0, 0, 0.7)',
-            backdropFilter: 'blur(10px)',
-            border: 'none',
-            borderRadius: '50%',
-            cursor: 'pointer',
-            color: 'white',
-            transition: 'all 0.2s ease-in-out',
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
-          }}
+          className="btn-icon"
+          style={{ width: '40px', height: '40px', color: 'var(--ink-1)' }}
+          aria-label="Close"
         >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="m18 6-12 12"/>
             <path d="m6 6 12 12"/>
           </svg>
         </button>
       </div>
 
-      {/* Post counter */}
-      <div style={{
-        position: 'absolute',
-        top: '24px',
-        left: '24px',
-        zIndex: 1002,
-        padding: '10px 16px',
-        background: 'rgba(0, 0, 0, 0.7)',
-        color: 'white',
-        borderRadius: '20px',
-        fontSize: '14px',
-        fontWeight: '500',
-        backdropFilter: 'blur(10px)',
-        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
-      }}>
+      <div
+        className="glass-pill nums"
+        style={{
+          position: 'absolute',
+          top: '24px',
+          left: '24px',
+          zIndex: 1002,
+          padding: '10px 16px',
+          color: 'var(--ink-1)',
+          fontSize: '13px',
+          fontWeight: 600
+        }}
+      >
         {currentIdx + 1} / {allPosts.length}
       </div>
 
-      {/* Desktop modal content - Contained approach */}
-      <div 
-        ref={modalRef} 
-        style={{ 
+      <div
+        ref={modalRef}
+        style={{
           display: 'flex',
           width: 'calc(100vw - 40px)',
           height: 'calc(100vh - 40px)',
           position: 'relative',
-          borderRadius: '12px',
+          borderRadius: '24px',
           overflow: 'hidden',
-          background: '#000'
+          background: '#000',
+          boxShadow: '0 24px 60px -16px rgba(15,15,30,0.45), inset 0 1px 0 0 var(--glass-hairline-strong)'
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Media Section - Contained with space for sidebar */}
         <div style={{
           flex: isTextPost ? '1' : '0 0 75%',
           background: isTextPost ? 'transparent' : '#000',
@@ -1637,7 +1540,7 @@ export default function PostModal({
             <div style={{
               width: '100%',
               height: '100%',
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 60%, #4338ca 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -1645,18 +1548,18 @@ export default function PostModal({
               textAlign: 'center'
             }}>
               <div>
-                <div style={{ 
-                  fontSize: '48px', 
+                <div style={{
+                  fontSize: '48px',
                   marginBottom: '24px',
-                  filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1))'
+                  filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.18))'
                 }}>💭</div>
-                <p style={{ 
-                  color: 'white',
+                <p style={{
+                  color: '#ffffff',
                   fontSize: '20px',
-                  fontWeight: '500',
-                  lineHeight: '1.5',
-                  textShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
-                  maxWidth: '400px'
+                  fontWeight: 500,
+                  lineHeight: '1.55',
+                  textShadow: '0 1px 2px rgba(0, 0, 0, 0.18)',
+                  maxWidth: '420px'
                 }}>
                   {getCleanDescription(currentPost) || 'Postare text'}
                 </p>
@@ -1792,10 +1695,8 @@ export default function PostModal({
                         })}
                       </div>
                       
-                      {/* Desktop Navigation Arrows */}
                       {multiPhotoUrls.length > 1 && (
                         <>
-                          {/* Previous Arrow */}
                           <button
                             className="modal-carousel-nav-arrow modal-carousel-nav-prev"
                             onClick={(e) => {
@@ -1806,42 +1707,17 @@ export default function PostModal({
                               position: 'absolute',
                               bottom: '60px',
                               left: '20px',
-                              width: '44px',
-                              height: '44px',
-                              borderRadius: '50%',
-                              background: 'rgba(0, 0, 0, 0.8)',
-                              border: 'none',
-                              color: 'white',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              opacity: currentImageIndex > 0 ? 0.9 : 0.4,
-                              transition: 'all 0.3s ease',
                               zIndex: 30,
-                              backdropFilter: 'blur(15px)',
-                              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)',
+                              opacity: currentImageIndex > 0 ? 1 : 0.4,
                               pointerEvents: currentImageIndex > 0 ? 'auto' : 'none'
                             }}
-                            onMouseOver={(e) => {
-                              if (currentImageIndex > 0) {
-                                e.currentTarget.style.opacity = '1'
-                                e.currentTarget.style.transform = 'scale(1.1)'
-                              }
-                            }}
-                            onMouseOut={(e) => {
-                              if (currentImageIndex > 0) {
-                                e.currentTarget.style.opacity = '0.9'
-                                e.currentTarget.style.transform = 'scale(1)'
-                              }
-                            }}
+                            aria-label="Previous image"
                           >
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                               <path d="m15 18-6-6 6-6"/>
                             </svg>
                           </button>
-                          
-                          {/* Next Arrow */}
+
                           <button
                             className="modal-carousel-nav-arrow modal-carousel-nav-next"
                             onClick={(e) => {
@@ -1852,35 +1728,11 @@ export default function PostModal({
                               position: 'absolute',
                               bottom: '60px',
                               right: '20px',
-                              width: '44px',
-                              height: '44px',
-                              borderRadius: '50%',
-                              background: 'rgba(0, 0, 0, 0.8)',
-                              border: 'none',
-                              color: 'white',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              opacity: currentImageIndex < multiPhotoUrls.length - 1 ? 0.9 : 0.4,
-                              transition: 'all 0.3s ease',
                               zIndex: 30,
-                              backdropFilter: 'blur(15px)',
-                              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)',
+                              opacity: currentImageIndex < multiPhotoUrls.length - 1 ? 1 : 0.4,
                               pointerEvents: currentImageIndex < multiPhotoUrls.length - 1 ? 'auto' : 'none'
                             }}
-                            onMouseOver={(e) => {
-                              if (currentImageIndex < multiPhotoUrls.length - 1) {
-                                e.currentTarget.style.opacity = '1'
-                                e.currentTarget.style.transform = 'scale(1.1)'
-                              }
-                            }}
-                            onMouseOut={(e) => {
-                              if (currentImageIndex < multiPhotoUrls.length - 1) {
-                                e.currentTarget.style.opacity = '0.9'
-                                e.currentTarget.style.transform = 'scale(1)'
-                              }
-                            }}
+                            aria-label="Next image"
                           >
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                               <path d="m9 18 6-6-6-6"/>
@@ -1889,7 +1741,6 @@ export default function PostModal({
                         </>
                       )}
                       
-                      {/* Modern dots indicator */}
                       <div style={{
                         position: 'absolute',
                         top: '20px',
@@ -1898,13 +1749,15 @@ export default function PostModal({
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
-                        gap: '8px',
+                        gap: '6px',
                         zIndex: 25,
-                        background: 'rgba(0, 0, 0, 0.7)',
+                        background: 'rgba(15, 15, 30, 0.55)',
                         padding: '10px 16px',
-                        borderRadius: '25px',
-                        backdropFilter: 'blur(15px)',
-                        border: '1px solid rgba(255, 255, 255, 0.1)'
+                        borderRadius: '999px',
+                        backdropFilter: 'blur(20px) saturate(160%)',
+                        WebkitBackdropFilter: 'blur(20px) saturate(160%)',
+                        border: '1px solid rgba(255, 255, 255, 0.12)',
+                        boxShadow: '0 8px 24px -8px rgba(0,0,0,0.35)'
                       }}>
                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                           {multiPhotoUrls.map((_, index) => (
@@ -1918,23 +1771,25 @@ export default function PostModal({
                               style={{
                                 width: index === currentImageIndex ? '24px' : '8px',
                                 height: '8px',
-                                borderRadius: '4px',
-                                backgroundColor: index === currentImageIndex ? 'var(--bg-secondary)' : 'var(--bg-gray)',
+                                borderRadius: '999px',
+                                background: index === currentImageIndex
+                                  ? 'rgba(255,255,255,0.95)'
+                                  : 'rgba(255,255,255,0.42)',
                                 cursor: 'pointer',
-                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                                boxShadow: index === currentImageIndex 
-                                  ? '0 0 0 2px rgba(255, 255, 255, 0.3), 0 2px 8px rgba(0, 0, 0, 0.4)' 
-                                  : '0 1px 3px rgba(0, 0, 0, 0.3)',
-                                transform: index === currentImageIndex ? 'scale(1.1)' : 'scale(1)',
+                                transition: 'all 220ms cubic-bezier(0.22, 1, 0.36, 1)',
+                                boxShadow: index === currentImageIndex
+                                  ? '0 0 0 2px rgba(255, 255, 255, 0.18), 0 2px 8px rgba(0, 0, 0, 0.4)'
+                                  : 'none',
+                                transform: index === currentImageIndex ? 'scale(1.1)' : 'scale(1)'
                               }}
                             />
                           ))}
                         </div>
-                        <div style={{
-                          fontSize: '12px',
-                          color: 'rgba(255, 255, 255, 0.9)',
-                          fontWeight: '500',
-                          marginTop: '2px'
+                        <div className="nums" style={{
+                          fontSize: '11px',
+                          color: 'rgba(255, 255, 255, 0.85)',
+                          fontWeight: 500,
+                          letterSpacing: '0.02em'
                         }}>
                           {currentImageIndex + 1} / {multiPhotoUrls.length}
                         </div>
@@ -1974,63 +1829,59 @@ export default function PostModal({
           )}
         </div>
 
-        {/* Info Section - Compact sidebar */}
-        <div style={{
-          width: '400px',
-          background: 'var(--bg-secondary)',
-          backdropFilter: 'blur(20px)',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          borderLeft: '1px solid rgba(255, 255, 255, 0.2)'
-        }}>
-          {/* Header - More compact */}
-          <div style={{ 
-            padding: '24px 20px 16px 20px'
+        <div
+          className="glass-strong"
+          style={{
+            width: '400px',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            borderLeft: '1px solid var(--glass-hairline)',
+            borderRadius: 0
+          }}
+        >
+          <div style={{
+            padding: '28px 22px 16px 22px',
+            borderBottom: '1px solid var(--glass-hairline)'
           }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <div style={{ flex: '1', marginRight: '16px' }}>
-                <h2 style={{ 
-                  fontSize: '20px',
-                  fontWeight: '700',
-                  color: 'var(--text-primary)',
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '14px' }}>
+              <div style={{ flex: '1', marginRight: '12px' }}>
+                <h2 className="text-section-title" style={{
                   marginBottom: '6px',
-                  lineHeight: '1.3',
+                  lineHeight: '1.25',
                   wordBreak: 'break-word'
                 }}>
                   {currentPost.title || 'Postare'}
                 </h2>
-                <p style={{ 
+                <p className="text-subtle" style={{
                   fontSize: '12px',
-                  color: 'var(--text-secondary)',
-                  margin: '0',
-                  fontWeight: '500'
+                  margin: 0,
+                  letterSpacing: '0.01em'
                 }}>
                   {formatDate(currentPost.created_at)}
                 </p>
               </div>
             </div>
 
-            {/* Category - Moved to header for better space usage */}
             {currentPost.category && (
-              <div style={{ marginBottom: '0' }}>
+              <div>
                 <span style={{
                   display: 'inline-block',
-                  padding: '6px 12px',
-                  backgroundColor: 'var(--accent-blue)',
-                  color: 'white',
-                  borderRadius: '16px',
-                  fontSize: '11px',
-                  fontWeight: '700',
+                  padding: '5px 11px',
+                  background: 'rgba(124,58,237,0.10)',
+                  color: 'var(--accent-iris)',
+                  border: '1px solid rgba(124,58,237,0.18)',
+                  borderRadius: '999px',
+                  fontSize: '10px',
+                  fontWeight: 700,
                   textTransform: 'uppercase',
-                  letterSpacing: '0.5px'
+                  letterSpacing: '0.06em'
                 }}>
                   {(() => {
                     const category = categories.find(cat => cat.value === currentPost.category)
                     if (category) {
                       return `${category.emoji ? category.emoji + ' ' : ''}${category.label}`
                     }
-                    // Fallback to capitalized category name if not found in dynamic categories
                     return currentPost.category.charAt(0).toUpperCase() + currentPost.category.slice(1)
                   })()}
                 </span>
@@ -2038,56 +1889,42 @@ export default function PostModal({
             )}
           </div>
 
-          {/* Content - Optimized spacing */}
-          <div style={{ 
-            padding: '16px 20px',
+          <div style={{
+            padding: '20px 22px',
             flex: '1',
             overflow: 'auto'
           }}>
-            {/* Description */}
             {getCleanDescription(currentPost) && !isTextPost && (
               <div style={{ marginBottom: '24px' }}>
-                <h4 style={{ 
-                  fontSize: '13px',
-                  fontWeight: '600',
-                  color: 'var(--text-secondary)',
-                  marginBottom: '8px',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px'
-                }}>
+                <h4 className="text-eyebrow" style={{ marginBottom: '10px' }}>
                   {t('description')}
                 </h4>
                 <p style={{
-                  fontSize: '15px',
+                  fontSize: '14.5px',
                   lineHeight: '1.6',
-                  color: 'var(--text-primary)',
-                  margin: '0',
-                  padding: '12px 16px',
-                  background: 'rgba(0, 0, 0, 0.02)',
-                  borderRadius: '12px',
-                  borderLeft: '3px solid var(--accent-blue)'
+                  color: 'var(--ink-1)',
+                  margin: 0,
+                  padding: '14px 16px',
+                  background: 'var(--glass-2)',
+                  backdropFilter: 'blur(14px)',
+                  WebkitBackdropFilter: 'blur(14px)',
+                  borderRadius: '14px',
+                  border: '1px solid var(--glass-hairline)',
+                  borderLeft: '3px solid var(--accent-iris)'
                 }}>
                   {getCleanDescription(currentPost)}
                 </p>
               </div>
             )}
 
-            {/* Hashtags - More compact */}
             {currentPost.hashtags && currentPost.hashtags.length > 0 && (
-              <div style={{ marginBottom: '0' }}>
-                <h4 style={{ 
-                  fontSize: '13px',
-                  fontWeight: '600',
-                  color: 'var(--text-secondary)',
-                  marginBottom: '12px',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px'
-                }}>
+              <div>
+                <h4 className="text-eyebrow" style={{ marginBottom: '12px' }}>
                   {t('tags')} ({currentPost.hashtags.length})
                 </h4>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                   {currentPost.hashtags.map((hashtag, index) => (
-                    <button 
+                    <button
                       key={index}
                       onClick={(e) => {
                         e.stopPropagation()
@@ -2095,24 +1932,22 @@ export default function PostModal({
                         onClose()
                       }}
                       style={{
-                        padding: '8px 14px',
-                        backgroundColor: isMobile ? 'rgba(0, 149, 246, 0.8)' : 'rgba(0, 149, 246, 0.1)',
-                        color: isMobile ? 'white' : 'var(--accent-blue)',
-                        borderRadius: '20px',
-                        fontSize: '13px',
-                        fontWeight: '600',
-                        border: isMobile ? '1px solid rgba(0, 149, 246, 0.8)' : '1px solid rgba(0, 149, 246, 0.2)',
+                        padding: '4px 10px',
+                        background: 'rgba(124,58,237,0.10)',
+                        color: 'var(--accent-iris)',
+                        borderRadius: '999px',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        border: '1px solid rgba(124,58,237,0.18)',
                         cursor: 'pointer',
-                        transition: 'all 0.2s ease-in-out'
+                        transition: 'all 220ms cubic-bezier(0.22, 1, 0.36, 1)'
                       }}
                       onMouseOver={(e) => {
-                        e.currentTarget.style.backgroundColor = 'var(--accent-blue)'
-                        e.currentTarget.style.color = 'white'
+                        e.currentTarget.style.background = 'rgba(124,58,237,0.18)'
                         e.currentTarget.style.transform = 'translateY(-1px)'
                       }}
                       onMouseOut={(e) => {
-                        e.currentTarget.style.backgroundColor = 'rgba(0, 149, 246, 0.1)'
-                        e.currentTarget.style.color = 'var(--accent-blue)'
+                        e.currentTarget.style.background = 'rgba(124,58,237,0.10)'
                         e.currentTarget.style.transform = 'translateY(0)'
                       }}
                     >
@@ -2126,62 +1961,53 @@ export default function PostModal({
         </div>
       </div>
 
-      {/* Edit Modal */}
       {showEditModal && (
-        <div 
+        <div
           onClick={() => setShowEditModal(false)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0, 0, 0, 0.7)',
-            zIndex: 1003,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '20px'
-          }}>
-          <div 
+          className="modal-scrim"
+          style={{ zIndex: 1003 }}
+        >
+          <div
             onClick={(e) => e.stopPropagation()}
+            className="modal-glass specular"
             style={{
-              background: 'white',
-              borderRadius: '16px',
-              padding: '20px',
-              maxWidth: '500px',
+              padding: '28px',
+              maxWidth: '520px',
               width: '100%',
-              maxHeight: '80vh',
-              overflow: 'auto'
-            }}>
-            <h3 style={{
-              fontSize: '18px',
-              fontWeight: '600',
-              marginBottom: '16px',
-              color: 'var(--text-primary)'
-            }}>
-  {t('edit')} postarea
+              maxHeight: '85vh',
+              overflow: 'auto',
+              position: 'relative'
+            }}
+          >
+            <button
+              onClick={() => setShowEditModal(false)}
+              className="btn-icon"
+              style={{ position: 'absolute', top: 14, right: 14, width: 40, height: 40 }}
+              aria-label="Close"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="m18 6-12 12"/>
+                <path d="m6 6 12 12"/>
+              </svg>
+            </button>
+
+            <h3 className="text-section-title" style={{ marginBottom: '20px', paddingRight: '40px' }}>
+              {t('edit')} postarea
             </h3>
 
-            {/* Description */}
             <div style={{ marginBottom: '16px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '600',
-                color: 'var(--text-primary)',
-                marginBottom: '8px'
-              }}>
+              <label className="text-eyebrow" style={{ display: 'block', marginBottom: '8px' }}>
                 {t('description')}
               </label>
               <textarea
                 value={editDescription}
                 onChange={(e) => setEditDescription(e.target.value)}
+                className="input-glass"
                 style={{
                   width: '100%',
-                  padding: '10px',
-                  border: '1px solid var(--border-light)',
-                  borderRadius: '8px',
-                  fontSize: '14px',
                   resize: 'vertical',
-                  minHeight: '60px'
+                  minHeight: '76px',
+                  fontFamily: 'inherit'
                 }}
                 placeholder={t('postDescription')}
                 autoComplete="off"
@@ -2195,41 +2021,34 @@ export default function PostModal({
               />
             </div>
 
-            {/* Hashtags */}
             <div style={{ marginBottom: '16px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '600',
-                color: 'var(--text-primary)',
-                marginBottom: '8px'
-              }}>
+              <label className="text-eyebrow" style={{ display: 'block', marginBottom: '8px' }}>
                 {t('tags')}
               </label>
-              <div style={{
-                border: '1px solid var(--border-light)',
-                borderRadius: '8px',
-                padding: '6px',
-                minHeight: '32px',
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: '6px',
-                alignItems: 'center'
-              }}>
+              <div
+                className="input-glass"
+                style={{
+                  minHeight: '44px',
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '6px',
+                  alignItems: 'center',
+                  padding: '8px'
+                }}
+              >
                 {editHashtags.map((tag, index) => (
                   <span key={index} style={{
-                    background: 'var(--accent-blue)',
-                    color: 'white',
-                    padding: '1px 8px',
-                    borderRadius: '10px',
-                    fontSize: '10px',
-                    fontWeight: '400',
+                    background: 'rgba(124,58,237,0.10)',
+                    color: 'var(--accent-iris)',
+                    border: '1px solid rgba(124,58,237,0.18)',
+                    padding: '4px 10px',
+                    borderRadius: '999px',
+                    fontSize: '11px',
+                    fontWeight: 500,
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '4px',
-                    lineHeight: '1',
-                    height: 'auto',
-                    minHeight: 'unset'
+                    gap: '6px',
+                    lineHeight: 1.2
                   }}>
                     {tag.startsWith('#') ? tag : `#${tag}`}
                     <button
@@ -2237,12 +2056,18 @@ export default function PostModal({
                       style={{
                         background: 'none',
                         border: 'none',
-                        color: 'white',
+                        color: 'var(--accent-iris)',
                         cursor: 'pointer',
-                        fontSize: '14px'
+                        padding: 0,
+                        display: 'inline-flex',
+                        alignItems: 'center'
                       }}
+                      aria-label="Remove tag"
                     >
-                      ×
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <path d="m18 6-12 12"/>
+                        <path d="m6 6 12 12"/>
+                      </svg>
                     </button>
                   </span>
                 ))}
@@ -2254,7 +2079,9 @@ export default function PostModal({
                     outline: 'none',
                     flex: 1,
                     minWidth: '100px',
-                    fontSize: '14px'
+                    fontSize: '14px',
+                    background: 'transparent',
+                    color: 'var(--ink-1)'
                   }}
                   autoComplete="off"
                   autoCorrect="off"
@@ -2278,7 +2105,6 @@ export default function PostModal({
               </div>
             </div>
 
-            {/* Date Picker */}
             <div style={{ marginBottom: '16px' }}>
               <DatePicker
                 value={editDate}
@@ -2287,34 +2113,21 @@ export default function PostModal({
               />
             </div>
 
-            {/* Category Selection */}
             <div style={{ marginBottom: '16px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '600',
-                color: 'var(--text-primary)',
-                marginBottom: '8px'
-              }}>
+              <label className="text-eyebrow" style={{ display: 'block', marginBottom: '8px' }}>
                 Categorie
               </label>
               <select
                 value={editCategory}
                 onChange={(e) => setEditCategory(e.target.value)}
+                className="input-glass"
                 style={{
                   width: '100%',
-                  padding: '10px 14px',
-                  border: '1px solid var(--border-light)',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  outline: 'none',
-                  backgroundColor: 'var(--bg-secondary)',
-                  color: 'var(--text-primary)',
                   appearance: 'none',
-                  backgroundImage: 'url("data:image/svg+xml,%3csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 20 20\'%3e%3cpath stroke=\'%236b7280\' stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'1.5\' d=\'M6 8l4 4 4-4\'/%3e%3c/svg%3e")',
+                  backgroundImage: 'url("data:image/svg+xml,%3csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 20 20\'%3e%3cpath stroke=\'%237c3aed\' stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'1.5\' d=\'M6 8l4 4 4-4\'/%3e%3c/svg%3e")',
                   backgroundPosition: 'right 0.75rem center',
                   backgroundRepeat: 'no-repeat',
-                  backgroundSize: '1.5em 1.5em',
+                  backgroundSize: '1.4em 1.4em',
                   paddingRight: '2.5rem'
                 }}
               >
@@ -2327,36 +2140,30 @@ export default function PostModal({
               </select>
             </div>
 
-            {/* Cover Selection - Desktop */}
             {(() => {
               const multiUrls = getMultiPhotoUrls(currentPost)
               if (multiUrls && multiUrls.length > 1) {
                 return (
-                  <div style={{ marginBottom: '16px' }}>
-                    <label style={{
-                      display: 'block',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      color: 'var(--text-primary)',
-                      marginBottom: '8px'
-                    }}>
-                      📸 Cover/Thumbnail
+                  <div style={{ marginBottom: '20px' }}>
+                    <label className="text-eyebrow" style={{ display: 'block', marginBottom: '8px' }}>
+                      Cover / Thumbnail
                     </label>
-                    <div style={{ 
-                      display: 'grid', 
-                      gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', 
-                      gap: '8px',
-                      padding: '16px',
-                      backgroundColor: '#F9FAFB',
-                      borderRadius: '8px',
-                      border: '1px solid var(--border-light)'
-                    }}>
+                    <div
+                      className="glass-soft"
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))',
+                        gap: '8px',
+                        padding: '16px',
+                        borderRadius: '14px'
+                      }}
+                    >
                       {multiUrls.map((url, index) => {
-                        const isVideo = url.toLowerCase().includes('.mp4') || 
-                                       url.toLowerCase().includes('.mov') || 
+                        const isVideo = url.toLowerCase().includes('.mp4') ||
+                                       url.toLowerCase().includes('.mov') ||
                                        url.toLowerCase().includes('.webm') ||
                                        url.toLowerCase().includes('.avi')
-                        
+
                         return (
                           <div
                             key={index}
@@ -2387,25 +2194,27 @@ export default function PostModal({
                               position: 'relative',
                               width: '80px',
                               height: '80px',
-                              borderRadius: '8px',
-                              backgroundColor: '#E5E7EB',
-                              backgroundImage: !isVideo ? `url(${url})` : 'none',
-                              backgroundSize: 'cover',
-                              backgroundPosition: 'center',
+                              borderRadius: '12px',
+                              background: !isVideo ? `url(${url}) center/cover no-repeat` : 'var(--glass-2)',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              border: index === editCoverIndex ? '3px solid var(--accent-blue)' : '2px solid transparent',
+                              border: index === editCoverIndex
+                                ? '2px solid var(--accent-iris)'
+                                : '1px solid var(--glass-hairline)',
+                              boxShadow: index === editCoverIndex
+                                ? '0 0 0 3px rgba(124,58,237,0.18)'
+                                : 'none',
                               cursor: 'grab',
                               userSelect: 'none',
-                              transition: 'all 0.2s ease'
+                              transition: 'all 220ms cubic-bezier(0.22, 1, 0.36, 1)'
                             }}
                           >
                             {isVideo && (
                               <div style={{
-                                color: '#6B7280',
-                                fontSize: '24px',
-                                background: 'rgba(255, 255, 255, 0.9)',
+                                color: 'var(--ink-2)',
+                                fontSize: '20px',
+                                background: 'var(--glass-3)',
                                 borderRadius: '50%',
                                 width: '32px',
                                 height: '32px',
@@ -2416,7 +2225,7 @@ export default function PostModal({
                                 ▶
                               </div>
                             )}
-                            
+
                             {index === editCoverIndex && (
                               <div style={{
                                 position: 'absolute',
@@ -2425,14 +2234,14 @@ export default function PostModal({
                                 width: '20px',
                                 height: '20px',
                                 borderRadius: '50%',
-                                backgroundColor: 'var(--accent-blue)',
-                                color: 'white',
-                                fontSize: '12px',
+                                background: 'var(--accent-iris)',
+                                color: '#ffffff',
+                                fontSize: '11px',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                fontWeight: 'bold',
-                                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
+                                fontWeight: 700,
+                                boxShadow: '0 2px 8px rgba(124,58,237,0.45)'
                               }}>
                                 ✓
                               </div>
@@ -2441,10 +2250,9 @@ export default function PostModal({
                         )
                       })}
                     </div>
-                    <p style={{ 
-                      marginTop: '8px', 
-                      fontSize: '12px', 
-                      color: '#6B7280',
+                    <p className="text-subtle" style={{
+                      marginTop: '8px',
+                      fontSize: '12px',
                       lineHeight: '1.4'
                     }}>
                       Selectează care imagine/video să fie afișat ca thumbnail în grid. Trage și lasă pentru a rearanja ordinea pozelor.
@@ -2455,42 +2263,26 @@ export default function PostModal({
               return null
             })()}
 
-            {/* Buttons */}
             <div style={{
               display: 'flex',
-              gap: '12px',
+              gap: '10px',
               justifyContent: 'flex-end'
             }}>
               <button
                 onClick={() => setShowEditModal(false)}
                 disabled={editLoading}
-                style={{
-                  padding: '8px 16px',
-                  border: '1px solid var(--border-light)',
-                  background: 'white',
-                  color: 'var(--text-primary)',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontSize: '14px'
-                }}
+                className="btn-glass"
+                style={{ padding: '10px 18px' }}
               >
                 {t('cancel')}
               </button>
               <button
                 onClick={handleEditSave}
                 disabled={editLoading}
-                style={{
-                  padding: '8px 16px',
-                  border: 'none',
-                  background: 'var(--accent-blue)',
-                  color: 'white',
-                  borderRadius: '8px',
-                  cursor: editLoading ? 'not-allowed' : 'pointer',
-                  fontSize: '14px',
-                  opacity: editLoading ? 0.7 : 1
-                }}
+                className="btn-iris sheen"
+                style={{ padding: '10px 18px', opacity: editLoading ? 0.7 : 1 }}
               >
-{editLoading ? t('saving') : t('save')}
+                {editLoading ? t('saving') : t('save')}
               </button>
             </div>
           </div>

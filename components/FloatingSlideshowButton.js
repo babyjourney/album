@@ -1,6 +1,33 @@
 import { useState, useEffect } from 'react'
 import MemorySlideshow from './MemorySlideshow'
 
+const slideshowAnimations = `
+  @keyframes slideshow-pulse {
+    0%, 100% {
+      box-shadow:
+        0 12px 32px -8px rgba(0, 0, 0, 0.30),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.30),
+        0 0 0 0 rgba(124, 58, 237, 0.45);
+    }
+    50% {
+      box-shadow:
+        0 16px 40px -8px rgba(0, 0, 0, 0.32),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.30),
+        0 0 0 10px rgba(124, 58, 237, 0);
+    }
+  }
+  @keyframes slideshow-spin {
+    to { transform: rotate(360deg); }
+  }
+`
+
+if (typeof document !== 'undefined' && !document.getElementById('slideshow-button-animations')) {
+  const styleEl = document.createElement('style')
+  styleEl.id = 'slideshow-button-animations'
+  styleEl.textContent = slideshowAnimations
+  document.head.appendChild(styleEl)
+}
+
 export default function FloatingSlideshowButton({ familyId }) {
   const [showSlideshow, setShowSlideshow] = useState(false)
   const [memories, setMemories] = useState([])
@@ -11,38 +38,34 @@ export default function FloatingSlideshowButton({ familyId }) {
       console.log('No familyId provided')
       return []
     }
-    
+
     setLoading(true)
     try {
       console.log('Fetching memories for familyId:', familyId)
       const response = await fetch(`/api/photos/list?familyId=${familyId}&sort=newest`)
       const result = await response.json()
-      
+
       console.log('API Response:', response.ok, result)
-      
+
       if (response.ok && result.photos) {
         console.log('Raw photos from API:', result.photos.length, result.photos)
-        
-        // Filter to get only photos and videos (not text posts)
+
         const mediaMemories = result.photos.filter(photo => {
           console.log('Checking photo:', {
-            id: photo.id, 
-            type: photo.type, 
+            id: photo.id,
+            type: photo.type,
             file_type: photo.file_type,
             fileUrl: photo.fileUrl,
             file_url: photo.file_url
           })
-          
-          // Check if it's NOT a text post
+
           const isNotTextPost = photo.type !== 'text'
-          
-          // Check if it has a file URL (could be fileUrl or file_url)
-          const hasFile = (photo.fileUrl && photo.fileUrl.trim() !== '') || 
+
+          const hasFile = (photo.fileUrl && photo.fileUrl.trim() !== '') ||
                           (photo.file_url && photo.file_url.trim() !== '')
-          
-          // For debugging - also accept posts without explicit type
+
           const typeOK = !photo.type || photo.type !== 'text'
-          
+
           const passes = typeOK && hasFile
           console.log('Photo passes filter:', passes, 'typeOK:', typeOK, 'hasFile:', hasFile)
           return passes
@@ -64,7 +87,7 @@ export default function FloatingSlideshowButton({ familyId }) {
     console.log('SLIDESHOW: Button clicked - fetching real album photos/videos')
     const fetchedMemories = await fetchAllMemories()
     console.log('SLIDESHOW: Got memories:', fetchedMemories?.length, fetchedMemories)
-    
+
     if (fetchedMemories && fetchedMemories.length > 0) {
       setShowSlideshow(true)
       console.log('SLIDESHOW: Opening slideshow with', fetchedMemories.length, 'memories')
@@ -75,7 +98,6 @@ export default function FloatingSlideshowButton({ familyId }) {
 
   return (
     <>
-      {/* Floating Slideshow Button */}
       <div
         className="slideshow-button-container"
         style={{
@@ -93,61 +115,33 @@ export default function FloatingSlideshowButton({ familyId }) {
             width: '56px',
             height: '56px',
             borderRadius: '50%',
-            border: 'none',
-            background: loading ? 
-              'linear-gradient(135deg, #9ca3af, #6b7280)' :
-              'linear-gradient(135deg, #3b82f6, #1d4ed8)',
-            color: 'white',
-            fontSize: window.innerWidth <= 768 ? '20px' : '24px',
+            color: 'var(--ink-1)',
             cursor: loading ? 'not-allowed' : 'pointer',
-            boxShadow: window.innerWidth <= 768 ? 
-              '0 4px 12px rgba(59, 130, 246, 0.3)' : 
-              '0 8px 25px rgba(59, 130, 246, 0.4)',
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            opacity: loading ? 0.7 : 1
-          }}
-          onMouseOver={(e) => {
-            if (!loading) {
-              e.target.style.transform = 'scale(1.1)'
-              e.target.style.boxShadow = '0 12px 35px rgba(59, 130, 246, 0.6)'
-            }
-          }}
-          onMouseOut={(e) => {
-            if (!loading) {
-              e.target.style.transform = 'scale(1)'
-              e.target.style.boxShadow = '0 8px 25px rgba(59, 130, 246, 0.4)'
-            }
-          }}
-          onMouseDown={(e) => {
-            if (!loading) {
-              e.target.style.transform = 'scale(0.95)'
-            }
-          }}
-          onMouseUp={(e) => {
-            if (!loading) {
-              e.target.style.transform = 'scale(1.1)'
-            }
+            opacity: loading ? 0.7 : 1,
+            position: 'relative',
+            animation: loading ? 'none' : 'slideshow-pulse 2.4s cubic-bezier(0.22, 1, 0.36, 1) infinite'
           }}
         >
           {loading ? (
             <div style={{
               width: '20px',
               height: '20px',
-              border: '2px solid rgba(255, 255, 255, 0.3)',
-              borderTop: '2px solid white',
+              border: '2px solid var(--glass-hairline-strong)',
+              borderTop: '2px solid var(--accent-iris)',
               borderRadius: '50%',
-              animation: 'spin 1s linear infinite'
+              animation: 'slideshow-spin 1s linear infinite'
             }} />
           ) : (
-            '🎞'
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="6 4 20 12 6 20 6 4" fill="currentColor" stroke="none" />
+            </svg>
           )}
         </button>
       </div>
 
-      {/* Memory Slideshow Modal */}
       {console.log('Rendering MemorySlideshow with:', { showSlideshow, memoriesCount: memories.length })}
       <MemorySlideshow
         isOpen={showSlideshow}

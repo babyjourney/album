@@ -9,39 +9,31 @@ export default function Login() {
   const [error, setError] = useState('')
   const [rateLimitInfo, setRateLimitInfo] = useState(null)
   const [cooldownTimer, setCooldownTimer] = useState(null)
-  const [isMobile, setIsMobile] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
-    if (isAuthenticated()) {
-      router.push('/dashboard')
-    }
-    const check = () => setIsMobile(window.innerWidth <= 900)
-    check()
-    window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
+    if (isAuthenticated()) router.push('/dashboard')
   }, [])
 
   useEffect(() => {
     if (rateLimitInfo && rateLimitInfo.blockedUntil) {
-      const updateTimer = () => {
-        const now = Date.now()
-        const timeRemaining = rateLimitInfo.blockedUntil - now
-        if (timeRemaining <= 0) {
+      const tick = () => {
+        const remaining = rateLimitInfo.blockedUntil - Date.now()
+        if (remaining <= 0) {
           setRateLimitInfo(null)
           setCooldownTimer(null)
           setError('')
         } else {
-          setCooldownTimer(formatTimeRemaining(timeRemaining))
+          setCooldownTimer(formatTime(remaining))
         }
       }
-      updateTimer()
-      const interval = setInterval(updateTimer, 1000)
-      return () => clearInterval(interval)
+      tick()
+      const id = setInterval(tick, 1000)
+      return () => clearInterval(id)
     }
   }, [rateLimitInfo])
 
-  const formatTimeRemaining = (ms) => {
+  const formatTime = (ms) => {
     const h = Math.floor(ms / 3600000)
     const m = Math.floor((ms % 3600000) / 60000)
     const s = Math.floor((ms % 60000) / 1000)
@@ -50,430 +42,217 @@ export default function Login() {
     return `${s}s`
   }
 
-  const handlePinLogin = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
     setError('')
 
-    if (!phoneNumber) {
-      setError('Introduceți numărul de telefon')
-      setLoading(false)
-      return
-    }
-    if (!pin) {
-      setError('Introduceți PIN-ul')
-      setLoading(false)
-      return
-    }
+    if (!phoneNumber) { setError('Introduceți numărul de telefon'); setLoading(false); return }
+    if (!pin)         { setError('Introduceți PIN-ul');           setLoading(false); return }
 
     const result = await loginWithPin(pin, phoneNumber)
 
     if (result.success) {
-      setRateLimitInfo(null)
-      setCooldownTimer(null)
-      setError('')
+      setRateLimitInfo(null); setCooldownTimer(null); setError('')
       router.push('/dashboard')
-    } else {
-      if (result.suspended) {
-        setRateLimitInfo(null)
-        setCooldownTimer(null)
-        setError(result.error)
-        setLoading(false)
-        return
-      }
-      if (result.rateLimited) {
-        setRateLimitInfo({
-          level: result.level,
-          blockedUntil: result.blockedUntil,
-          timeRemaining: result.timeRemaining
-        })
-      } else {
-        setRateLimitInfo(null)
-        setCooldownTimer(null)
-      }
-      setError(result.error)
-      setLoading(false)
+      return
     }
+
+    if (result.suspended) {
+      setRateLimitInfo(null); setCooldownTimer(null); setError(result.error); setLoading(false); return
+    }
+    if (result.rateLimited) {
+      setRateLimitInfo({ level: result.level, blockedUntil: result.blockedUntil, timeRemaining: result.timeRemaining })
+    } else {
+      setRateLimitInfo(null); setCooldownTimer(null)
+    }
+    setError(result.error)
+    setLoading(false)
   }
 
   const isBlocked = rateLimitInfo && cooldownTimer
 
   return (
     <div style={{
-      display: 'flex',
       minHeight: '100vh',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif'
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '24px',
+      position: 'relative',
     }}>
-      {/* Left — Form */}
-      <div style={{
-        flex: isMobile ? '1' : '0 0 480px',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        padding: isMobile ? '40px 24px' : '60px 64px',
-        backgroundColor: '#ffffff',
-        minHeight: '100vh'
+      {/* Slow orbiting accent orbs (purely decorative) */}
+      <div aria-hidden style={{
+        position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0,
       }}>
-        <div style={{ width: '100%', maxWidth: '340px', margin: '0 auto' }}>
-          {/* Logo */}
+        <div style={{
+          position: 'absolute', top: '-12%', left: '-8%',
+          width: 480, height: 480, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(167,139,250,0.55) 0%, transparent 60%)',
+          filter: 'blur(40px)',
+        }} />
+        <div style={{
+          position: 'absolute', bottom: '-10%', right: '-6%',
+          width: 520, height: 520, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(125,211,252,0.45) 0%, transparent 60%)',
+          filter: 'blur(50px)',
+        }} />
+        <div style={{
+          position: 'absolute', top: '38%', right: '18%',
+          width: 200, height: 200, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(251,113,133,0.40) 0%, transparent 60%)',
+          filter: 'blur(36px)',
+        }} />
+      </div>
+
+      <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 440 }}
+           className="animate-glass-in">
+        {/* Brand */}
+        <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <div style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '10px',
-            background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: '32px'
+            width: 64, height: 64,
+            margin: '0 auto 18px',
+            borderRadius: 20,
+            background: 'linear-gradient(135deg, #a78bfa 0%, #7c3aed 50%, #6d28d9 100%)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow:
+              '0 16px 32px -8px rgba(124,58,237,0.55),' +
+              ' inset 0 1px 0 0 rgba(255,255,255,0.45)',
+            border: '1px solid rgba(255,255,255,0.20)',
           }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="3" ry="3"/>
               <circle cx="8.5" cy="8.5" r="1.5"/>
               <polyline points="21,15 16,10 5,21"/>
             </svg>
           </div>
-
-          <h1 style={{
-            fontSize: '28px',
-            fontWeight: '700',
-            color: '#111827',
-            margin: '0 0 8px 0',
-            letterSpacing: '-0.5px'
-          }}>
+          <h1 className="text-display" style={{ fontSize: 32, marginBottom: 8 }}>
             Bine ai revenit
           </h1>
-          <p style={{
-            fontSize: '15px',
-            color: '#6b7280',
-            margin: '0 0 36px 0',
-            lineHeight: '1.5'
-          }}>
-            Introduceți datele pentru a accesa albumul familiei
+          <p style={{ color: 'var(--ink-2)', fontSize: 15 }}>
+            Albumul familiei te așteaptă
           </p>
+        </div>
 
-          <form onSubmit={handlePinLogin} autoComplete="on">
-            <input
-              type="text"
-              name="username"
-              autoComplete="username"
-              value="family-album-user"
-              readOnly
-              tabIndex="-1"
-              style={{ position: 'absolute', left: '-9999px', opacity: 0, pointerEvents: 'none' }}
-            />
+        {/* Glass form card */}
+        <form onSubmit={handleSubmit} autoComplete="on" className="modal-glass" style={{
+          padding: '32px 28px',
+          gap: 0,
+          animationDelay: '60ms',
+        }}>
+          {/* off-screen hidden username for password manager UX */}
+          <input
+            type="text" name="username" autoComplete="username"
+            value="family-album-user" readOnly tabIndex="-1"
+            style={{ position: 'absolute', left: '-9999px', opacity: 0, pointerEvents: 'none' }}
+          />
 
-            <div style={{ marginBottom: '20px' }}>
-              <label htmlFor="phone" style={{
-                display: 'block',
-                fontSize: '13px',
-                fontWeight: '500',
-                color: '#6b7280',
-                marginBottom: '8px',
-                letterSpacing: '0.3px'
-              }}>
-                NUMĂR DE TELEFON
-              </label>
-              <input
-                id="phone"
-                name="phone"
-                type="tel"
-                autoComplete="tel"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder="061234567"
-                required
-                style={{
-                  width: '100%',
-                  padding: '12px 14px',
-                  fontSize: '15px',
-                  backgroundColor: '#f9fafb',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '10px',
-                  color: '#111827',
-                  outline: 'none',
-                  transition: 'border-color 0.2s, box-shadow 0.2s',
-                  boxSizing: 'border-box'
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = '#7c3aed'
-                  e.target.style.boxShadow = '0 0 0 3px rgba(124,58,237,0.08)'
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = '#e5e7eb'
-                  e.target.style.boxShadow = 'none'
-                }}
-              />
-            </div>
+          <label htmlFor="phone" className="text-eyebrow" style={{ display: 'block', marginBottom: 8 }}>
+            Număr de telefon
+          </label>
+          <input
+            id="phone" name="phone" type="tel" autoComplete="tel"
+            value={phoneNumber}
+            onChange={(e) => setPhoneNumber(e.target.value)}
+            placeholder="061234567"
+            required
+            className="input-glass"
+            style={{ marginBottom: 18 }}
+          />
 
-            <div style={{ marginBottom: '8px' }}>
-              <label htmlFor="pin" style={{
-                display: 'block',
-                fontSize: '13px',
-                fontWeight: '500',
-                color: '#6b7280',
-                marginBottom: '8px',
-                letterSpacing: '0.3px'
-              }}>
-                PIN
-              </label>
-              <input
-                id="pin"
-                name="password"
-                type="password"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                autoComplete="current-password"
-                value={pin}
-                onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
-                placeholder="••••"
-                maxLength="8"
-                required
-                style={{
-                  width: '100%',
-                  padding: '12px 14px',
-                  fontSize: '18px',
-                  fontFamily: '"SF Mono", Monaco, "Cascadia Code", monospace',
-                  textAlign: 'center',
-                  letterSpacing: '6px',
-                  backgroundColor: '#f9fafb',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '10px',
-                  color: '#111827',
-                  outline: 'none',
-                  transition: 'border-color 0.2s, box-shadow 0.2s',
-                  boxSizing: 'border-box'
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = '#7c3aed'
-                  e.target.style.boxShadow = '0 0 0 3px rgba(124,58,237,0.08)'
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = '#e5e7eb'
-                  e.target.style.boxShadow = 'none'
-                }}
-              />
-            </div>
-
-            {/* Hint */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'center',
-              gap: '6px',
-              marginBottom: '28px',
-              fontSize: '12px',
-              color: '#9ca3af'
-            }}>
-              <span style={{
-                padding: '3px 8px',
-                backgroundColor: '#f3f4f6',
-                borderRadius: '4px'
-              }}>4 cifre — Viewer</span>
-              <span style={{
-                padding: '3px 8px',
-                backgroundColor: '#f3f4f6',
-                borderRadius: '4px'
-              }}>8 cifre — Editor</span>
-            </div>
-
-            {/* Rate Limit */}
-            {isBlocked && (
-              <div style={{
-                marginBottom: '20px',
-                padding: '12px 14px',
-                backgroundColor: '#fffbeb',
-                border: '1px solid #fde68a',
-                borderRadius: '10px',
-                fontSize: '14px',
-                color: '#92400e'
-              }}>
-                <div style={{ fontWeight: '600', marginBottom: '2px' }}>
-                  {rateLimitInfo.level === 1 ? 'Cooldown 10 minute' : 'Cooldown 24 ore'}
-                </div>
-                <div style={{ fontSize: '13px' }}>
-                  Timp rămas: <strong>{cooldownTimer}</strong>
-                </div>
-              </div>
-            )}
-
-            {/* Error */}
-            {error && !isBlocked && (
-              <div style={{
-                marginBottom: '20px',
-                padding: '12px 14px',
-                backgroundColor: '#fef2f2',
-                border: '1px solid #fecaca',
-                borderRadius: '10px',
-                color: '#dc2626',
-                fontSize: '14px'
-              }}>
-                {error}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading || isBlocked}
-              style={{
-                width: '100%',
-                padding: '13px',
-                fontSize: '15px',
-                fontWeight: '600',
-                color: 'white',
-                background: (loading || isBlocked) ? '#d1d5db' : 'linear-gradient(135deg, #7c3aed, #6d28d9)',
-                border: 'none',
-                borderRadius: '10px',
-                cursor: (loading || isBlocked) ? 'not-allowed' : 'pointer',
-                transition: 'opacity 0.2s, transform 0.1s'
-              }}
-              onMouseOver={(e) => { if (!loading && !isBlocked) e.target.style.opacity = '0.9' }}
-              onMouseOut={(e) => { if (!loading && !isBlocked) e.target.style.opacity = '1' }}
-              onMouseDown={(e) => { if (!loading && !isBlocked) e.target.style.transform = 'scale(0.98)' }}
-              onMouseUp={(e) => { if (!loading && !isBlocked) e.target.style.transform = 'scale(1)' }}
-            >
-              {loading ? 'Se conectează...' : isBlocked ? `Blocat (${cooldownTimer})` : 'Intră în album'}
-            </button>
-          </form>
+          <label htmlFor="pin" className="text-eyebrow" style={{ display: 'block', marginBottom: 8 }}>
+            PIN
+          </label>
+          <input
+            id="pin" name="password" type="password" inputMode="numeric"
+            pattern="[0-9]*" autoComplete="current-password"
+            value={pin}
+            onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+            placeholder="• • • •"
+            maxLength="8"
+            required
+            className="input-glass nums"
+            style={{
+              textAlign: 'center', letterSpacing: 12, fontSize: 22,
+              fontFamily: '"JetBrains Mono", SF Mono, monospace',
+              marginBottom: 12,
+            }}
+          />
 
           <div style={{
-            marginTop: '32px',
-            paddingTop: '24px',
-            borderTop: '1px solid #f3f4f6',
-            textAlign: 'center'
+            display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 24,
           }}>
-            <p style={{ fontSize: '13px', color: '#9ca3af', margin: 0 }}>
-              Amintirile tale sunt în siguranță
+            <span className="glass-pill" style={{ padding: '6px 12px', fontSize: 12, color: 'var(--ink-2)' }}>
+              4 cifre · Viewer
+            </span>
+            <span className="glass-pill" style={{ padding: '6px 12px', fontSize: 12, color: 'var(--ink-2)' }}>
+              8 cifre · Editor
+            </span>
+          </div>
+
+          {isBlocked && (
+            <div role="alert" style={{
+              marginBottom: 16, padding: '12px 14px',
+              background: 'rgba(245, 158, 11, 0.12)',
+              border: '1px solid rgba(245, 158, 11, 0.32)',
+              borderRadius: 12, color: 'var(--ink-1)',
+              backdropFilter: 'blur(12px)',
+            }}>
+              <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 2 }}>
+                {rateLimitInfo.level === 1 ? 'Cooldown 10 minute' : 'Cooldown 24 ore'}
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--ink-2)' }}>
+                Timp rămas: <strong className="nums">{cooldownTimer}</strong>
+              </div>
+            </div>
+          )}
+
+          {error && !isBlocked && (
+            <div role="alert" style={{
+              marginBottom: 16, padding: '12px 14px',
+              background: 'rgba(239, 68, 68, 0.12)',
+              border: '1px solid rgba(239, 68, 68, 0.32)',
+              borderRadius: 12, color: 'var(--ink-1)',
+              backdropFilter: 'blur(12px)',
+              fontSize: 14,
+            }}>
+              {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading || isBlocked}
+            className="btn-iris sheen"
+            style={{
+              width: '100%', padding: '14px',
+              fontSize: 15, fontWeight: 600,
+              borderRadius: 14,
+            }}
+          >
+            {loading ? 'Se conectează…' : isBlocked ? `Blocat (${cooldownTimer})` : 'Intră în album'}
+          </button>
+
+          <div style={{
+            marginTop: 22, paddingTop: 18,
+            borderTop: '1px solid var(--glass-hairline)',
+            textAlign: 'center',
+          }}>
+            <p style={{ fontSize: 13, color: 'var(--ink-3)', margin: 0 }}>
+              Amintirile tale sunt în siguranță.
             </p>
           </div>
+        </form>
+
+        {/* Tagline below */}
+        <div style={{
+          textAlign: 'center', marginTop: 22,
+          fontSize: 12, color: 'var(--ink-3)',
+          letterSpacing: '0.05em', textTransform: 'uppercase',
+        }}>
+          Album · Familie · Momente
         </div>
       </div>
-
-      {/* Right — Visual Panel */}
-      {!isMobile && (
-        <div style={{
-          flex: 1,
-          background: 'linear-gradient(145deg, #4c1d95 0%, #6d28d9 35%, #7c3aed 65%, #8b5cf6 100%)',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          position: 'relative',
-          overflow: 'hidden',
-          padding: '60px'
-        }}>
-          {/* Decorative blobs */}
-          <div style={{
-            position: 'absolute',
-            width: '600px',
-            height: '600px',
-            borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 60%)',
-            top: '-15%',
-            right: '-15%'
-          }} />
-          <div style={{
-            position: 'absolute',
-            width: '400px',
-            height: '400px',
-            borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 60%)',
-            bottom: '-10%',
-            left: '-10%'
-          }} />
-          <div style={{
-            position: 'absolute',
-            width: '250px',
-            height: '250px',
-            borderRadius: '50%',
-            border: '1px solid rgba(255,255,255,0.08)',
-            top: '30%',
-            left: '10%'
-          }} />
-          <div style={{
-            position: 'absolute',
-            width: '150px',
-            height: '150px',
-            borderRadius: '50%',
-            border: '1px solid rgba(255,255,255,0.06)',
-            bottom: '20%',
-            right: '15%'
-          }} />
-          <div style={{
-            position: 'absolute',
-            width: '80px',
-            height: '80px',
-            borderRadius: '50%',
-            backgroundColor: 'rgba(255,255,255,0.04)',
-            top: '15%',
-            left: '35%'
-          }} />
-
-          {/* Content */}
-          <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', maxWidth: '400px' }}>
-            {/* Photo frame icon */}
-            <div style={{
-              width: '72px',
-              height: '72px',
-              borderRadius: '20px',
-              backgroundColor: 'rgba(255,255,255,0.12)',
-              border: '1px solid rgba(255,255,255,0.15)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 36px',
-              backdropFilter: 'blur(10px)'
-            }}>
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                <circle cx="8.5" cy="8.5" r="1.5"/>
-                <polyline points="21,15 16,10 5,21"/>
-              </svg>
-            </div>
-
-            <h2 style={{
-              fontSize: '36px',
-              fontWeight: '700',
-              color: '#ffffff',
-              margin: '0 0 16px 0',
-              letterSpacing: '-0.5px',
-              lineHeight: '1.15'
-            }}>
-              Amintiri<br />de familie
-            </h2>
-            <p style={{
-              fontSize: '16px',
-              color: 'rgba(255,255,255,0.65)',
-              margin: '0 0 48px 0',
-              lineHeight: '1.6'
-            }}>
-              Albumul tău digital securizat unde<br />
-              fiecare moment contează
-            </p>
-
-            {/* Feature pills */}
-            <div style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              justifyContent: 'center',
-              gap: '8px'
-            }}>
-              {['Fotografii', 'Momente', 'Familie', 'Securizat'].map((label) => (
-                <span key={label} style={{
-                  padding: '8px 16px',
-                  backgroundColor: 'rgba(255,255,255,0.1)',
-                  border: '1px solid rgba(255,255,255,0.12)',
-                  borderRadius: '20px',
-                  color: 'rgba(255,255,255,0.8)',
-                  fontSize: '13px',
-                  fontWeight: '500',
-                  backdropFilter: 'blur(10px)'
-                }}>
-                  {label}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

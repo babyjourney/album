@@ -1,104 +1,57 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { useToast } from '../contexts/ToastContext'
 import { useLanguage } from '../contexts/LanguageContext'
-import LazyImage from './LazyImage'
 import MediaThumbnail from './MediaThumbnail'
 
-// Helper function to detect and extract multi-photo URLs with cover reordering
+// ---------- Multi-photo helpers ----------
 const getMultiPhotoUrls = (post) => {
   let urls = null
   let coverIndex = 0
-  
-  // Check for file_urls field (works for both 'multi-photo' and 'image' types with multiple files)
+
   if (post.file_urls) {
-    // If file_urls is already an array, use it
-    if (Array.isArray(post.file_urls)) {
-      urls = post.file_urls
-    } else if (typeof post.file_urls === 'string') {
-      // If it's a string, try to parse it
-      try {
-        urls = JSON.parse(post.file_urls)
-      } catch (e) {
-        return null
-      }
+    if (Array.isArray(post.file_urls)) urls = post.file_urls
+    else if (typeof post.file_urls === 'string') {
+      try { urls = JSON.parse(post.file_urls) } catch { return null }
     }
-    
-    // Get cover index from post
-    if (post.cover_index !== undefined) {
-      coverIndex = post.cover_index || 0
-    }
+    if (post.cover_index !== undefined) coverIndex = post.cover_index || 0
   }
-  
-  // Fallback to old format in description (for compatibility with existing posts)
-  if (!urls && post.description && post.description.includes('__MULTI_PHOTO_URLS__:')) {
+
+  if (!urls && post.description?.includes('__MULTI_PHOTO_URLS__:')) {
     try {
       const marker = '__MULTI_PHOTO_URLS__:'
-      const markerIndex = post.description.indexOf(marker)
-      const urlsJson = post.description.substring(markerIndex + marker.length)
-      urls = JSON.parse(urlsJson)
-      
-      // Extract cover index from old format
-      if (post.description.includes('__COVER_INDEX__:')) {
-        const coverMatch = post.description.match(/__COVER_INDEX__:(\d+)/)
-        if (coverMatch) {
-          coverIndex = parseInt(coverMatch[1]) || 0
-        }
-      }
-    } catch (e) {
-      return null
-    }
+      const i = post.description.indexOf(marker)
+      urls = JSON.parse(post.description.substring(i + marker.length))
+      const m = post.description.match(/__COVER_INDEX__:(\d+)/)
+      if (m) coverIndex = parseInt(m[1]) || 0
+    } catch { return null }
   }
-  
-  // Only process if there are actually multiple URLs
+
   if (urls && Array.isArray(urls) && urls.length > 1) {
-    // Reorder URLs to put the cover image first for carousel display
     if (coverIndex > 0 && coverIndex < urls.length) {
-      console.log(`Reordering images for post: coverIndex=${coverIndex}, total=${urls.length}`)
-      const reorderedUrls = [...urls]
-      const coverUrl = reorderedUrls[coverIndex]
-      reorderedUrls.splice(coverIndex, 1)
-      reorderedUrls.unshift(coverUrl)
-      console.log('Original order:', urls.map((url, i) => `${i}: ${url.split('/').pop()}`))
-      console.log('Reordered:', reorderedUrls.map((url, i) => `${i}: ${url.split('/').pop()}`))
-      return reorderedUrls
+      const reordered = [...urls]
+      const cover = reordered[coverIndex]
+      reordered.splice(coverIndex, 1)
+      reordered.unshift(cover)
+      return reordered
     }
-    
     return urls
   }
-  
   return null
 }
 
-// Helper function to get cover/thumbnail URL for grid display
-const getCoverImageUrl = (post) => {
-  const multiUrls = getMultiPhotoUrls(post)
-  
-  if (multiUrls && multiUrls.length > 1) {
-    // For multi-photo posts, the first image in the reordered array is the cover
-    return multiUrls[0]
-  }
-  
-  // For single image/video posts
-  return post.file_url
-}
-
-// Helper function to clean description from old multi-photo format
 const getCleanDescription = (post) => {
   if (!post.description) return ''
-  
-  // If this post has file_urls (new format), just return the description as-is
-  if (post.file_urls) {
-    return post.description
-  }
-  
-  // Clean up old format descriptions that contain URLs
+  if (post.file_urls) return post.description
   if (post.description.includes('__MULTI_PHOTO_URLS__:')) {
-    const marker = '__MULTI_PHOTO_URLS__:'
-    const markerIndex = post.description.indexOf(marker)
-    return post.description.substring(0, markerIndex).trim()
+    const m = '__MULTI_PHOTO_URLS__:'
+    return post.description.substring(0, post.description.indexOf(m)).trim()
   }
-  
   return post.description
+}
+
+const CATEGORY_LABELS = {
+  memories: 'Amintiri', milestones: 'Etape importante', everyday: 'Zilnic',
+  special: 'Special', family: 'Familie', play: 'Joacă', learning: 'Învățare',
 }
 
 export default function InstagramFeed({ familyId, searchQuery, refreshTrigger, onPostClick, onPostCountUpdate, onHashtagClick, filters, selectedChildId }) {
@@ -109,620 +62,332 @@ export default function InstagramFeed({ familyId, searchQuery, refreshTrigger, o
   const { language } = useLanguage()
 
   useEffect(() => {
-    if (familyId) {
-      // Small delay to let the page render first, then fetch posts
-      const timer = setTimeout(() => {
-        fetchPosts()
-      }, 50)
-      return () => clearTimeout(timer)
-    }
+    if (!familyId) return
+    const t = setTimeout(fetchPosts, 50)
+    return () => clearTimeout(t)
   }, [familyId, refreshTrigger, searchQuery, filters, selectedChildId])
 
   const fetchPosts = async () => {
     try {
       setLoading(true)
-      
-      // Build query parameters
-      const params = new URLSearchParams({
-        familyId: familyId
-      })
-
-      // Add search query
-      if (searchQuery && searchQuery.trim()) {
-        params.append('search', searchQuery.trim())
-      }
-
-      // Add filters if they exist
+      const params = new URLSearchParams({ familyId })
+      if (searchQuery?.trim()) params.append('search', searchQuery.trim())
       if (filters) {
-        if (filters.category && filters.category !== 'all') {
-          params.append('category', filters.category)
-        }
-        
-        if (filters.hashtag && filters.hashtag.trim()) {
-          params.append('hashtag', filters.hashtag.trim())
-        }
-        
+        if (filters.category && filters.category !== 'all') params.append('category', filters.category)
+        if (filters.hashtag?.trim()) params.append('hashtag', filters.hashtag.trim())
         if (filters.date) {
-          // Calculate 11-day window (5 days before and after)
-          const filterDate = new Date(filters.date)
-          const startDate = new Date(filterDate)
-          startDate.setDate(startDate.getDate() - 5)
-          const endDate = new Date(filterDate)
-          endDate.setDate(endDate.getDate() + 5)
-          
-          params.append('dateStart', startDate.toISOString())
-          params.append('dateEnd', endDate.toISOString())
+          const d = new Date(filters.date)
+          const start = new Date(d); start.setDate(start.getDate() - 5)
+          const end   = new Date(d); end.setDate(end.getDate() + 5)
+          params.append('dateStart', start.toISOString())
+          params.append('dateEnd',   end.toISOString())
         }
-        
-        if (filters.sort) {
-          params.append('sort', filters.sort)
-        }
+        if (filters.sort) params.append('sort', filters.sort)
       }
-
-      // Add child filter
-      if (selectedChildId) {
-        params.append('childId', selectedChildId)
-      }
+      if (selectedChildId) params.append('childId', selectedChildId)
 
       const response = await fetch(`/api/photos/list?${params.toString()}`)
       const result = await response.json()
+      if (!response.ok) throw new Error(result.error || 'Încărcarea postărilor a eșuat')
 
-      if (!response.ok) {
-        throw new Error(result.error || 'Încărcarea postărilor a eșuat')
-      }
-
-      const photosData = result.photos || []
-      setPosts(photosData)
-      
-      // Update post count in parent
-      if (onPostCountUpdate) {
-        onPostCountUpdate(photosData.length)
-      }
-    } catch (error) {
-      console.error('Error fetching posts:', error)
-      const errorMessage = 'Încărcarea postărilor a eșuat'
-      setError(errorMessage)
-      showError(errorMessage)
+      const data = result.photos || []
+      setPosts(data)
+      onPostCountUpdate && onPostCountUpdate(data.length)
+    } catch (e) {
+      console.error('Error fetching posts:', e)
+      const msg = 'Încărcarea postărilor a eșuat'
+      setError(msg); showError(msg)
     } finally {
       setLoading(false)
     }
   }
 
-  // Posts are now filtered and sorted server-side, so we just use them directly
-  const filteredPosts = posts
+  const formatDate = (s) => new Date(s).toLocaleDateString(
+    language === 'ru' ? 'ru-RU' : 'ro-RO',
+    { month: 'short', day: 'numeric', year: 'numeric' }
+  )
 
-  const formatDate = (dateString) => {
-    const locale = language === 'ru' ? 'ru-RU' : 'ro-RO'
-    
-    return new Date(dateString).toLocaleDateString(locale, {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    })
-  }
-
+  // -------- Single card render --------
   const renderPost = (post, index) => {
     const isTextPost = post.type === 'text'
     const isVideo = post.file_type === 'video' || post.type === 'video'
-    
+
+    const handleCardClick = (e) => {
+      const sc = e.currentTarget.querySelector('.smooth-scroll-container')
+      if (sc?.dataset.isScrolling === 'true') return
+      if (e.target.closest('.carousel-nav-arrow') || e.target.closest('.carousel-dot')) return
+      onPostClick(post, posts, index)
+    }
+
     return (
-      <div
-        key={post.id}
-        className="instagram-card"
-        style={{ 
-          background: 'var(--bg-secondary)',
-          borderRadius: '24px',
-          overflow: 'hidden',
-          cursor: 'pointer',
-          transition: 'all 0.2s ease-in-out',
-          border: '1px solid var(--border-medium)',
-          boxShadow: '0 2px 8px var(--shadow-light), 0 1px 3px var(--shadow-medium)',
-          position: 'relative'
-        }}
-        onClick={(e) => {
-          const scrollContainer = e.currentTarget.querySelector('.smooth-scroll-container')
-          
-          // Don't open modal if carousel was recently scrolled
-          if (scrollContainer && scrollContainer.dataset.isScrolling === 'true') {
-            return
-          }
-          
-          // Don't open modal if clicking on carousel controls
-          if (e.target.closest('.carousel-nav-arrow') || 
-              e.target.closest('.carousel-dot')) {
-            return
-          }
-          
-          // Open modal for all other clicks
-          onPostClick(post, filteredPosts, index)
-        }}
-        onMouseOver={(e) => {
-          e.currentTarget.style.transform = 'scale(1.02)'
-          e.currentTarget.style.boxShadow = '0 8px 24px var(--shadow-medium), 0 4px 12px var(--shadow-light)'
-        }}
-        onMouseOut={(e) => {
-          e.currentTarget.style.transform = 'scale(1)'
-          e.currentTarget.style.boxShadow = '0 2px 8px var(--shadow-light), 0 1px 3px var(--shadow-medium)'
-        }}
-      >
-        {/* Full-screen Media */}
+      <div key={post.id} className="instagram-card" onClick={handleCardClick} style={{ cursor: 'pointer' }}>
         <div style={{ width: '100%', position: 'relative' }}>
           {isTextPost ? (
             <div style={{
-              width: '100%',
-              aspectRatio: '1/1',
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '32px 24px',
-              textAlign: 'center',
-              position: 'relative',
-              overflow: 'hidden'
+              width: '100%', aspectRatio: '1/1',
+              background: 'linear-gradient(135deg, #a78bfa 0%, #7c3aed 50%, #5b21b6 100%)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: '32px 24px', textAlign: 'center', position: 'relative', overflow: 'hidden',
             }}>
-              <div style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: 'rgba(255, 255, 255, 0.1)',
-                backdropFilter: 'blur(20px)'
-              }}></div>
-              <div style={{
-                position: 'relative',
-                zIndex: 1,
-                maxWidth: '280px'
-              }}>
-                <div style={{ 
-                  fontSize: '32px', 
-                  marginBottom: '16px',
-                  filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1))'
-                }}>💭</div>
-                <p style={{ 
-                  color: 'white',
-                  fontSize: '16px',
-                  fontWeight: '500',
-                  lineHeight: '1.4',
-                  textShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
-                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
+              <div aria-hidden style={{
+                position: 'absolute', top: '-30%', left: '-20%', width: '160%', height: '160%',
+                background: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.18) 0%, transparent 50%)',
+                pointerEvents: 'none',
+              }} />
+              <div style={{ position: 'relative', zIndex: 1, maxWidth: 280 }}>
+                <div style={{ fontSize: 32, marginBottom: 14, filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.15))' }}>💭</div>
+                <p style={{
+                  color: 'white', fontSize: 16, fontWeight: 500, lineHeight: 1.45,
+                  textShadow: '0 1px 4px rgba(0,0,0,0.18)',
                 }}>
                   {getCleanDescription(post) || 'Postare text'}
                 </p>
               </div>
             </div>
           ) : (
-            <div style={{ 
-              aspectRatio: '1/1',
-              overflow: 'hidden', 
-              backgroundColor: '#F3F4F6',
-              position: 'relative'
-            }}>
+            <div style={{ aspectRatio: '1/1', overflow: 'hidden', background: 'var(--glass-1)', position: 'relative' }}>
               {isVideo ? (
                 <MediaThumbnail
                   src={post.file_url}
                   alt={post.title || 'Video'}
-                  style={{ 
-                    width: '100%', 
-                    height: '100%',
-                    objectFit: 'cover',
-                    display: 'block'
-                  }}
-                  onError={(e) => {
-                    console.error('Video thumbnail failed to load:', post.file_url)
-                  }}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  onError={() => {}}
                 />
               ) : (() => {
-                const multiPhotoUrls = getMultiPhotoUrls(post)
-                return multiPhotoUrls ? (
-                  // Multi-photo post - show first image with dots indicator
+                const multi = getMultiPhotoUrls(post)
+                if (!multi) {
+                  return (
+                    <MediaThumbnail
+                      src={post.file_url}
+                      alt={post.title || 'Post'}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                    />
+                  )
+                }
+                return (
                   <>
                     <div
                       className="smooth-scroll-container"
                       style={{
-                        display: 'flex',
-                        width: '100%',
-                        height: '100%',
-                        overflowX: 'auto',
-                        overflowY: 'hidden',
-                        scrollSnapType: 'x mandatory',
-                        scrollSnapStop: 'always',
-                        scrollBehavior: 'smooth',
-                        scrollbarWidth: 'none',
-                        msOverflowStyle: 'none',
-                        WebkitOverflowScrolling: 'touch',
-                        touchAction: 'auto',
-                        gap: 0,
-                        cursor: 'grab',
-                        // Enhanced CSS for better momentum scrolling
-                        transform: 'translateZ(0)', // Force hardware acceleration
-                        willChange: 'scroll-position',
-                        // Better momentum on iOS
-                        '-webkit-overflow-scrolling': 'touch'
+                        display: 'flex', width: '100%', height: '100%',
+                        overflowX: 'auto', overflowY: 'hidden',
+                        cursor: 'grab', gap: 0,
                       }}
                       onScroll={(e) => {
-                        const container = e.target
-                        const scrollLeft = container.scrollLeft
-                        const imageWidth = container.clientWidth
-                        const currentIndex = Math.round(scrollLeft / imageWidth)
-                        
-                        // Update dots indicator with smooth transitions
-                        const dots = container.parentElement.querySelectorAll('.carousel-dot')
-                        dots.forEach((dot, idx) => {
-                          dot.style.backgroundColor = idx === currentIndex ? 'white' : 'rgba(255, 255, 255, 0.5)'
-                          dot.style.transform = idx === currentIndex ? 'scale(1.2)' : 'scale(1)'
-                          dot.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                        const c = e.target
+                        const idx = Math.round(c.scrollLeft / c.clientWidth)
+                        const dots = c.parentElement.querySelectorAll('.carousel-dot')
+                        dots.forEach((dot, i) => {
+                          dot.style.background = i === idx ? '#fff' : 'rgba(255,255,255,0.55)'
+                          dot.style.transform   = i === idx ? 'scale(1.25)' : 'scale(1)'
                         })
                       }}
                       onMouseDown={(e) => {
-                        const container = e.currentTarget
-                        container.style.cursor = 'grabbing'
-                        container.dataset.isDown = 'true'
-                        container.dataset.startX = e.pageX - container.offsetLeft
-                        container.dataset.scrollLeft = container.scrollLeft
+                        const c = e.currentTarget
+                        c.style.cursor = 'grabbing'
+                        c.dataset.isDown = 'true'
+                        c.dataset.startX = e.pageX - c.offsetLeft
+                        c.dataset.scrollLeft = c.scrollLeft
                       }}
-                      onMouseLeave={(e) => {
-                        const container = e.currentTarget
-                        container.style.cursor = 'grab'
-                        container.dataset.isDown = 'false'
-                      }}
-                      onMouseUp={(e) => {
-                        const container = e.currentTarget
-                        container.style.cursor = 'grab'
-                        container.dataset.isDown = 'false'
-                      }}
+                      onMouseLeave={(e) => { e.currentTarget.style.cursor = 'grab'; e.currentTarget.dataset.isDown = 'false' }}
+                      onMouseUp={(e)    => { e.currentTarget.style.cursor = 'grab'; e.currentTarget.dataset.isDown = 'false' }}
                       onMouseMove={(e) => {
-                        const container = e.currentTarget
-                        if (container.dataset.isDown !== 'true') return
+                        const c = e.currentTarget
+                        if (c.dataset.isDown !== 'true') return
                         e.preventDefault()
-                        const x = e.pageX - container.offsetLeft
-                        const walk = (x - parseFloat(container.dataset.startX)) * 2
-                        container.scrollLeft = parseFloat(container.dataset.scrollLeft) - walk
+                        c.scrollLeft = parseFloat(c.dataset.scrollLeft) - ((e.pageX - c.offsetLeft) - parseFloat(c.dataset.startX)) * 2
                       }}
                       onTouchStart={(e) => {
-                        const container = e.currentTarget
-                        container.dataset.touchStartX = e.touches[0].clientX
-                        container.dataset.initialScrollLeft = container.scrollLeft
+                        const c = e.currentTarget
+                        c.dataset.touchStartX = e.touches[0].clientX
+                        c.dataset.initialScrollLeft = c.scrollLeft
                       }}
-                      onTouchMove={(e) => {
-                        const container = e.currentTarget
-                        // Mark that scrolling is happening
-                        container.dataset.isScrolling = 'true'
-                      }}
+                      onTouchMove={(e) => { e.currentTarget.dataset.isScrolling = 'true' }}
                       onTouchEnd={(e) => {
-                        const container = e.currentTarget
-                        const touchEndX = e.changedTouches[0].clientX
-                        const touchStartX = parseFloat(container.dataset.touchStartX || '0')
-                        const initialScrollLeft = parseFloat(container.dataset.initialScrollLeft || '0')
-                        
-                        // If there was horizontal movement or scroll changed, prevent modal opening
-                        const horizontalMovement = Math.abs(touchEndX - touchStartX)
-                        const scrollChanged = Math.abs(container.scrollLeft - initialScrollLeft)
-                        
-                        if (horizontalMovement > 10 || scrollChanged > 10) {
-                          e.preventDefault()
-                          e.stopPropagation()
-                        }
-                        
-                        // Reset after a small delay
-                        setTimeout(() => {
-                          container.dataset.isScrolling = 'false'
-                        }, 100)
+                        const c = e.currentTarget
+                        const dx = Math.abs(e.changedTouches[0].clientX - parseFloat(c.dataset.touchStartX || '0'))
+                        const ds = Math.abs(c.scrollLeft - parseFloat(c.dataset.initialScrollLeft || '0'))
+                        if (dx > 10 || ds > 10) { e.preventDefault(); e.stopPropagation() }
+                        setTimeout(() => { c.dataset.isScrolling = 'false' }, 100)
                       }}
                     >
-                      {multiPhotoUrls.map((url, index) => (
+                      {multi.map((url, i) => (
                         <MediaThumbnail
-                          key={index}
+                          key={i}
                           src={url}
-                          alt={`${post.title || 'Post'} - ${index + 1}`}
-                          showPlayIcon={true}
-                          style={{ 
-                            minWidth: '100%',
-                            maxWidth: '100%',
-                            width: '100%', 
-                            height: '100%',
-                            objectFit: 'cover',
-                            scrollSnapAlign: 'center',
-                            scrollSnapStop: 'always',
-                            flexShrink: 0,
-                            display: 'block',
-                            boxSizing: 'border-box',
-                            margin: 0,
-                            padding: 0,
-                            border: 'none',
-                            // Enhanced image rendering
-                            transform: 'translateZ(0)', // Hardware acceleration
-                            willChange: 'transform',
-                            transition: 'opacity 0.3s ease-out, transform 0.3s ease-out',
-                            backfaceVisibility: 'hidden', // Prevent flicker
-                            imageRendering: 'auto'
-                          }}
-                          onError={(e) => {
-                            console.error('Media failed to load:', url)
+                          alt={`${post.title || 'Post'} - ${i + 1}`}
+                          showPlayIcon
+                          style={{
+                            minWidth: '100%', maxWidth: '100%', width: '100%', height: '100%',
+                            objectFit: 'cover', flexShrink: 0, display: 'block',
                           }}
                         />
                       ))}
                     </div>
-                    {/* Instagram-style dots indicator */}
+
+                    {/* Dots */}
                     <div style={{
-                      position: 'absolute',
-                      bottom: '12px',
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      display: 'flex',
-                      gap: '6px',
-                      zIndex: 2
+                      position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)',
+                      display: 'flex', gap: 6, zIndex: 2, padding: '4px 8px',
+                      background: 'rgba(0,0,0,0.28)', borderRadius: 999,
+                      backdropFilter: 'blur(12px)',
                     }}>
-                      {multiPhotoUrls.map((_, index) => (
-                      <div
-                        key={index}
-                        className="carousel-dot"
-                        style={{
-                          width: '6px',
-                          height: '6px',
-                          borderRadius: '50%',
-                          backgroundColor: index === 0 ? 'white' : 'rgba(255, 255, 255, 0.5)',
-                          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)',
-                          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                          cursor: 'pointer',
-                          transform: 'scale(1)'
-                        }}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          const container = e.target.closest('.instagram-card').querySelector('.smooth-scroll-container')
-                          if (container) {
-                            const imageWidth = container.clientWidth
-                            container.scrollTo({
-                              left: index * imageWidth,
-                              behavior: 'smooth'
-                            })
-                          }
-                        }}
-                      />
-                    ))}
-                  </div>
-                  
-                  {/* Desktop Navigation Arrows */}
-                  {multiPhotoUrls.length > 1 && (
-                    <>
-                      {/* Previous Arrow */}
-                      <button
-                        className="carousel-nav-arrow carousel-nav-prev"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          const container = e.target.closest('.instagram-card').querySelector('.smooth-scroll-container')
-                          if (container) {
-                            const imageWidth = container.clientWidth
-                            const currentScroll = container.scrollLeft
-                            const currentIndex = Math.round(currentScroll / imageWidth)
-                            const prevIndex = Math.max(0, currentIndex - 1)
-                            container.scrollTo({
-                              left: prevIndex * imageWidth,
-                              behavior: 'smooth'
-                            })
-                          }
-                        }}
-                        style={{
-                          position: 'absolute',
-                          left: '8px',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          width: '32px',
-                          height: '32px',
-                          borderRadius: '50%',
-                          background: 'rgba(0, 0, 0, 0.5)',
-                          border: 'none',
-                          color: 'white',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          opacity: 0.3,
-                          transition: 'opacity 0.2s ease',
-                          zIndex: 3,
-                          backdropFilter: 'blur(8px)'
-                        }}
-                      >
-                        ←
-                      </button>
-                      
-                      {/* Next Arrow */}
-                      <button
-                        className="carousel-nav-arrow carousel-nav-next"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          const container = e.target.closest('.instagram-card').querySelector('.smooth-scroll-container')
-                          if (container) {
-                            const imageWidth = container.clientWidth
-                            const currentScroll = container.scrollLeft
-                            const currentIndex = Math.round(currentScroll / imageWidth)
-                            const nextIndex = Math.min(multiPhotoUrls.length - 1, currentIndex + 1)
-                            container.scrollTo({
-                              left: nextIndex * imageWidth,
-                              behavior: 'smooth'
-                            })
-                          }
-                        }}
-                        style={{
-                          position: 'absolute',
-                          right: '8px',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          width: '32px',
-                          height: '32px',
-                          borderRadius: '50%',
-                          background: 'rgba(0, 0, 0, 0.5)',
-                          border: 'none',
-                          color: 'white',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          opacity: 0.3,
-                          transition: 'opacity 0.2s ease',
-                          zIndex: 3,
-                          backdropFilter: 'blur(8px)'
-                        }}
-                      >
-                        →
-                      </button>
-                    </>
-                  )}
-                  
-                  {/* Multi-photo icon indicator */}
-                  <div style={{
-                    position: 'absolute',
-                    top: '12px',
-                    right: '12px',
-                    background: 'rgba(0, 0, 0, 0.7)',
-                    color: 'white',
-                    padding: '4px 6px',
-                    borderRadius: '8px',
-                    fontSize: '12px',
-                    fontWeight: '500',
-                    backdropFilter: 'blur(10px)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="white">
-                      <path d="M22 16V4c0-1.1-.9-2-2-2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2zM20 16H8V4h12v12zM2 6v14c0 1.1.9 2 2 2h14v-2H4V6H2z"/>
-                    </svg>
-                    {multiPhotoUrls.length}
-                  </div>
-                </>
-                ) : (
-                  // Single image post
-                  <MediaThumbnail
-                    src={post.file_url}
-                    alt={post.title || 'Post'}
-                    showPlayIcon={false}
-                    style={{ 
-                      width: '100%', 
-                      height: '100%',
-                      objectFit: 'cover',
-                      display: 'block'
-                    }}
-                    onError={(e) => {
-                      console.error('Media failed to load:', post.file_url)
-                    }}
-                  />
+                      {multi.map((_, i) => (
+                        <div
+                          key={i}
+                          className="carousel-dot"
+                          style={{
+                            width: 6, height: 6, borderRadius: '50%',
+                            background: i === 0 ? '#fff' : 'rgba(255,255,255,0.55)',
+                            transition: 'all 280ms cubic-bezier(0.22,1,0.36,1)',
+                            cursor: 'pointer',
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            const c = e.target.closest('.instagram-card').querySelector('.smooth-scroll-container')
+                            c?.scrollTo({ left: i * c.clientWidth, behavior: 'smooth' })
+                          }}
+                        />
+                      ))}
+                    </div>
+
+                    {/* Arrows */}
+                    {multi.length > 1 && (
+                      <>
+                        <button
+                          className="carousel-nav-arrow"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            const c = e.target.closest('.instagram-card').querySelector('.smooth-scroll-container')
+                            if (!c) return
+                            const idx = Math.round(c.scrollLeft / c.clientWidth)
+                            c.scrollTo({ left: Math.max(0, idx - 1) * c.clientWidth, behavior: 'smooth' })
+                          }}
+                          style={{
+                            position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)',
+                            width: 34, height: 34, borderRadius: '50%',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            zIndex: 3, cursor: 'pointer',
+                          }}
+                          aria-label="Previous"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="15 18 9 12 15 6"/>
+                          </svg>
+                        </button>
+                        <button
+                          className="carousel-nav-arrow"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            const c = e.target.closest('.instagram-card').querySelector('.smooth-scroll-container')
+                            if (!c) return
+                            const idx = Math.round(c.scrollLeft / c.clientWidth)
+                            c.scrollTo({ left: Math.min(multi.length - 1, idx + 1) * c.clientWidth, behavior: 'smooth' })
+                          }}
+                          style={{
+                            position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                            width: 34, height: 34, borderRadius: '50%',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            zIndex: 3, cursor: 'pointer',
+                          }}
+                          aria-label="Next"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="9 18 15 12 9 6"/>
+                          </svg>
+                        </button>
+                      </>
+                    )}
+
+                    {/* Multi-photo indicator */}
+                    <div className="glass-pill" style={{
+                      position: 'absolute', top: 12, right: 12,
+                      padding: '4px 10px', fontSize: 11, fontWeight: 600,
+                      color: '#fff',
+                      background: 'rgba(0,0,0,0.45)',
+                      border: '1px solid rgba(255,255,255,0.20)',
+                      display: 'flex', alignItems: 'center', gap: 4,
+                    }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="white">
+                        <path d="M22 16V4c0-1.1-.9-2-2-2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2zM20 16H8V4h12v12zM2 6v14c0 1.1.9 2 2 2h14v-2H4V6H2z"/>
+                      </svg>
+                      <span className="nums">{multi.length}</span>
+                    </div>
+                  </>
                 )
               })()}
             </div>
           )}
-          
-          {/* Category badge overlay */}
+
+          {/* Category badge */}
           {post.category && (
-            <div style={{
-              position: 'absolute',
-              top: '12px',
-              left: '12px',
-              background: 'var(--overlay)',
-              backdropFilter: 'blur(10px)',
-              padding: '6px 12px',
-              borderRadius: '16px',
-              fontSize: '11px',
-              fontWeight: '600',
-              color: 'white',
-              border: '1px solid rgba(255, 255, 255, 0.2)'
+            <div className="glass-pill" style={{
+              position: 'absolute', top: 12, left: 12,
+              padding: '5px 11px', fontSize: 11, fontWeight: 600,
+              color: '#fff',
+              background: 'rgba(0,0,0,0.42)',
+              border: '1px solid rgba(255,255,255,0.20)',
+              letterSpacing: '0.02em',
             }}>
-              {post.category === 'memories' ? 'Amintiri' :
-               post.category === 'milestones' ? 'Etape importante' :
-               post.category === 'everyday' ? 'Zilnic' :
-               post.category === 'special' ? 'Special' :
-               post.category === 'family' ? 'Familie' :
-               post.category === 'play' ? 'Joacă' :
-               post.category === 'learning' ? 'Învățare' :
-               post.category.charAt(0).toUpperCase() + post.category.slice(1)}
+              {CATEGORY_LABELS[post.category] || (post.category[0].toUpperCase() + post.category.slice(1))}
             </div>
           )}
         </div>
 
-        {/* Compact Footer with all info */}
-        <div className="card-footer" style={{ 
-          background: 'var(--bg-secondary)',
-          padding: '12px',
-          borderTop: '1px solid var(--border-light)',
-          borderRadius: '0 0 24px 24px'
+        {/* Footer */}
+        <div style={{
+          padding: '14px 16px',
+          borderTop: '1px solid var(--glass-hairline)',
         }}>
           {post.title && (
-            <h3 style={{ 
-              fontWeight: '600', 
-              marginBottom: '8px', 
-              fontSize: '15px',
-              color: 'var(--text-primary)',
-              lineHeight: '1.2'
+            <h3 style={{
+              fontWeight: 600, marginBottom: 6, fontSize: 15.5,
+              color: 'var(--ink-1)', lineHeight: 1.3,
+              letterSpacing: '-0.01em',
             }}>
               {post.title}
             </h3>
           )}
-          
+
           {!isTextPost && getCleanDescription(post) && (
-            <p style={{ 
-              marginBottom: '12px', 
-              fontSize: '14px', 
-              lineHeight: '1.4',
-              color: 'var(--text-primary)'
-            }}>
-              {getCleanDescription(post).length > 60 ? 
-                getCleanDescription(post).substring(0, 60) + '...' : 
-                getCleanDescription(post)
-              }
+            <p style={{ marginBottom: 10, fontSize: 13.5, lineHeight: 1.45, color: 'var(--ink-2)' }}>
+              {getCleanDescription(post).length > 60
+                ? getCleanDescription(post).substring(0, 60) + '…'
+                : getCleanDescription(post)}
             </p>
           )}
-          
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            {/* Hashtags */}
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
             {post.hashtags && post.hashtags.length > 0 ? (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', flex: 1 }}>
-                {post.hashtags.slice(0, 2).map((hashtag, index) => (
-                  <button 
-                    key={index}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onHashtagClick && onHashtagClick(hashtag)
-                    }}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, flex: 1 }}>
+                {post.hashtags.slice(0, 2).map((h, i) => (
+                  <button
+                    key={i}
+                    onClick={(e) => { e.stopPropagation(); onHashtagClick && onHashtagClick(h) }}
                     style={{
-                      padding: '4px 8px',
-                      backgroundColor: 'var(--bg-gray)',
-                      color: 'var(--accent-blue)',
-                      borderRadius: '12px',
-                      fontSize: '11px',
-                      fontWeight: '500',
-                      border: 'none',
+                      padding: '3px 9px',
+                      background: 'rgba(124,58,237,0.10)',
+                      color: 'var(--accent-iris)',
+                      borderRadius: 999, fontSize: 11, fontWeight: 600,
+                      border: '1px solid rgba(124,58,237,0.18)',
                       cursor: 'pointer',
-                      transition: 'all 0.2s ease-in-out',
-                      WebkitTapHighlightColor: 'transparent',
-                      WebkitUserSelect: 'none',
-                      userSelect: 'none',
-                      outline: 'none',
-                      WebkitAppearance: 'none',
-                      appearance: 'none'
+                      transition: 'all 200ms cubic-bezier(0.22,1,0.36,1)',
                     }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(124,58,237,0.18)' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(124,58,237,0.10)' }}
                   >
-                    {hashtag.startsWith('#') ? hashtag : `#${hashtag}`}
+                    {h.startsWith('#') ? h : `#${h}`}
                   </button>
                 ))}
                 {post.hashtags.length > 2 && (
-                  <span style={{
-                    fontSize: '11px',
-                    color: 'var(--text-secondary)',
-                    padding: '4px'
-                  }}>
+                  <span style={{ fontSize: 11, color: 'var(--ink-3)', alignSelf: 'center' }}>
                     +{post.hashtags.length - 2}
                   </span>
                 )}
               </div>
-            ) : <div></div>}
-            
-            {/* Date */}
-            <div style={{ 
-              fontSize: '11px', 
-              color: 'var(--text-secondary)',
-              fontWeight: '500',
-              marginLeft: '12px'
-            }}>
+            ) : <div />}
+
+            <div style={{ fontSize: 11, color: 'var(--ink-3)', fontWeight: 500, whiteSpace: 'nowrap' }}>
               {formatDate(post.created_at)}
             </div>
           </div>
@@ -731,50 +396,17 @@ export default function InstagramFeed({ familyId, searchQuery, refreshTrigger, o
     )
   }
 
+  // -------- Loading skeleton --------
   if (loading) {
     return (
       <div className="main-container">
         <div className="instagram-grid">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} style={{
-              background: 'var(--bg-content)',
-              borderRadius: '12px',
-              overflow: 'hidden',
-              border: '1px solid var(--border-light)'
-            }}>
-              {/* Header skeleton */}
-              <div style={{ padding: '16px 16px 0 16px' }}>
-                <div style={{
-                  width: '80px',
-                  height: '24px',
-                  backgroundColor: '#F3F4F6',
-                  borderRadius: '12px',
-                  animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
-                }}></div>
-              </div>
-              {/* Image skeleton */}
-              <div style={{ 
-                aspectRatio: '1/1',
-                backgroundColor: '#F3F4F6', 
-                animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
-              }}></div>
-              {/* Footer skeleton */}
-              <div style={{ padding: '16px' }}>
-                <div style={{
-                  width: '60%',
-                  height: '16px',
-                  backgroundColor: '#F3F4F6',
-                  borderRadius: '4px',
-                  marginBottom: '8px',
-                  animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
-                }}></div>
-                <div style={{
-                  width: '40%',
-                  height: '12px',
-                  backgroundColor: '#F3F4F6',
-                  borderRadius: '4px',
-                  animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
-                }}></div>
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="instagram-card" style={{ overflow: 'hidden' }}>
+              <div className="shimmer" style={{ aspectRatio: '1/1' }} />
+              <div style={{ padding: 16, borderTop: '1px solid var(--glass-hairline)' }}>
+                <div className="shimmer" style={{ width: '60%', height: 14, borderRadius: 6, marginBottom: 8 }} />
+                <div className="shimmer" style={{ width: '40%', height: 12, borderRadius: 6 }} />
               </div>
             </div>
           ))}
@@ -786,31 +418,32 @@ export default function InstagramFeed({ familyId, searchQuery, refreshTrigger, o
   if (error) {
     return (
       <div className="main-container">
-        <div className="card" style={{ textAlign: 'center', padding: '48px 24px' }}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>😕</div>
+        <div className="card-glass" style={{ textAlign: 'center', padding: '48px 24px' }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>😕</div>
           <p className="text-body">{error}</p>
         </div>
       </div>
     )
   }
 
-  if (filteredPosts.length === 0) {
+  if (posts.length === 0) {
     return (
       <div className="main-container">
-        <div className="card" style={{ textAlign: 'center', padding: '48px 24px' }}>
+        <div className="card-glass" style={{ textAlign: 'center', padding: '56px 28px' }}>
           {searchQuery ? (
             <>
-              <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔍</div>
-              <h3 className="text-section-title" style={{ marginBottom: '8px' }}>Nu s-au găsit rezultate</h3>
-              <p className="text-body">
-                Nicio postare nu se potrivește cu căutarea pentru "{searchQuery}". Încercați cuvinte cheie sau etichete diferite.
+              <div style={{ fontSize: 48, marginBottom: 16 }}>🔍</div>
+              <h3 className="text-section-title" style={{ marginBottom: 8 }}>Nu s-au găsit rezultate</h3>
+              <p className="text-body" style={{ color: 'var(--ink-2)' }}>
+                Nicio postare nu se potrivește cu căutarea pentru &ldquo;{searchQuery}&rdquo;.
+                Încercați cuvinte cheie sau etichete diferite.
               </p>
             </>
           ) : (
             <>
-              <div style={{ fontSize: '48px', marginBottom: '16px' }}>📸</div>
-              <h3 className="text-section-title" style={{ marginBottom: '8px' }}>Împărtășiți prima amintire</h3>
-              <p className="text-body">
+              <div style={{ fontSize: 48, marginBottom: 16 }}>📸</div>
+              <h3 className="text-section-title" style={{ marginBottom: 8 }}>Împărtășiți prima amintire</h3>
+              <p className="text-body" style={{ color: 'var(--ink-2)' }}>
                 Creați amintiri frumoase de familie încărcând fotografii, video-uri sau împărtășind gândurile voastre.
               </p>
             </>
@@ -823,7 +456,7 @@ export default function InstagramFeed({ familyId, searchQuery, refreshTrigger, o
   return (
     <div className="main-container">
       <div className="instagram-grid">
-        {filteredPosts.map((post, index) => renderPost(post, index))}
+        {posts.map((post, i) => renderPost(post, i))}
       </div>
     </div>
   )

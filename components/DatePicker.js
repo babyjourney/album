@@ -52,52 +52,69 @@ export default function DatePicker({ value, onChange, label }) {
   const currentYear = new Date().getFullYear()
   const years = Array.from({ length: 50 }, (_, i) => currentYear - i)
 
+  const selectStyle = {
+    width: '100%',
+    padding: '10px 12px',
+    border: '1px solid var(--glass-hairline)',
+    borderRadius: '14px',
+    fontSize: '14px',
+    background: 'var(--glass-2)',
+    backdropFilter: 'blur(12px) saturate(140%)',
+    WebkitBackdropFilter: 'blur(12px) saturate(140%)',
+    color: 'var(--ink-1)',
+    outline: 'none',
+    appearance: 'none',
+    WebkitAppearance: 'none',
+    MozAppearance: 'none',
+    cursor: 'pointer',
+    transition: 'all 220ms cubic-bezier(0.22, 1, 0.36, 1)'
+  }
+
+  const optionStyle = { background: 'var(--canvas)', color: 'var(--ink-1)' }
+
+  const subLabelStyle = {
+    display: 'block',
+    marginBottom: '6px',
+    fontSize: '11px',
+    fontWeight: 500,
+    letterSpacing: '0.06em',
+    textTransform: 'uppercase',
+    color: 'var(--ink-3)'
+  }
+
   return (
-    <div style={{ marginBottom: '20px' }}>
+    <div style={{ marginBottom: '8px' }}>
       {label && (
-        <label style={{
-          display: 'block',
-          marginBottom: '8px',
-          fontSize: '14px',
-          fontWeight: '500',
-          color: 'var(--text-primary)'
-        }}>
+        <label
+          className="text-eyebrow"
+          style={{
+            display: 'block',
+            marginBottom: '10px',
+            color: 'var(--ink-2)'
+          }}
+        >
           {label}
         </label>
       )}
-      
+
       <div style={{
         display: 'flex',
-        gap: '8px',
+        gap: '10px',
         alignItems: 'center'
       }}>
         {/* Day Selector */}
-        <div style={{ flex: '1' }}>
-          <label style={{
-            display: 'block',
-            marginBottom: '4px',
-            fontSize: '12px',
-            color: 'var(--text-secondary)'
-          }}>
+        <div style={{ flex: 1 }}>
+          <label style={subLabelStyle}>
             {t('day')}
           </label>
           <select
             value={day}
             onChange={(e) => handleDayChange(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              border: '1px solid var(--border-light)',
-              borderRadius: '8px',
-              fontSize: '14px',
-              background: 'var(--bg-secondary)',
-              color: 'var(--text-primary)',
-              outline: 'none'
-            }}
+            style={selectStyle}
           >
-            <option value="" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>-</option>
+            <option value="" style={optionStyle}>-</option>
             {days.map(d => (
-              <option key={d} value={String(d).padStart(2, '0')} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
+              <option key={d} value={String(d).padStart(2, '0')} style={optionStyle}>
                 {String(d).padStart(2, '0')}
               </option>
             ))}
@@ -105,32 +122,18 @@ export default function DatePicker({ value, onChange, label }) {
         </div>
 
         {/* Month Selector */}
-        <div style={{ flex: '1' }}>
-          <label style={{
-            display: 'block',
-            marginBottom: '4px',
-            fontSize: '12px',
-            color: 'var(--text-secondary)'
-          }}>
+        <div style={{ flex: 1 }}>
+          <label style={subLabelStyle}>
             {t('month')}
           </label>
           <select
             value={month}
             onChange={(e) => handleMonthChange(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              border: '1px solid var(--border-light)',
-              borderRadius: '8px',
-              fontSize: '14px',
-              background: 'var(--bg-secondary)',
-              color: 'var(--text-primary)',
-              outline: 'none'
-            }}
+            style={selectStyle}
           >
-            <option value="" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>-</option>
+            <option value="" style={optionStyle}>-</option>
             {months.map(m => (
-              <option key={m} value={String(m).padStart(2, '0')} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
+              <option key={m} value={String(m).padStart(2, '0')} style={optionStyle}>
                 {String(m).padStart(2, '0')}
               </option>
             ))}
@@ -138,32 +141,18 @@ export default function DatePicker({ value, onChange, label }) {
         </div>
 
         {/* Year Selector */}
-        <div style={{ flex: '1' }}>
-          <label style={{
-            display: 'block',
-            marginBottom: '4px',
-            fontSize: '12px',
-            color: 'var(--text-secondary)'
-          }}>
+        <div style={{ flex: 1 }}>
+          <label style={subLabelStyle}>
             {t('year')}
           </label>
           <select
             value={year}
             onChange={(e) => handleYearChange(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              border: '1px solid var(--border-light)',
-              borderRadius: '8px',
-              fontSize: '14px',
-              background: 'var(--bg-secondary)',
-              color: 'var(--text-primary)',
-              outline: 'none'
-            }}
+            style={selectStyle}
           >
-            <option value="" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>-</option>
+            <option value="" style={optionStyle}>-</option>
             {years.map(y => (
-              <option key={y} value={y} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
+              <option key={y} value={y} style={optionStyle}>
                 {y}
               </option>
             ))}

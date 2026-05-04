@@ -43,7 +43,7 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    
+
     if (!postText.trim()) {
       setError(t('postDescription'))
       return
@@ -81,10 +81,10 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
       setCategory('memories')
       setHashtags([])
       setCurrentHashtagInput('')
-      
+
       // Show success toast
       showSuccess(t('success'))
-      
+
       // Notify parent component
       if (onPostSuccess) {
         onPostSuccess()
@@ -103,13 +103,19 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
   const isTyping = postText.trim().length > 0
 
   return (
-    <div className="post-card card-padding">
+    <div
+      className="card-glass"
+      style={{
+        padding: '20px',
+        borderRadius: '24px'
+      }}
+    >
       <form onSubmit={handleSubmit}>
-        <div className="mb-4">
+        <div style={{ marginBottom: '16px' }}>
           <textarea
             value={postText}
             onChange={handleTextChange}
-            className="input text-lg"
+            className="input-glass"
             rows="3"
             placeholder={t('addDescription')}
             disabled={loading}
@@ -123,72 +129,91 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
             data-bwignore="true"
             name="post-text"
             id="post-text"
+            style={{
+              width: '100%',
+              fontSize: '16px',
+              lineHeight: 1.5,
+              resize: 'vertical',
+              minHeight: '88px',
+              borderRadius: '16px'
+            }}
           />
         </div>
-        
+
         {/* Category and Hashtags Selection */}
         {isTyping && (
-          <div className="space-y-4 mb-4">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', marginBottom: '18px' }}>
             <div>
-              <label className="block body-small font-medium text-gray-700 mb-2">
+              <label
+                className="text-eyebrow"
+                style={{
+                  display: 'block',
+                  marginBottom: '10px',
+                  color: 'var(--ink-2)'
+                }}
+              >
                 {t('category')}
               </label>
-              <div className="flex flex-wrap gap-2">
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                 {categories.map((cat) => (
                   <button
                     key={cat.value}
                     type="button"
                     onClick={() => setCategory(cat.value)}
-                    className={`filter-pill ${
-                      category === cat.value ? 'filter-pill-active' : 'filter-pill-inactive'
-                    }`}
+                    className={`category-pill ${category === cat.value ? 'category-pill--selected' : ''}`}
                   >
-                    <span className="mr-1">{cat.emoji}</span>
+                    <span style={{ marginRight: '6px' }}>{cat.emoji}</span>
                     {cat.label.replace(cat.emoji + ' ', '')}
                   </button>
                 ))}
               </div>
             </div>
             <div>
-              <label htmlFor="hashtags" className="block body-small font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="hashtags"
+                className="text-eyebrow"
+                style={{
+                  display: 'block',
+                  marginBottom: '10px',
+                  color: 'var(--ink-2)'
+                }}
+              >
                 {t('hashtag')}
               </label>
-              <div style={{
-                border: '1px solid #D1D5DB',
-                borderRadius: '8px',
-                padding: '8px 12px',
-                backgroundColor: 'white',
-                minHeight: '40px',
-                display: 'flex',
-                flexWrap: 'wrap',
-                alignItems: 'center',
-                gap: '6px'
-              }}>
+              <div
+                className="input-glass"
+                style={{
+                  padding: '10px 14px',
+                  minHeight: '48px',
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                  gap: '6px',
+                  borderRadius: '14px'
+                }}
+              >
                 {/* Display hashtag pills */}
                 {hashtags.map((tag, index) => (
                   <span
                     key={index}
                     style={{
-                      backgroundColor: 'var(--accent-blue)',
-                      color: 'white',
-                      padding: '6px 10px',
-                      borderRadius: '10px',
-                      fontSize: '14px',
-                      fontWeight: '400',
+                      background: 'linear-gradient(135deg, var(--accent-iris), #6366f1)',
+                      color: '#fff',
+                      padding: '4px 10px',
+                      borderRadius: '999px',
+                      fontSize: '13px',
+                      fontWeight: 500,
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: '6px',
-                      lineHeight: '1.2',
-                      height: 'auto',
-                      minHeight: 'unset',
-                      verticalAlign: 'middle',
+                      lineHeight: 1.3,
                       whiteSpace: 'nowrap'
                     }}
                   >
                     {tag.startsWith('#') ? tag : `#${tag}`}
                   </span>
                 ))}
-                
+
                 {/* Input for new hashtags */}
                 <input
                   type="text"
@@ -214,15 +239,16 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
                     minWidth: '120px',
                     padding: '4px 0',
                     fontSize: '14px',
-                    backgroundColor: 'transparent'
+                    backgroundColor: 'transparent',
+                    color: 'var(--ink-1)'
                   }}
                 />
               </div>
-              <p style={{ marginTop: '4px', fontSize: '12px', color: '#6B7280' }}>
+              <p className="text-tertiary" style={{ marginTop: '6px', fontSize: '12px' }}>
                 {t('hashtagInputHelp')}
               </p>
             </div>
-            
+
             {/* Date Picker */}
             <div>
               <DatePicker
@@ -235,44 +261,76 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
         )}
 
         {error && (
-          <div className="toast toast-error mb-4 relative">
+          <div
+            style={{
+              marginBottom: '16px',
+              padding: '10px 14px',
+              borderRadius: '14px',
+              background: 'rgba(239, 68, 68, 0.10)',
+              border: '1px solid rgba(239, 68, 68, 0.25)',
+              color: 'var(--accent-red)',
+              fontSize: '14px'
+            }}
+          >
             {error}
           </div>
         )}
 
-        <div className="flex items-center justify-between">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           {/* Media buttons - shown when not typing */}
           {!isTyping && (
-            <div className="flex items-center space-x-3">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <button
                 type="button"
                 onClick={onPhotoClick}
-                className="btn btn-ghost flex items-center space-x-2 px-4 py-2"
+                className="btn-glass"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '10px 16px',
+                  borderRadius: '14px'
+                }}
               >
-                <span className="text-lg">📷</span>
-                <span className="body-small font-medium">{t('uploadPhoto')}</span>
+                <span style={{ fontSize: '16px' }}>📷</span>
+                <span style={{ fontSize: '14px', fontWeight: 500 }}>{t('uploadPhoto')}</span>
               </button>
-              
+
               <button
                 type="button"
                 onClick={onVideoClick}
-                className="btn btn-ghost flex items-center space-x-2 px-4 py-2"
+                className="btn-glass"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '10px 16px',
+                  borderRadius: '14px'
+                }}
               >
-                <span className="text-lg">🎥</span>
-                <span className="body-small font-medium">Video</span>
+                <span style={{ fontSize: '16px' }}>🎥</span>
+                <span style={{ fontSize: '14px', fontWeight: 500 }}>Video</span>
               </button>
             </div>
           )}
 
           {/* Post button - shown when typing */}
           {isTyping && (
-            <div className="flex-1 flex justify-end">
+            <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
               <button
                 type="submit"
                 disabled={loading || !postText.trim()}
-                className="btn btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                className="btn-iris sheen"
+                style={{
+                  padding: '10px 22px',
+                  borderRadius: '14px',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  opacity: (loading || !postText.trim()) ? 0.55 : 1,
+                  cursor: (loading || !postText.trim()) ? 'not-allowed' : 'pointer'
+                }}
               >
-{loading ? t('uploading') : t('createPost')}
+                {loading ? t('uploading') : t('createPost')}
               </button>
             </div>
           )}

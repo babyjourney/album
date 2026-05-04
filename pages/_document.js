@@ -2,22 +2,23 @@ import { Html, Head, Main, NextScript } from 'next/document'
 
 export default function Document() {
   return (
-    <Html lang="ro">
+    <Html lang="ro" data-theme="light">
       <Head>
-        {/* PWA and mobile app behavior */}
+        {/* PWA + mobile chrome */}
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        
-        {/* Theme color for mobile browsers */}
-        <meta name="theme-color" content="#000000" />
-        <meta name="msapplication-navbutton-color" content="#000000" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        
-        {/* Prevent automatic phone number linking */}
+        <meta name="theme-color" content="#f4f5fb" />
+        <meta name="msapplication-navbutton-color" content="#f4f5fb" />
+
+        {/* Don't autolink phone numbers (album content) */}
         <meta name="format-detection" content="telephone=no" />
-        
-        {/* CSS environment variables support for safe areas */}
+
+        {/* Preconnect to font CDN for faster paint */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+
+        {/* Inline critical bits — safe area + iOS input zoom fix */}
         <style jsx global>{`
           :root {
             --safe-area-inset-top: env(safe-area-inset-top);
@@ -25,32 +26,13 @@ export default function Document() {
             --safe-area-inset-bottom: env(safe-area-inset-bottom);
             --safe-area-inset-left: env(safe-area-inset-left);
           }
-          
-          /* Fix for Chrome mobile viewport issues */
-          html {
-            height: 100vh;
-            height: 100dvh; /* Dynamic viewport height for modern browsers */
-          }
-          
-          body {
-            height: 100vh;
-            height: 100dvh;
-            overflow-x: hidden;
-            /* Prevent scrollbar issues in mobile Chrome */
-            -webkit-overflow-scrolling: touch;
-          }
-          
-          /* Fix for iOS Safari bottom safe area */
+          html { height: 100vh; height: 100dvh; }
+          body { height: 100vh; height: 100dvh; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
           @supports (padding-bottom: env(safe-area-inset-bottom)) {
-            .safe-bottom {
-              padding-bottom: env(safe-area-inset-bottom);
-            }
+            .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+            .safe-top { padding-top: env(safe-area-inset-top); }
           }
-          
-          /* Prevent zoom on input focus in iOS */
-          input, textarea, select {
-            font-size: 16px !important;
-          }
+          input, textarea, select { font-size: 16px !important; }
         `}</style>
       </Head>
       <body>

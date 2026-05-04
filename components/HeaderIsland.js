@@ -3,18 +3,18 @@ import { useToast } from '../contexts/ToastContext'
 import { useLanguage } from '../contexts/LanguageContext'
 import { getCategories } from '../lib/categoriesData'
 
-export default function HeaderIsland({ 
-  childName = "Child", 
-  albumTitle = "Family Album",
-  postCount = 0, 
+export default function HeaderIsland({
+  childName = 'Child',
+  albumTitle = 'Family Album',
+  postCount = 0,
   onCreatePost,
-  onPhotoUpload, 
+  onPhotoUpload,
   onVideoUpload,
   onProfilePictureClick,
   hasEditorAccess = false,
-  childImage = "/api/placeholder/80/80",
-  searchQuery = "",
-  onSearchChange
+  childImage = '/api/placeholder/80/80',
+  searchQuery = '',
+  onSearchChange,
 }) {
   const [postText, setPostText] = useState('')
   const [category, setCategory] = useState('memories')
@@ -24,45 +24,28 @@ export default function HeaderIsland({
   const { showSuccess, showError } = useToast()
   const { t } = useLanguage()
 
-  // Load categories
   useEffect(() => {
-    const loadCategories = async () => {
-      try {
-        const cats = await getCategories()
-        setCategories(cats)
-      } catch (error) {
-        console.error('Error loading categories:', error)
-        // Fallback to default categories
-        setCategories([
-          { value: 'memories', label: 'Amintiri' },
-          { value: 'milestones', label: 'Etape importante' },
-          { value: 'everyday', label: 'Zilnic' },
-          { value: 'special', label: 'Special' },
-          { value: 'family', label: 'Familie' },
-          { value: 'play', label: 'Joacă' },
-          { value: 'learning', label: 'Învățare' }
-        ])
-      }
-    }
-    loadCategories()
+    getCategories()
+      .then(setCategories)
+      .catch(() => setCategories([
+        { value: 'memories',   label: 'Amintiri' },
+        { value: 'milestones', label: 'Etape importante' },
+        { value: 'everyday',   label: 'Zilnic' },
+        { value: 'special',    label: 'Special' },
+        { value: 'family',     label: 'Familie' },
+        { value: 'play',       label: 'Joacă' },
+        { value: 'learning',   label: 'Învățare' },
+      ]))
   }, [])
 
   const handlePostSubmit = async () => {
     if (!postText.trim()) return
-    
     setLoading(true)
     try {
-      await onCreatePost({
-        text: postText.trim(),
-        category,
-        hashtags: hashtags.trim()
-      })
-      
-      setPostText('')
-      setHashtags('')
-      setCategory('memories')
+      await onCreatePost({ text: postText.trim(), category, hashtags: hashtags.trim() })
+      setPostText(''); setHashtags(''); setCategory('memories')
       showSuccess('Postat cu succes!')
-    } catch (error) {
+    } catch {
       showError('Postarea a eșuat')
     } finally {
       setLoading(false)
@@ -73,155 +56,112 @@ export default function HeaderIsland({
 
   return (
     <div className="main-container">
-      {/* Page Title */}
-      <div style={{ 
-        padding: window.innerWidth <= 768 ? '12px 0 8px 0' : '20px 0 12px 0'
-      }}>
-        <h1 className="text-page-title" style={{
-          fontSize: window.innerWidth <= 768 ? '20px' : '28px',
-          marginBottom: '2px'
-        }}>
-          {albumTitle}
-        </h1>
-        <p className="text-subtle" style={{ 
-          marginTop: '2px',
-          fontSize: window.innerWidth <= 768 ? '12px' : '14px'
-        }}>
-          {postCount} {postCount === 1 ? 'amintire' : 'amintiri'} • Crește în fiecare zi ✨
+      {/* Title block */}
+      <div style={{ padding: '24px 0 16px' }}>
+        <h1 className="text-page-title">{albumTitle}</h1>
+        <p className="text-subtle" style={{ marginTop: 4 }}>
+          <span className="nums">{postCount}</span> {postCount === 1 ? 'amintire' : 'amintiri'}
+          <span style={{ margin: '0 8px', opacity: 0.4 }}>·</span>
+          <span style={{ background: 'linear-gradient(90deg, #7c3aed, #06b6d4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', fontWeight: 600 }}>
+            Crește în fiecare zi
+          </span>
         </p>
       </div>
 
-      {/* Create Post Component - Simple Clean Bar */}
+      {/* Compose bar (editor) */}
       {hasEditorAccess && (
-        <div className="card" style={{ 
-          marginBottom: window.innerWidth <= 768 ? '16px' : '24px',
-          padding: window.innerWidth <= 768 ? '12px' : '20px',
-          backgroundColor: 'var(--bg-secondary)',
-          borderColor: 'var(--border-light)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            {/* User Avatar - Clickable */}
+        <div className="card-glass" style={{ marginBottom: 24, padding: 18 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <button
               onClick={() => onProfilePictureClick && onProfilePictureClick()}
-              style={{
-                border: 'none',
-                background: 'none',
-                cursor: 'pointer',
-                padding: 0,
-                borderRadius: '50%',
-                flexShrink: 0,
-                transition: 'transform 0.15s ease-in-out'
-              }}
-              onMouseOver={(e) => {
-                e.currentTarget.style.transform = 'scale(1.05)'
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.transform = 'scale(1)'
-              }}
               title={`Vezi poza de profil a lui ${childName}`}
+              style={{
+                position: 'relative',
+                background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                borderRadius: '50%', flexShrink: 0,
+                transition: 'transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1)',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.06)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
             >
-              <img 
-                src={childImage} 
-                alt={childName} 
+              <span style={{
+                position: 'absolute', inset: -3,
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #a78bfa, #7c3aed, #06b6d4)',
+                filter: 'blur(0.5px)',
+              }} />
+              <img
+                src={childImage}
+                alt={childName}
                 style={{
-                  width: window.innerWidth <= 768 ? '32px' : '40px',
-                  height: window.innerWidth <= 768 ? '32px' : '40px',
-                  borderRadius: '50%',
-                  objectFit: 'cover',
-                  border: '1px solid var(--border-light)',
-                  display: 'block'
+                  position: 'relative',
+                  width: 44, height: 44,
+                  borderRadius: '50%', objectFit: 'cover',
+                  border: '2px solid var(--canvas)',
+                  display: 'block',
                 }}
                 onError={(e) => {
-                  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(childName)}&background=3B82F6&color=white&size=40&rounded=true`
+                  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(childName)}&background=7c3aed&color=ffffff&size=88&rounded=true`
                 }}
               />
             </button>
 
-            {/* Input Field */}
             <input
               type="text"
               value={postText}
               onChange={(e) => setPostText(e.target.value)}
               placeholder={t('shareSpecialMoment')}
-              className="input-field"
+              className="input-glass"
               style={{ flex: 1 }}
               disabled={loading}
             />
 
-            {/* Action Buttons */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', gap: 6 }}>
               <button
                 type="button"
                 onClick={onPhotoUpload}
-                style={{
-                  padding: '8px',
-                  border: 'none',
-                  background: 'none',
-                  color: 'var(--text-secondary)',
-                  cursor: 'pointer',
-                  borderRadius: '10px',
-                  transition: 'all 0.15s ease-in-out'
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.backgroundColor = 'var(--bg-gray)'
-                  e.currentTarget.style.color = 'var(--accent-blue)'
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent'
-                  e.currentTarget.style.color = 'var(--text-secondary)'
-                }}
+                className="btn-icon"
                 title="Încarcă fotografie"
+                aria-label="Upload photo"
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect width="18" height="18" x="3" y="3" rx="3" ry="3"/>
                   <circle cx="9" cy="9" r="2"/>
                   <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
                 </svg>
               </button>
-
               <button
                 type="button"
                 onClick={onVideoUpload}
-                style={{
-                  padding: '8px',
-                  border: 'none',
-                  background: 'none',
-                  color: 'var(--text-secondary)',
-                  cursor: 'pointer',
-                  borderRadius: '10px',
-                  transition: 'all 0.15s ease-in-out'
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.backgroundColor = 'var(--bg-gray)'
-                  e.currentTarget.style.color = 'var(--accent-blue)'
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent'
-                  e.currentTarget.style.color = 'var(--text-secondary)'
-                }}
+                className="btn-icon"
                 title="Încarcă video"
+                aria-label="Upload video"
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="m22 8-6 4 6 4V8Z"/>
-                  <rect width="14" height="12" x="2" y="6" rx="2" ry="2"/>
+                  <rect width="14" height="12" x="2" y="6" rx="3" ry="3"/>
                 </svg>
               </button>
             </div>
           </div>
 
-          {/* Expanded Options - When Typing */}
           {isTyping && (
-            <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border-light)' }}>
-              {/* Category Pills */}
-              <div style={{ marginBottom: '16px' }}>
-                <label className="text-subtle" style={{ display: 'block', marginBottom: '8px' }}>Categorie</label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            <div style={{
+              marginTop: 16, paddingTop: 16,
+              borderTop: '1px solid var(--glass-hairline)',
+              animation: 'fadeIn 0.3s cubic-bezier(0.22,1,0.36,1)',
+            }}>
+              <div style={{ marginBottom: 14 }}>
+                <label className="text-eyebrow" style={{ display: 'block', marginBottom: 8 }}>
+                  Categorie
+                </label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {categories.map((cat) => (
                     <button
                       key={cat.value}
                       type="button"
                       onClick={() => setCategory(cat.value)}
-                      className={`category-pill ${category === cat.value ? 'category-pill--selected' : 'category-pill--unselected'}`}
+                      className={`category-pill ${category === cat.value ? 'category-pill--selected' : ''}`}
                     >
                       {cat.emoji ? `${cat.emoji} ` : ''}{cat.label}
                     </button>
@@ -229,43 +169,35 @@ export default function HeaderIsland({
                 </div>
               </div>
 
-              {/* Hashtags Input */}
-              <div style={{ marginBottom: '16px' }}>
-                <label className="text-subtle" style={{ display: 'block', marginBottom: '8px' }}>Etichete</label>
+              <div style={{ marginBottom: 16 }}>
+                <label className="text-eyebrow" style={{ display: 'block', marginBottom: 8 }}>
+                  Etichete
+                </label>
                 <input
                   type="text"
                   value={hashtags}
                   onChange={(e) => setHashtags(e.target.value)}
                   placeholder="#familie #dragoste #creștere #amintiri"
-                  className="input-field"
+                  className="input-glass"
                   disabled={loading}
                 />
               </div>
 
-              {/* Share Button */}
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                 <button
                   onClick={handlePostSubmit}
                   disabled={loading || !postText.trim()}
-                  className="btn-primary"
+                  className="btn-iris sheen"
                 >
                   {loading ? (
                     <>
-                      <div style={{
-                        width: '16px',
-                        height: '16px',
-                        border: '2px solid white',
-                        borderTop: '2px solid transparent',
-                        borderRadius: '50%',
-                        animation: 'spin 1s linear infinite'
-                      }}></div>
-                      Postez...
+                      <div style={{ width: 14, height: 14, border: '2px solid white', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                      Se postează…
                     </>
                   ) : (
                     <>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="m3 3 3 9-3 9 19-9Z"/>
-                        <path d="m6 12 15-3"/>
                       </svg>
                       Postează
                     </>
@@ -276,66 +208,37 @@ export default function HeaderIsland({
           )}
         </div>
       )}
-      
-      {/* Search Bar for Regular Users */}
+
+      {/* Search bar (viewer) */}
       {!hasEditorAccess && onSearchChange && (
-        <div className="card" style={{ 
-          marginBottom: window.innerWidth <= 768 ? '16px' : '24px',
-          padding: window.innerWidth <= 768 ? '10px' : '16px'
-        }}>
-          <div style={{ position: 'relative' }}>
-            <svg 
-              width="16" 
-              height="16" 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke="currentColor" 
-              strokeWidth="2"
-              style={{
-                position: 'absolute',
-                left: '16px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                color: 'var(--text-secondary)',
-                pointerEvents: 'none',
-                zIndex: 1
-              }}
-            >
-              <circle cx="11" cy="11" r="8"/>
-              <path d="m21 21-4.35-4.35"/>
-            </svg>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="Caută în amintiri..."
-              className="input-field"
-              style={{
-                paddingLeft: '42px',
-                borderRadius: '18px',
-                width: '100%'
-              }}
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck="false"
-              data-form-type="other"
-              data-lpignore="true"
-              data-1p-ignore="true"
-              data-bwignore="true"
-              name="search-posts"
-              id="search-posts"
-            />
-          </div>
+        <div style={{ marginBottom: 24, position: 'relative' }}>
+          <svg
+            width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+            style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-3)', pointerEvents: 'none', zIndex: 1 }}
+          >
+            <circle cx="11" cy="11" r="8"/>
+            <path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Caută în amintiri..."
+            className="input-glass"
+            style={{ paddingLeft: 46, borderRadius: 18 }}
+            autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck="false"
+            data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-bwignore="true"
+            name="search-posts" id="search-posts"
+          />
         </div>
       )}
 
-      {/* Welcome Message for viewers without search */}
+      {/* Welcome card (viewer w/o search) */}
       {!hasEditorAccess && !onSearchChange && (
-        <div className="card" style={{ marginBottom: '32px', textAlign: 'center' }}>
-          <div style={{ fontSize: '32px', marginBottom: '12px' }}>👶</div>
-          <h3 className="text-section-title" style={{ marginBottom: '8px' }}>Bun venit în {albumTitle}!</h3>
-          <p className="text-body">
+        <div className="card-glass" style={{ marginBottom: 32, padding: 28, textAlign: 'center' }}>
+          <div style={{ fontSize: 36, marginBottom: 12 }}>👶</div>
+          <h3 className="text-section-title" style={{ marginBottom: 8 }}>Bun venit în {albumTitle}!</h3>
+          <p style={{ fontSize: 14.5, color: 'var(--ink-2)', lineHeight: 1.55 }}>
             Vizionați amintiri prețioase. Pentru a adăuga fotografii noi și a crea postări, folosiți PIN-ul de editor când vă conectați.
           </p>
         </div>

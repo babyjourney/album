@@ -1,13 +1,13 @@
 import { useState, useRef, useEffect } from 'react'
 
-export default function LazyImage({ 
-  src, 
-  alt, 
-  style, 
+export default function LazyImage({
+  src,
+  alt,
+  style,
   className,
   onError,
   placeholder = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMiAxMkM5Ljc5IDEyIDggMTAuMjEgOCA4UzkuNzkgNiAxMiA2UzE2IDcuNzkgMTYgMTBTMTQuMjEgMTIgMTIgMTJaTTEyIDhDMTAuOSA4IDEwIDguOSAxMCAxMFMxMC45IDEyIDEyIDEyUzE0IDExLjEgMTQgMTBTMTMuMSA4IDEyIDhaIiBmaWxsPSIjOUI5QjlCIi8+CjxwYXRoIGQ9Ik0yMSAxOVYzSDNWMTlIMjFaTTIxIDFDMjIuMSAxIDIzIDEuOSAyMyAzVjE5QzIzIDIwLjEgMjIuMSAyMSAyMSAyMUgzQzEuOSAyMSAxIDIwLjEgMSAxOVYzQzEgMS45IDEuOSAxIDMgMUgyMVoiIGZpbGw9IiM5QjlCOUIiLz4KPC9zdmc+',
-  ...props 
+  ...props
 }) {
   const [isLoaded, setIsLoaded] = useState(false)
   const [isInView, setIsInView] = useState(false)
@@ -22,7 +22,7 @@ export default function LazyImage({
           observer.disconnect()
         }
       },
-      { 
+      {
         threshold: 0.1,
         rootMargin: '200px' // Increased for earlier loading
       }
@@ -55,27 +55,27 @@ export default function LazyImage({
   }
 
   return (
-    <div 
+    <div
       ref={imgRef}
       style={{
         position: 'relative',
         overflow: 'hidden',
-        backgroundColor: '#f3f4f6',
+        backgroundColor: 'var(--glass-1)',
         ...style
       }}
       className={className}
     >
       {!isInView ? (
         // Placeholder while not in view
-        <div 
+        <div
+          className="shimmer"
           style={{
             width: '100%',
             height: '100%',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: '#f3f4f6',
-            color: '#9b9b9b'
+            color: 'var(--ink-3)'
           }}
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
@@ -86,31 +86,17 @@ export default function LazyImage({
       ) : (
         <>
           {!isLoaded && !hasError && (
-            // Loading animation
-            <div 
+            // Loading shimmer
+            <div
+              className="shimmer"
               style={{
                 position: 'absolute',
                 top: 0,
                 left: 0,
                 width: '100%',
-                height: '100%',
-                backgroundColor: '#f3f4f6',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
+                height: '100%'
               }}
-            >
-              <div 
-                style={{
-                  width: '20px',
-                  height: '20px',
-                  border: '2px solid #e5e7eb',
-                  borderTop: '2px solid #3b82f6',
-                  borderRadius: '50%',
-                  animation: 'spin 1s linear infinite'
-                }}
-              />
-            </div>
+            />
           )}
           <img
             src={hasError ? placeholder : src}
@@ -118,7 +104,7 @@ export default function LazyImage({
             style={{
               ...style,
               opacity: isLoaded ? 1 : 0,
-              transition: 'opacity 0.3s ease-in-out'
+              transition: 'opacity 220ms cubic-bezier(0.22, 1, 0.36, 1)'
             }}
             onLoad={handleLoad}
             onError={handleError}
@@ -126,7 +112,7 @@ export default function LazyImage({
           />
         </>
       )}
-      
+
       <style jsx>{`
         @keyframes spin {
           0% { transform: rotate(0deg); }
