@@ -1,6 +1,7 @@
 import { supabase } from '../../../lib/supabaseClient'
+import { requireAdmin } from '../../../lib/authMiddleware'
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Metoda nu este permisă' })
   }
@@ -53,9 +54,11 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('❌ Migration check error:', error)
-    return res.status(500).json({ 
-      error: 'Eroare la verificarea structurii bazei de date', 
-      details: error.message 
+    return res.status(500).json({
+      error: 'Eroare la verificarea structurii bazei de date',
+      details: error.message
     })
   }
 }
+
+export default requireAdmin(handler)

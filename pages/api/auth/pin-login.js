@@ -1,5 +1,6 @@
 import { supabase } from '../../../lib/supabaseClient'
 import rateLimiter from '../../../lib/rateLimiter'
+import { issueFamilyToken } from '../../../lib/authMiddleware'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -56,7 +57,7 @@ export default async function handler(req, res) {
     if (cleanPin.length === 4) {
       const { data, error } = await supabase
         .from('families')
-        .select('id, name, phone_number, viewer_pin, is_suspended')
+        .select('id, name, phone_number, viewer_pin, is_suspended, package')
         .eq('viewer_pin', cleanPin)
         .eq('phone_number', cleanPhone)
         .single()
@@ -71,7 +72,7 @@ export default async function handler(req, res) {
     if (cleanPin.length === 8 && !family) {
       const { data, error } = await supabase
         .from('families')
-        .select('id, name, phone_number, editor_pin, is_suspended')
+        .select('id, name, phone_number, editor_pin, is_suspended, package')
         .eq('editor_pin', cleanPin)
         .eq('phone_number', cleanPhone)
         .single()
@@ -121,19 +122,34 @@ export default async function handler(req, res) {
     // Success! Clear any rate limiting for this client
     rateLimiter.recordSuccessfulAttempt(clientId)
 
+    // Issue a signed session token. Client stores it opaquely and sends it
+    // as a Bearer token; the signature prevents tampering with familyId/role.
+    const token = issueFamilyToken({
+      familyId: family.id,
+      familyName: family.name,
+      role
+    })
+
+    // Default to 'free' for any legacy families where the column hasn't been
+    // backfilled (the migration adds DEFAULT 'free', but be defensive).
+    const familyPackage = family.package || 'free'
+
     // Return success with family info and role
     return res.status(200).json({
       success: true,
+      token,
       family: {
         id: family.id,
-        name: family.name
+        name: family.name,
+        package: familyPackage
       },
       role,
       message: `Conectat ca ${role === 'viewer' ? 'vizualizator' : 'editor'} pentru ${family.name}`,
       user: {
         familyId: family.id,
         familyName: family.name,
-        role: role
+        role: role,
+        package: familyPackage
       }
     })
 

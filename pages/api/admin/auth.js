@@ -1,3 +1,5 @@
+import { issueAdminToken } from '../../../lib/authMiddleware'
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Metoda nu este permisă' })
@@ -14,17 +16,9 @@ export default async function handler(req, res) {
   const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123'
 
   if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-    // Generează un token securizat pentru sesiune
-    const randomBytes = require('crypto').randomBytes(32).toString('hex')
-    const timestamp = Date.now()
-    const tokenData = {
-      username,
-      timestamp,
-      random: randomBytes,
-      role: 'admin'
-    }
-    const token = Buffer.from(JSON.stringify(tokenData)).toString('base64')
-    
+    // Issue a signed admin session token so it cannot be forged client-side
+    const token = issueAdminToken()
+
     return res.status(200).json({
       success: true,
       token,

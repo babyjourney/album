@@ -1,11 +1,8 @@
 import { useState, useEffect } from 'react'
 
 // Left-edge floating glass rail. On desktop only.
-// Holds: search expand, child avatar orbs, filter chip, sort.
+// Holds: search expand and filter chip. (Child switching moved to the top dock.)
 export default function VerticalRail({
-  children = [],
-  selectedId = null,
-  onSelect = () => {},
   onSearch,
   onFilters,
   searchQuery = '',
@@ -76,55 +73,6 @@ export default function VerticalRail({
             </svg>
           </RailButton>
         )}
-
-        {(onSearch || onFilters) && children.length > 0 && (
-          <div style={{
-            width: 28, height: 1,
-            background: 'var(--glass-hairline-strong)',
-            margin: '4px 0',
-          }} />
-        )}
-
-        {/* Child avatar orbs */}
-        {children.length > 0 && (
-          <RailButton
-            active={selectedId === null}
-            onClick={() => onSelect(null)}
-            tooltip="All photos"
-          >
-            <span style={{ fontSize: 18 }}>👶</span>
-          </RailButton>
-        )}
-
-        {children.map((child) => (
-          <RailButton
-            key={child.id}
-            active={selectedId === child.id}
-            onClick={() => onSelect(child.id)}
-            tooltip={child.name}
-          >
-            {child.profile_picture_url ? (
-              <img
-                src={child.profile_picture_url}
-                alt={child.name}
-                style={{
-                  width: '100%', height: '100%',
-                  borderRadius: '50%', objectFit: 'cover',
-                }}
-              />
-            ) : (
-              <span style={{
-                width: '100%', height: '100%',
-                borderRadius: '50%',
-                background: 'linear-gradient(135deg, var(--accent-iris), #6d28d9)',
-                color: '#fff', fontWeight: 700, fontSize: 13,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                {(child.name || '?').charAt(0).toUpperCase()}
-              </span>
-            )}
-          </RailButton>
-        ))}
       </div>
 
       {/* Search slide-out */}

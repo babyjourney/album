@@ -6,7 +6,7 @@ async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const { postId, title, description, hashtags, file_urls, customDate, coverIndex } = req.body
+  const { postId, title, description, hashtags, file_urls, customDate, coverIndex, isPrivate, category } = req.body
 
   if (!postId) {
     return res.status(400).json({ error: 'Post ID is required' })
@@ -43,6 +43,16 @@ async function handler(req, res) {
     // Handle cover index if provided
     if (coverIndex !== undefined) {
       updateData.cover_index = coverIndex
+    }
+
+    // Handle private flag if provided (editor-only — middleware already enforces)
+    if (isPrivate !== undefined) {
+      updateData.is_private = isPrivate === true
+    }
+
+    // Handle category if provided
+    if (category !== undefined) {
+      updateData.category = category || null
     }
 
     // Handle custom date if provided
@@ -134,6 +144,7 @@ async function handler(req, res) {
         .from('photos')
         .update(updateData)
         .eq('id', postId)
+        .eq('family_id', req.auth.familyId)
         .select()
       
       data = result.data
@@ -160,6 +171,7 @@ async function handler(req, res) {
             .from('photos')
             .update(oldFormatUpdate)
             .eq('id', postId)
+            .eq('family_id', req.auth.familyId)
             .select()
           
           data = retryResult.data

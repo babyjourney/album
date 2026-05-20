@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import MemorySlideshow from './MemorySlideshow'
+import { authenticatedFetch } from '../lib/pinAuth'
 
 const slideshowAnimations = `
   @keyframes slideshow-pulse {
@@ -42,7 +43,7 @@ export default function FloatingSlideshowButton({ familyId }) {
     setLoading(true)
     try {
       console.log('Fetching memories for familyId:', familyId)
-      const response = await fetch(`/api/photos/list?familyId=${familyId}&sort=newest`)
+      const response = await authenticatedFetch(`/api/photos/list?familyId=${familyId}&sort=newest`)
       const result = await response.json()
 
       console.log('API Response:', response.ok, result)

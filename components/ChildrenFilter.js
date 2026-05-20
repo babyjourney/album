@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useLanguage } from '../contexts/LanguageContext'
+import { authenticatedFetch } from '../lib/pinAuth'
 
 const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)'
 
@@ -24,13 +25,13 @@ export default function ChildrenFilter({
     try {
       setLoading(true)
 
-      const settingsResponse = await fetch(`/api/album-settings/get?familyId=${familyId}`)
+      const settingsResponse = await authenticatedFetch(`/api/album-settings/get?familyId=${familyId}`)
       const settingsResult = await settingsResponse.json()
 
       if (settingsResponse.ok && settingsResult.settings?.is_multi_child) {
         setAlbumSettings(settingsResult.settings)
 
-        const childrenResponse = await fetch(`/api/children/list?familyId=${familyId}`)
+        const childrenResponse = await authenticatedFetch(`/api/children/list?familyId=${familyId}`)
         const childrenResult = await childrenResponse.json()
 
         if (childrenResponse.ok) {

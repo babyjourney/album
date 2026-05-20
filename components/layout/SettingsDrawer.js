@@ -2,7 +2,7 @@ import SideSheet from './SideSheet'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useTheme } from '../../contexts/ThemeContext'
 
-export default function SettingsDrawer({ isOpen, onClose, onProfilePicture, onSignOut }) {
+export default function SettingsDrawer({ isOpen, onClose, onProfilePicture, onSignOut, columns, onColumnsChange }) {
   const { language, changeLanguage, t } = useLanguage()
   const { currentTheme, changeTheme, themes } = useTheme()
 
@@ -96,6 +96,56 @@ export default function SettingsDrawer({ isOpen, onClose, onProfilePicture, onSi
             })}
           </div>
         </Section>
+
+        {onColumnsChange && (
+          <Section label={t('content') || 'CONTENT'}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+              {[2, 3].map((n) => {
+                const active = columns === n
+                return (
+                  <button
+                    key={n}
+                    onClick={() => onColumnsChange(n)}
+                    title={`${n} ${n === 1 ? 'coloană' : 'coloane'}`}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 8,
+                      padding: '16px 12px',
+                      borderRadius: 16,
+                      cursor: 'pointer',
+                      background: active ? 'linear-gradient(135deg, #8b5cf6, #6d28d9)' : 'var(--glass-1)',
+                      color: active ? '#fff' : 'var(--ink-1)',
+                      border: active ? '1px solid rgba(255,255,255,0.20)' : '1px solid var(--glass-hairline)',
+                      boxShadow: active
+                        ? 'inset 0 1px 0 0 rgba(255,255,255,0.30), 0 6px 18px -6px rgba(124,58,237,0.45)'
+                        : 'inset 0 1px 0 0 var(--glass-hairline-strong)',
+                      transition: 'all 220ms cubic-bezier(0.22,1,0.36,1)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      {Array.from({ length: n }).map((_, i) => (
+                        <span
+                          key={i}
+                          style={{
+                            width: 12, height: 16, borderRadius: 3,
+                            background: active ? 'rgba(255,255,255,0.92)' : 'var(--ink-2)',
+                            opacity: active ? 1 : 0.7,
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <span style={{ fontSize: 12, fontWeight: 600 }}>
+                      {n} {n === 1 ? 'coloană' : 'coloane'}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </Section>
+        )}
 
         {onProfilePicture && (
           <Section label="Profile">

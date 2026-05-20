@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect } from 'react'
 import imageCompression from 'browser-image-compression'
 import { supabase } from '../lib/supabaseClient'
-import { authenticatedFetch } from '../lib/pinAuth'
+import { authenticatedFetch, getFamilyPackage } from '../lib/pinAuth'
 import { useToast } from '../contexts/ToastContext'
 import { useOnClickOutside } from '../hooks/useOnClickOutside'
 import { useLanguage } from '../contexts/LanguageContext'
 import DatePicker from './DatePicker'
 import { getCategories } from '../lib/categoriesData'
+import { getPackageLimits } from '../lib/packages'
 
 export default function UploadForm({ familyId, onUploadSuccess, onClose, refreshTrigger }) {
   const [title, setTitle] = useState('')
@@ -25,9 +26,101 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
   const [categories, setCategories] = useState([])
   const [coverIndex, setCoverIndex] = useState(0)
   const [dragOver, setDragOver] = useState(false)
+  const [isPrivate, setIsPrivate] = useState(false)
+  // Family's package tier — drives client-side video duration limits.
+  // Seeded synchronously from the cached session, then refreshed from
+  // /api/families/get on mount so a server-side change takes effect on next
+  // upload attempt without forcing the family to log out.
+  const [currentPackage, setCurrentPackage] = useState(() => {
+    if (typeof window === 'undefined') return 'free'
+    try { return getFamilyPackage() } catch { return 'free' }
+  })
+  // Per-file duration (seconds) for video files. Aligned by index with
+  // `files`; entries are `null` for images. Sent to the server so it can
+  // re-validate even if the client lied.
+  const [videoDurations, setVideoDurations] = useState([])
   const { showSuccess, showError } = useToast()
   const { t } = useLanguage()
   const modalRef = useRef(null)
+  // Tracks whether the user has explicitly changed the date via the picker.
+  // DatePicker auto-fills today's date on mount when value is null; we treat
+  // that as a non-user change so EXIF can still override it.
+  const userTouchedDateRef = useRef(false)
+  const customDateRef = useRef(customDate)
+  customDateRef.current = customDate
+
+  const handleCustomDateChange = (newValue) => {
+    // If we're going from null -> a value, that's DatePicker's auto-init to
+    // "today" — not a real user action. Any change after that (including
+    // changing day/month/year dropdowns) means the user has touched the date.
+    if (customDateRef.current !== null) {
+      userTouchedDateRef.current = true
+    }
+    setCustomDate(newValue)
+  }
+
+  // Reads the duration of a video file (in seconds) using an off-DOM
+  // <video> element. Returns null if metadata can't be read — the server
+  // will catch oversize uploads anyway, so we fail open here rather than
+  // blocking the user on a browser quirk.
+  const probeVideoDuration = (file) => {
+    return new Promise((resolve) => {
+      try {
+        const url = URL.createObjectURL(file)
+        const video = document.createElement('video')
+        video.preload = 'metadata'
+        video.muted = true
+        let settled = false
+        const finish = (value) => {
+          if (settled) return
+          settled = true
+          try { URL.revokeObjectURL(url) } catch {}
+          resolve(value)
+        }
+        video.onloadedmetadata = () => {
+          const d = Number.isFinite(video.duration) ? video.duration : null
+          finish(d)
+        }
+        video.onerror = () => finish(null)
+        // Safety timeout in case the browser never fires loadedmetadata
+        // (corrupted file, unsupported codec, etc.).
+        setTimeout(() => finish(null), 10000)
+        video.src = url
+      } catch {
+        resolve(null)
+      }
+    })
+  }
+
+  // Extracts a Date from a single file. For images, tries EXIF
+  // (DateTimeOriginal then CreateDate). Falls back to file.lastModified for
+  // videos or images without EXIF. Returns null if no usable date is found.
+  const extractDateFromFile = async (file) => {
+    if (!file) return null
+    try {
+      if (file.type && file.type.startsWith('image/')) {
+        const exifr = (await import('exifr')).default
+        const parsed = await exifr.parse(file, ['DateTimeOriginal', 'CreateDate']).catch(() => null)
+        if (parsed) {
+          const candidates = [parsed.DateTimeOriginal, parsed.CreateDate]
+            .map(v => (v instanceof Date ? v : (v ? new Date(v) : null)))
+            .filter(d => d && !isNaN(d.getTime()))
+          if (candidates.length > 0) {
+            // Use the earliest valid date.
+            return new Date(Math.min(...candidates.map(d => d.getTime())))
+          }
+        }
+      }
+    } catch (err) {
+      // Silently ignore — never break upload flow on EXIF failure.
+      console.warn('EXIF parse failed for', file?.name, err)
+    }
+    if (file.lastModified) {
+      const d = new Date(file.lastModified)
+      if (!isNaN(d.getTime())) return d
+    }
+    return null
+  }
 
   useOnClickOutside(modalRef, onClose)
 
@@ -57,17 +150,37 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
     }
   }
 
+  // Refresh the family's package from the server on mount so changes made
+  // by the admin take effect on the next render — without forcing logout.
+  useEffect(() => {
+    let cancelled = false
+    const refreshPackage = async () => {
+      if (!familyId) return
+      try {
+        const res = await authenticatedFetch(`/api/families/get?familyId=${familyId}`)
+        if (!res.ok) return
+        const json = await res.json()
+        const pkg = json?.family?.package
+        if (!cancelled && pkg) setCurrentPackage(pkg)
+      } catch {
+        // Non-fatal: cached package from session still applies.
+      }
+    }
+    refreshPackage()
+    return () => { cancelled = true }
+  }, [familyId])
+
   useEffect(() => {
     const fetchChildrenData = async () => {
       try {
-        const settingsResponse = await fetch(`/api/album-settings/get?familyId=${familyId}`)
+        const settingsResponse = await authenticatedFetch(`/api/album-settings/get?familyId=${familyId}`)
         const settingsResult = await settingsResponse.json()
 
         if (settingsResponse.ok) {
           setAlbumSettings(settingsResult.settings)
 
           if (settingsResult.settings?.is_multi_child) {
-            const childrenResponse = await fetch(`/api/children/list?familyId=${familyId}`)
+            const childrenResponse = await authenticatedFetch(`/api/children/list?familyId=${familyId}`)
             const childrenResult = await childrenResponse.json()
 
             if (childrenResponse.ok) {
@@ -121,8 +234,31 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
       return
     }
 
+    // Kick off EXIF/metadata date extraction in the background using the
+    // ORIGINAL first file (before compression strips metadata). We don't
+    // await this here — it must not block file selection / compression.
+    // Only autofill if this is the first batch (no existing files) and the
+    // user hasn't already chosen a date manually.
+    if (files.length === 0 && !userTouchedDateRef.current) {
+      const firstFile = selectedFiles[0]
+      extractDateFromFile(firstFile).then((extracted) => {
+        if (!extracted) return
+        if (userTouchedDateRef.current) return
+        // Set the date without flipping the user-touched flag.
+        setCustomDate(extracted.toISOString())
+      }).catch(() => {})
+    }
+
     const processedFiles = [...files]
+    const processedDurations = [...videoDurations]
+    // Pad durations array if a previous render left it shorter than files.
+    while (processedDurations.length < processedFiles.length) {
+      processedDurations.push(null)
+    }
     setLoading(true)
+
+    const maxVideoSeconds = getPackageLimits(currentPackage).maxVideoSeconds
+    let rejectedLongVideos = 0
 
     for (const selectedFile of selectedFiles) {
       const fileExists = processedFiles.some(existingFile =>
@@ -154,6 +290,17 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
         continue
       }
 
+      // Probe video duration BEFORE compression / acceptance so we can
+      // reject over-limit files without wasting bandwidth on the upload.
+      let videoDurationSec = null
+      if (selectedFile.type.startsWith('video/')) {
+        videoDurationSec = await probeVideoDuration(selectedFile)
+        if (videoDurationSec !== null && videoDurationSec > maxVideoSeconds) {
+          rejectedLongVideos += 1
+          continue
+        }
+      }
+
       try {
         if (selectedFile.type.startsWith('image/')) {
           const options = {
@@ -167,16 +314,28 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
 
           const compressedFile = await imageCompression(selectedFile, options)
           processedFiles.push(compressedFile)
+          processedDurations.push(null)
         } else {
           processedFiles.push(selectedFile)
+          processedDurations.push(videoDurationSec)
         }
       } catch (error) {
         console.error('Processing failed for', selectedFile.name, error)
         processedFiles.push(selectedFile)
+        processedDurations.push(selectedFile.type.startsWith('video/') ? videoDurationSec : null)
       }
     }
 
+    if (rejectedLongVideos > 0) {
+      const msg = rejectedLongVideos === 1
+        ? `Un video a fost respins: durata maximă pentru pachetul ${currentPackage === 'premium' ? 'Premium' : 'Free'} este ${maxVideoSeconds} secunde. Treci la Premium pentru video-uri mai lungi.`
+        : `${rejectedLongVideos} video-uri au fost respinse: durata maximă pentru pachetul ${currentPackage === 'premium' ? 'Premium' : 'Free'} este ${maxVideoSeconds} secunde. Treci la Premium pentru video-uri mai lungi.`
+      setError(msg)
+      showError(msg)
+    }
+
     setFiles(processedFiles)
+    setVideoDurations(processedDurations)
     setLoading(false)
 
     if (coverIndex >= processedFiles.length) {
@@ -228,6 +387,10 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
         imageUrls.push(publicUrlData.publicUrl)
       }
 
+      // Mirror videoDurations to the upload's URL order. Align by index so
+      // the server can re-validate against the family's package limit.
+      const durationsForUpload = files.map((_, i) => videoDurations[i] ?? null)
+
       const requestData = {
         title: title.trim(),
         description: description.trim(),
@@ -235,7 +398,9 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
         category: category,
         hashtags: hashtags.map(tag => `#${tag}`).join(' '),
         selectedChildren,
-        customDate
+        customDate,
+        isPrivate,
+        videoDurations: durationsForUpload
       }
 
       if (imageUrls.length > 1) {
@@ -275,9 +440,13 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
       setHashtags([])
       setCurrentHashtagInput('')
       setFiles([])
+      setVideoDurations([])
       setCompressionInfo(null)
       setSelectedChildren([])
       setCoverIndex(0)
+      setCustomDate(null)
+      setIsPrivate(false)
+      userTouchedDateRef.current = false
 
       showSuccess(successMessage)
 
@@ -551,7 +720,9 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                           onClick={(e) => {
                             e.stopPropagation()
                             const newFiles = files.filter((_, i) => i !== index)
+                            const newDurations = videoDurations.filter((_, i) => i !== index)
                             setFiles(newFiles)
+                            setVideoDurations(newDurations)
                             if (index === coverIndex && index === files.length - 1) {
                               setCoverIndex(Math.max(0, index - 1))
                             } else if (index < coverIndex) {
@@ -627,7 +798,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                     </label>
                     <DatePicker
                       value={customDate}
-                      onChange={setCustomDate}
+                      onChange={handleCustomDateChange}
                       label=""
                     />
                   </div>
@@ -848,6 +1019,51 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                 </div>
               </div>
 
+              {/* Private content toggle */}
+              <div style={{ marginBottom: '12px' }}>
+                <label
+                  htmlFor="upload-private-toggle"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '10px',
+                    padding: '10px 12px',
+                    borderRadius: '12px',
+                    border: `1px solid ${isPrivate ? 'rgba(124, 58, 237, 0.45)' : 'var(--glass-hairline)'}`,
+                    background: isPrivate ? 'rgba(124, 58, 237, 0.10)' : 'var(--glass-1)',
+                    cursor: 'pointer',
+                    transition
+                  }}
+                >
+                  <input
+                    id="upload-private-toggle"
+                    type="checkbox"
+                    checked={isPrivate}
+                    onChange={(e) => setIsPrivate(e.target.checked)}
+                    style={{
+                      marginTop: '3px',
+                      accentColor: 'var(--accent-iris)',
+                      cursor: 'pointer'
+                    }}
+                  />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1 }}>
+                    <span style={{
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      color: 'var(--ink-1)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}>
+                      Conținut privat <span aria-hidden="true">🔒</span>
+                    </span>
+                    <span className="text-subtle" style={{ fontSize: '11.5px', lineHeight: 1.35 }}>
+                      Vizibil doar pentru editori (părinți), nu și pentru vizualizatori.
+                    </span>
+                  </div>
+                </label>
+              </div>
+
               {isMobile && (
                 <div style={{ marginBottom: '12px' }}>
                   <label className="text-eyebrow" style={{
@@ -885,7 +1101,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                   </label>
                   <DatePicker
                     value={customDate}
-                    onChange={setCustomDate}
+                    onChange={handleCustomDateChange}
                     label=""
                   />
                 </div>

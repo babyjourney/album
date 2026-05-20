@@ -1,6 +1,7 @@
 import { supabase } from '../../../lib/supabaseClient'
+import { requireAdmin } from '../../../lib/authMiddleware'
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
@@ -12,7 +13,7 @@ export default async function handler(req, res) {
       .select('file_urls')
       .limit(1)
 
-    // Test if cover_index column exists  
+    // Test if cover_index column exists
     const { data: testCover, error: coverError } = await supabase
       .from('photos')
       .select('cover_index')
@@ -35,9 +36,11 @@ export default async function handler(req, res) {
       }
     })
   } catch (error) {
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Schema check failed',
-      details: error.message 
+      details: error.message
     })
   }
 }
+
+export default requireAdmin(handler)

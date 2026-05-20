@@ -1,11 +1,13 @@
 import { supabase } from '../../../lib/supabaseClient'
+import { requireAuthOrAdmin } from '../../../lib/authMiddleware'
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Metoda nu este permisă' })
   }
 
-  const { familyId } = req.query
+  const { familyId: rawFamilyId } = req.query
+  const familyId = req.auth.isAdmin ? rawFamilyId : req.auth.familyId
 
   if (!familyId) {
     return res.status(400).json({ error: 'ID-ul familiei este obligatoriu' })
@@ -32,3 +34,5 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Încărcarea copiilor a eșuat' })
   }
 }
+
+export default requireAuthOrAdmin(handler)

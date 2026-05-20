@@ -19,6 +19,16 @@ const getCleanDescription = (post) => {
   return post.description
 }
 
+// Fisher-Yates shuffle (returns a new array)
+const fisherYatesShuffle = (arr) => {
+  const result = [...arr]
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[result[i], result[j]] = [result[j], result[i]]
+  }
+  return result
+}
+
 export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(true)
@@ -26,24 +36,19 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
   const [isShuffled, setIsShuffled] = useState(false)
   const [shuffledMemories, setShuffledMemories] = useState([])
 
-  // Debug logging
-  console.log('MemorySlideshow rendered:', {
-    isOpen,
-    memoriesCount: memories.length,
-    memories,
-    shouldRender: isOpen && memories.length > 0
-  })
-
-  // Initialize shuffled memories
+  // Reset shuffle state every time the modal opens (per-session toggle).
   useEffect(() => {
-    if (memories.length > 0) {
-      const shuffled = [...memories].sort(() => Math.random() - 0.5)
-      setShuffledMemories(shuffled)
+    if (isOpen) {
+      setIsShuffled(false)
+      setShuffledMemories([])
+      setCurrentIndex(0)
+      setProgress(0)
+      setIsPlaying(true)
     }
-  }, [memories])
+  }, [isOpen])
 
   // Get current memories array (shuffled or normal)
-  const currentMemories = isShuffled ? shuffledMemories : memories
+  const currentMemories = isShuffled && shuffledMemories.length > 0 ? shuffledMemories : memories
 
   // Auto-advance slideshow
   useEffect(() => {
@@ -59,7 +64,7 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
 
   // Progress bar animation
   useEffect(() => {
-    if (!isPlaying || memories.length === 0) return
+    if (!isPlaying || currentMemories.length === 0) return
 
     const progressInterval = setInterval(() => {
       setProgress((prev) => {
@@ -69,7 +74,7 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
     }, 100)
 
     return () => clearInterval(progressInterval)
-  }, [isPlaying, currentIndex])
+  }, [isPlaying, currentIndex, currentMemories.length])
 
   // Keyboard navigation
   useEffect(() => {
@@ -100,24 +105,23 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
   }, [currentMemories.length])
 
   const toggleShuffle = useCallback(() => {
-    setIsShuffled(!isShuffled)
+    setIsShuffled(prev => {
+      const next = !prev
+      if (next) {
+        // Generate a fresh Fisher-Yates shuffle on every activation.
+        setShuffledMemories(fisherYatesShuffle(memories))
+      }
+      return next
+    })
     setCurrentIndex(0)
     setProgress(0)
-  }, [isShuffled])
+  }, [memories])
 
-  if (!isOpen) {
-    console.log('MemorySlideshow not rendering - isOpen is false')
-    return null
-  }
+  if (!isOpen) return null
+  if (memories.length === 0) return null
 
-  if (memories.length === 0) {
-    console.log('MemorySlideshow not rendering - no memories')
-    return null
-  }
-
-  console.log('MemorySlideshow WILL RENDER with', memories.length, 'memories')
-
-  const currentMemory = currentMemories[currentIndex]
+  const safeIndex = Math.min(currentIndex, currentMemories.length - 1)
+  const currentMemory = currentMemories[safeIndex] || memories[0]
   const fileUrl = currentMemory?.fileUrl || currentMemory?.file_url
   const isVideo = currentMemory?.type === 'video' || currentMemory?.file_type === 'video' || fileUrl?.includes('.mp4')
 
@@ -162,12 +166,12 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
           >
             <div
               style={{
-                width: index < currentIndex ? '100%' :
-                       index === currentIndex ? `${progress}%` : '0%',
+                width: index < safeIndex ? '100%' :
+                       index === safeIndex ? `${progress}%` : '0%',
                 height: '100%',
                 background: 'linear-gradient(90deg, var(--accent-iris), var(--accent-aqua))',
                 borderRadius: '999px',
-                transition: index !== currentIndex ? 'width 220ms cubic-bezier(0.22, 1, 0.36, 1)' : 'none'
+                transition: index !== safeIndex ? 'width 220ms cubic-bezier(0.22, 1, 0.36, 1)' : 'none'
               }}
             />
           </div>
@@ -272,7 +276,7 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
         )}
 
         {/* Navigation arrows */}
-        {memories.length > 1 && (
+        {currentMemories.length > 1 && (
           <>
             <button
               onClick={goToPrevious}
@@ -395,7 +399,7 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
           border: '1px solid rgba(255,255,255,0.18)'
         }}
       >
-        {currentIndex + 1} / {memories.length}
+        {safeIndex + 1} / {currentMemories.length}
       </div>
     </div>
   )

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
-import { getSession, isAuthenticated, isEditor, clearSession } from '../lib/pinAuth'
+import { getSession, isAuthenticated, isEditor, clearSession, authenticatedFetch } from '../lib/pinAuth'
 import { getSkillCategories, SKILL_CATEGORIES } from '../lib/skillsData'
 import { useToast } from '../contexts/ToastContext'
 import { useLanguage } from '../contexts/LanguageContext'
@@ -58,7 +58,7 @@ export default function Skills() {
         return
       }
 
-      const response = await fetch(`/api/skills/progress?familyId=${familyId}`)
+      const response = await authenticatedFetch(`/api/skills/progress?familyId=${familyId}`)
       const result = await response.json()
 
       if (!response.ok) {
@@ -86,13 +86,9 @@ export default function Skills() {
 
     setUpdatingSkill(skillId)
     try {
-      const response = await fetch('/api/skills/progress', {
+      const response = await authenticatedFetch('/api/skills/progress', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
-          familyId: session.familyId,
           skillId,
           skillName,
           skillCategory,

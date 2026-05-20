@@ -1,21 +1,8 @@
 import { supabase } from '../../../lib/supabaseClient'
-
-export default async function handler(req, res) {
-  if (req.method === 'GET') {
-    return getSkillsProgress(req, res)
-  } else if (req.method === 'POST') {
-    return updateSkillProgress(req, res)
-  } else {
-    return res.status(405).json({ error: 'Metoda nu este permisă' })
-  }
-}
+import { requireAuth, requireEditor } from '../../../lib/authMiddleware'
 
 async function getSkillsProgress(req, res) {
-  const { familyId } = req.query
-
-  if (!familyId) {
-    return res.status(400).json({ error: 'ID-ul familiei este obligatoriu' })
-  }
+  const familyId = req.auth.familyId
 
   try {
     const { data, error } = await supabase
@@ -39,9 +26,10 @@ async function getSkillsProgress(req, res) {
 }
 
 async function updateSkillProgress(req, res) {
-  const { familyId, skillId, skillName, skillCategory, progress, notes } = req.body
+  const { skillId, skillName, skillCategory, progress, notes } = req.body
+  const familyId = req.auth.familyId
 
-  if (!familyId || !skillId || progress === undefined) {
+  if (!skillId || progress === undefined) {
     return res.status(400).json({ error: 'Date incomplete pentru actualizarea progresului' })
   }
 
@@ -78,4 +66,22 @@ async function updateSkillProgress(req, res) {
     console.error('Skills update error:', error)
     return res.status(500).json({ error: 'Actualizarea progresului a eșuat' })
   }
+}
+
+async function dispatch(req, res) {
+  if (req.method === 'GET') {
+    return getSkillsProgress(req, res)
+  } else if (req.method === 'POST') {
+    return updateSkillProgress(req, res)
+  } else {
+    return res.status(405).json({ error: 'Metoda nu este permisă' })
+  }
+}
+
+// GET requires any authenticated family role; POST requires editor.
+export default function handler(req, res) {
+  if (req.method === 'POST') {
+    return requireEditor(dispatch)(req, res)
+  }
+  return requireAuth(dispatch)(req, res)
 }

@@ -1,14 +1,16 @@
 import { supabase } from '../../../lib/supabaseClient'
+import { requireEditor } from '../../../lib/authMiddleware'
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Metoda nu este permisă' })
   }
 
-  const { familyId, skillName, progress = 0 } = req.body
+  const { skillName, progress = 0 } = req.body
+  const familyId = req.auth.familyId
 
-  if (!familyId || !skillName) {
-    return res.status(400).json({ error: 'ID-ul familiei și numele abilității sunt obligatorii' })
+  if (!skillName) {
+    return res.status(400).json({ error: 'Numele abilității este obligatoriu' })
   }
 
   try {
@@ -36,3 +38,5 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Crearea abilității a eșuat' })
   }
 }
+
+export default requireEditor(handler)

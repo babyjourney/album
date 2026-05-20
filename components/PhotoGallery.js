@@ -5,6 +5,7 @@ import { useToast } from '../contexts/ToastContext'
 import { useLanguage } from '../contexts/LanguageContext'
 import LazyImage from './LazyImage'
 import MediaThumbnail from './MediaThumbnail'
+import { authenticatedFetch } from '../lib/pinAuth'
 
 const CATEGORIES = [
   { value: 'all', label: 'All Posts', emoji: '📋' },
@@ -42,7 +43,7 @@ export default function PhotoGallery({ familyId, refreshTrigger, readOnly = fals
   const fetchPhotos = async () => {
     try {
       setLoading(true)
-      const response = await fetch(`/api/photos/list?familyId=${familyId}`)
+      const response = await authenticatedFetch(`/api/photos/list?familyId=${familyId}`)
       const result = await response.json()
 
       if (!response.ok) {
@@ -99,11 +100,8 @@ export default function PhotoGallery({ familyId, refreshTrigger, readOnly = fals
     }
 
     try {
-      const response = await fetch('/api/photos/delete', {
+      const response = await authenticatedFetch('/api/photos/delete', {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           photoId,
           fileUrl

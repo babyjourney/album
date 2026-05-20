@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useToast } from '../../contexts/ToastContext'
 import { useLanguage } from '../../contexts/LanguageContext'
+import { authenticatedFetch } from '../../lib/pinAuth'
 import MediaThumbnail from '../MediaThumbnail'
 
 // Multi-photo helpers (same logic as InstagramFeed but isolated here)
@@ -55,9 +56,9 @@ const CATEGORY_LABELS = {
   special: 'Special', family: 'Familie', play: 'Joacă', learning: 'Învățare',
 }
 
-// Bento sizing pattern — repeats every 7 cards.
-// Returns { gridColumn, gridRow } CSS values for a 4-column grid.
-const BENTO_PATTERN = [
+// Bento sizing patterns — one entry per card position, repeating.
+// Pattern is selected based on column count.
+const BENTO_PATTERN_3 = [
   { c: 'span 2', r: 'span 2' },  // hero
   { c: 'span 1', r: 'span 1' },
   { c: 'span 1', r: 'span 1' },
@@ -67,7 +68,19 @@ const BENTO_PATTERN = [
   { c: 'span 1', r: 'span 1' },
 ]
 
-export default function BentoMasonry({ familyId, searchQuery, refreshTrigger, onPostClick, onPostCountUpdate, onHashtagClick, filters, selectedChildId }) {
+const BENTO_PATTERN_2 = [
+  { c: 'span 2', r: 'span 2' },  // hero (full width)
+  { c: 'span 1', r: 'span 1' },
+  { c: 'span 1', r: 'span 1' },
+  { c: 'span 1', r: 'span 1' },
+  { c: 'span 1', r: 'span 1' },
+  { c: 'span 1', r: 'span 1' },
+  { c: 'span 1', r: 'span 1' },
+]
+
+export default function BentoMasonry({ familyId, searchQuery, refreshTrigger, onPostClick, onPostCountUpdate, onHashtagClick, filters, selectedChildId, columns = 2 }) {
+  const safeColumns = columns === 3 ? 3 : 2
+  const BENTO_PATTERN = safeColumns === 3 ? BENTO_PATTERN_3 : BENTO_PATTERN_2
   const [posts, setPosts] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -99,7 +112,7 @@ export default function BentoMasonry({ familyId, searchQuery, refreshTrigger, on
       }
       if (selectedChildId) params.append('childId', selectedChildId)
 
-      const response = await fetch(`/api/photos/list?${params.toString()}`)
+      const response = await authenticatedFetch(`/api/photos/list?${params.toString()}`)
       const result = await response.json()
       if (!response.ok) throw new Error(result.error || 'Încărcarea postărilor a eșuat')
       const data = result.photos || []
@@ -199,17 +212,40 @@ export default function BentoMasonry({ familyId, searchQuery, refreshTrigger, on
           position: 'absolute', top: 12, left: 12, right: 12,
           display: 'flex', justifyContent: 'space-between', gap: 8, zIndex: 2,
         }}>
-          {post.category && (
-            <span className="glass-pill" style={{
-              padding: '5px 11px', fontSize: 11, fontWeight: 600,
-              color: '#fff',
-              background: 'rgba(0,0,0,0.45)',
-              border: '1px solid rgba(255,255,255,0.20)',
-              letterSpacing: '0.02em',
-            }}>
-              {CATEGORY_LABELS[post.category] || (post.category[0].toUpperCase() + post.category.slice(1))}
-            </span>
-          )}
+          <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+            {post.category && (
+              <span className="glass-pill card-category-pill" style={{
+                padding: '5px 11px', fontSize: 11, fontWeight: 600,
+                color: '#fff',
+                background: 'rgba(0,0,0,0.45)',
+                border: '1px solid rgba(255,255,255,0.20)',
+                letterSpacing: '0.02em',
+              }}>
+                {CATEGORY_LABELS[post.category] || (post.category[0].toUpperCase() + post.category.slice(1))}
+              </span>
+            )}
+            {post.is_private && (
+              <span
+                className="glass-pill"
+                title="Conținut privat — vizibil doar pentru editori"
+                aria-label="Conținut privat"
+                style={{
+                  padding: '4px 8px', fontSize: 11, fontWeight: 700, color: '#fff',
+                  background: 'rgba(124, 58, 237, 0.55)',
+                  border: '1px solid rgba(255,255,255,0.25)',
+                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                  letterSpacing: '0.02em',
+                  boxShadow: '0 4px 14px -4px rgba(124, 58, 237, 0.55)',
+                }}
+              >
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+                Privat
+              </span>
+            )}
+          </div>
           {multi && (
             <span className="glass-pill" style={{
               padding: '4px 10px', fontSize: 11, fontWeight: 600, color: '#fff',
@@ -228,7 +264,7 @@ export default function BentoMasonry({ familyId, searchQuery, refreshTrigger, on
 
         {/* Bottom info — only on hover or always for text/long-card */}
         {(post.title || desc) && !isTextPost && (
-          <div style={{
+          <div className="card-bottom-info" style={{
             position: 'absolute', left: 0, right: 0, bottom: 0,
             padding: '36px 16px 14px',
             background: 'linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.40) 60%, transparent 100%)',
@@ -270,18 +306,14 @@ export default function BentoMasonry({ familyId, searchQuery, refreshTrigger, on
 
   if (loading) {
     return (
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
-        gridAutoRows: '180px',
-        gap: 16,
-      }}>
+      <div className={`bento-masonry bento-cols-${safeColumns}`} style={{ display: 'grid', gap: 16 }}>
         {BENTO_PATTERN.map((slot, i) => (
           <div key={i} className="shimmer" style={{
             gridColumn: slot.c, gridRow: slot.r,
             borderRadius: 24,
           }} />
         ))}
+        <BentoStyles />
       </div>
     )
   }
@@ -320,30 +352,52 @@ export default function BentoMasonry({ familyId, searchQuery, refreshTrigger, on
   }
 
   return (
-    <div className="bento-masonry" style={{
+    <div className={`bento-masonry bento-cols-${safeColumns}`} style={{
       display: 'grid',
       gap: 16,
     }}>
       {posts.map(renderCard)}
-
-      <style jsx global>{`
-        .bento-masonry {
-          grid-template-columns: repeat(4, 1fr);
-          grid-auto-rows: 180px;
-          grid-auto-flow: dense;
-        }
-        @media (max-width: 1280px) {
-          .bento-masonry { grid-template-columns: repeat(3, 1fr); grid-auto-rows: 200px; }
-        }
-        @media (max-width: 900px) {
-          .bento-masonry { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 180px; gap: 12px; }
-        }
-        @media (max-width: 540px) {
-          .bento-masonry { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 140px; gap: 10px; }
-          .bento-masonry > article { grid-column: span 1 !important; grid-row: span 1 !important; }
-          .bento-masonry > article:nth-child(7n+1) { grid-column: span 2 !important; grid-row: span 2 !important; }
-        }
-      `}</style>
+      <BentoStyles />
     </div>
+  )
+}
+
+function BentoStyles() {
+  return (
+    <style jsx global>{`
+      .bento-masonry {
+        grid-auto-flow: dense;
+      }
+      .bento-masonry.bento-cols-2 {
+        grid-template-columns: repeat(2, 1fr);
+        grid-auto-rows: 240px;
+      }
+      .bento-masonry.bento-cols-3 {
+        grid-template-columns: repeat(3, 1fr);
+        grid-auto-rows: 210px;
+      }
+      @media (max-width: 900px) {
+        .bento-masonry.bento-cols-2,
+        .bento-masonry.bento-cols-3 {
+          grid-template-columns: repeat(2, 1fr);
+          grid-auto-rows: 180px;
+          gap: 12px;
+        }
+        .bento-masonry.bento-cols-3 > article { grid-column: span 1 !important; grid-row: span 1 !important; }
+        .bento-masonry.bento-cols-3 > article:nth-child(7n+1) { grid-column: span 2 !important; grid-row: span 2 !important; }
+      }
+      @media (max-width: 540px) {
+        .bento-masonry.bento-cols-2,
+        .bento-masonry.bento-cols-3 {
+          grid-template-columns: repeat(2, 1fr);
+          grid-auto-rows: 140px;
+          gap: 10px;
+        }
+        .bento-masonry > article { grid-column: span 1 !important; grid-row: span 1 !important; }
+        .bento-masonry > article:nth-child(7n+1) { grid-column: span 2 !important; grid-row: span 2 !important; }
+        .bento-masonry .card-category-pill { display: none !important; }
+        .bento-masonry .card-bottom-info { display: none !important; }
+      }
+    `}</style>
   )
 }

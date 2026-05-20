@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useToast } from '../contexts/ToastContext'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useOnClickOutside } from '../hooks/useOnClickOutside'
-import { authenticatedFetch } from '../lib/pinAuth'
+import { authenticatedFetch, isEditor } from '../lib/pinAuth'
 import { getCategories } from '../lib/categoriesData'
 import InstagramCarousel from './InstagramCarousel'
 import DatePicker from './DatePicker'
@@ -271,6 +271,7 @@ export default function PostModal({
   const [editCategory, setEditCategory] = useState('')
   const [editCoverIndex, setEditCoverIndex] = useState(0)
   const [editPhotoOrder, setEditPhotoOrder] = useState([])
+  const [editIsPrivate, setEditIsPrivate] = useState(false)
   const [categories, setCategories] = useState([])
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
   const [editLoading, setEditLoading] = useState(false)
@@ -353,6 +354,7 @@ export default function PostModal({
     setEditHashtagInput('')
     setEditDate(currentPost.created_at ? new Date(currentPost.created_at) : null)
     setEditCategory(currentPost.category || '')
+    setEditIsPrivate(currentPost.is_private === true)
     
     // Set cover index for multi-photo posts
     let coverIndex = 0
@@ -394,7 +396,8 @@ export default function PostModal({
         hashtags: editHashtags.map(tag => `#${tag}`), // Send as array, not joined string
         customDate: editDate,
         coverIndex: editCoverIndex,
-        category: editCategory
+        category: editCategory,
+        isPrivate: editIsPrivate
       }
 
       // CRITICAL: Use reordered photo URLs if available
@@ -1254,6 +1257,43 @@ export default function PostModal({
                   label={t('postDate')}
                 />
               </div>
+
+              {isEditor() && (
+                <div style={{ marginBottom: '20px' }}>
+                  <label
+                    htmlFor="edit-private-toggle-desktop"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '10px',
+                      padding: '10px 12px',
+                      borderRadius: '12px',
+                      border: `1px solid ${editIsPrivate ? 'rgba(124, 58, 237, 0.45)' : 'var(--glass-hairline)'}`,
+                      background: editIsPrivate ? 'rgba(124, 58, 237, 0.10)' : 'var(--glass-1)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <input
+                      id="edit-private-toggle-desktop"
+                      type="checkbox"
+                      checked={editIsPrivate}
+                      onChange={(e) => setEditIsPrivate(e.target.checked)}
+                      style={{ marginTop: '3px', accentColor: 'var(--accent-iris)', cursor: 'pointer' }}
+                    />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1 }}>
+                      <span style={{
+                        fontSize: '13px', fontWeight: 600, color: 'var(--ink-1)',
+                        display: 'inline-flex', alignItems: 'center', gap: '6px'
+                      }}>
+                        Conținut privat <span aria-hidden="true">🔒</span>
+                      </span>
+                      <span className="text-subtle" style={{ fontSize: '11.5px', lineHeight: 1.35 }}>
+                        Vizibil doar pentru editori (părinți), nu și pentru vizualizatori.
+                      </span>
+                    </div>
+                  </label>
+                </div>
+              )}
 
               {(() => {
                 const multiUrls = editPhotoOrder.length > 0 ? editPhotoOrder : getMultiPhotoUrls(currentPost)
@@ -2139,6 +2179,43 @@ export default function PostModal({
                 ))}
               </select>
             </div>
+
+            {isEditor() && (
+              <div style={{ marginBottom: '16px' }}>
+                <label
+                  htmlFor="edit-private-toggle-mobile"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '10px',
+                    padding: '10px 12px',
+                    borderRadius: '12px',
+                    border: `1px solid ${editIsPrivate ? 'rgba(124, 58, 237, 0.45)' : 'var(--glass-hairline)'}`,
+                    background: editIsPrivate ? 'rgba(124, 58, 237, 0.10)' : 'var(--glass-1)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <input
+                    id="edit-private-toggle-mobile"
+                    type="checkbox"
+                    checked={editIsPrivate}
+                    onChange={(e) => setEditIsPrivate(e.target.checked)}
+                    style={{ marginTop: '3px', accentColor: 'var(--accent-iris)', cursor: 'pointer' }}
+                  />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1 }}>
+                    <span style={{
+                      fontSize: '13px', fontWeight: 600, color: 'var(--ink-1)',
+                      display: 'inline-flex', alignItems: 'center', gap: '6px'
+                    }}>
+                      Conținut privat <span aria-hidden="true">🔒</span>
+                    </span>
+                    <span className="text-subtle" style={{ fontSize: '11.5px', lineHeight: 1.35 }}>
+                      Vizibil doar pentru editori (părinți), nu și pentru vizualizatori.
+                    </span>
+                  </div>
+                </label>
+              </div>
+            )}
 
             {(() => {
               const multiUrls = getMultiPhotoUrls(currentPost)

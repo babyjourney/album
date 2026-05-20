@@ -1,12 +1,13 @@
 import { supabase } from '../../../lib/supabaseClient'
 import { requireEditor } from '../../../lib/authMiddleware'
+import { getPackageLimits } from '../../../lib/packages'
 
 async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const { title, description, category, hashtags, selectedChildren, imageUrls, customDate, coverIndex } = req.body
+  const { title, description, category, hashtags, selectedChildren, imageUrls, customDate, coverIndex, isPrivate, videoDurations } = req.body
 
   // Use authenticated family ID
   const familyId = req.auth.familyId
@@ -38,6 +39,42 @@ async function handler(req, res) {
   const hasVideo = imageUrls.some(url => isVideoUrl(url))
   const postFileType = hasVideo ? 'video' : 'image'
 
+  // Enforce the family's package video-duration limit on any reported
+  // video file. We only block when the client gave us a concrete duration
+  // that exceeds the cap — missing values fail open so a flaky probe
+  // doesn't break uploads. Client-side validation is the primary UX path;
+  // this is defense in depth.
+  if (hasVideo && Array.isArray(videoDurations) && videoDurations.length > 0) {
+    try {
+      const { data: fam } = await supabase
+        .from('families')
+        .select('package')
+        .eq('id', familyId)
+        .single()
+
+      const pkg = fam?.package || 'free'
+      const limit = getPackageLimits(pkg).maxVideoSeconds
+
+      for (let i = 0; i < videoDurations.length; i++) {
+        const url = imageUrls[i]
+        const dur = videoDurations[i]
+        if (!url || !isVideoUrl(url)) continue
+        if (typeof dur !== 'number') continue
+        if (dur > limit) {
+          return res.status(413).json({
+            error: `Video-urile mai lungi de ${limit} secunde nu sunt disponibile pentru pachetul ${pkg === 'premium' ? 'Premium' : 'Free'}.`,
+            code: 'VIDEO_TOO_LONG',
+            maxVideoSeconds: limit,
+            package: pkg
+          })
+        }
+      }
+    } catch (limitErr) {
+      console.error('Package limit lookup failed (create-multi):', limitErr)
+      // Fail open: do not block the upload on a transient lookup failure.
+    }
+  }
+
   try {
     // Parse hashtags from string to array like the regular upload API
     const hashtagArray = hashtags ? 
@@ -51,7 +88,8 @@ async function handler(req, res) {
       family_id: familyId,
       title: title?.trim() || '',
       file_url: imageUrls[0], // Primary file for backward compatibility
-      file_type: postFileType // Set correct type based on content
+      file_type: postFileType, // Set correct type based on content
+      is_private: isPrivate === true
     }
 
     // Add optional fields
@@ -169,19 +207,31 @@ async function handler(req, res) {
 
     // Handle child associations if multi-child is enabled
     if (selectedChildren && selectedChildren.length > 0) {
-      const childPosts = selectedChildren.map(childId => ({
-        child_id: childId,
-        photo_id: createdPost.id,
-        created_at: new Date().toISOString()
-      }))
+      // SECURITY: confirm every selectedChildren id belongs to caller's family
+      const { data: childRows } = await supabase
+        .from('children')
+        .select('id, family_id')
+        .in('id', selectedChildren)
 
-      const { error: childError } = await supabase
-        .from('child_posts')
-        .insert(childPosts)
+      const safeChildIds = (childRows || [])
+        .filter(c => c.family_id === familyId)
+        .map(c => c.id)
 
-      if (childError) {
-        console.error('Error associating children with post:', childError)
-        // Continue anyway - post was created successfully
+      if (safeChildIds.length > 0) {
+        const childPosts = safeChildIds.map(childId => ({
+          child_id: childId,
+          photo_id: createdPost.id,
+          created_at: new Date().toISOString()
+        }))
+
+        const { error: childError } = await supabase
+          .from('child_posts')
+          .insert(childPosts)
+
+        if (childError) {
+          console.error('Error associating children with post:', childError)
+          // Continue anyway - post was created successfully
+        }
       }
     }
 

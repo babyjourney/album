@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../../lib/supabaseClient'
 import imageCompression from 'browser-image-compression'
-import { isAdminAuthenticated, clearAdminSession } from '../../lib/adminAuth'
+import { isAdminAuthenticated, clearAdminSession, adminFetch } from '../../lib/adminAuth'
 
 export default function AdminSetup() {
   const router = useRouter()
@@ -153,11 +153,8 @@ export default function AdminSetup() {
         } else {
           // Create a post in the album for the family profile picture
           try {
-            const postResponse = await fetch('/api/posts/create', {
+            const postResponse = await adminFetch('/api/posts/create', {
               method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
               body: JSON.stringify({
                 familyId: data.id,
                 type: 'image',

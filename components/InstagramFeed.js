@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useToast } from '../contexts/ToastContext'
 import { useLanguage } from '../contexts/LanguageContext'
 import MediaThumbnail from './MediaThumbnail'
+import { authenticatedFetch } from '../lib/pinAuth'
 
 // ---------- Multi-photo helpers ----------
 const getMultiPhotoUrls = (post) => {
@@ -86,7 +87,7 @@ export default function InstagramFeed({ familyId, searchQuery, refreshTrigger, o
       }
       if (selectedChildId) params.append('childId', selectedChildId)
 
-      const response = await fetch(`/api/photos/list?${params.toString()}`)
+      const response = await authenticatedFetch(`/api/photos/list?${params.toString()}`)
       const result = await response.json()
       if (!response.ok) throw new Error(result.error || 'Încărcarea postărilor a eșuat')
 
@@ -330,6 +331,36 @@ export default function InstagramFeed({ familyId, searchQuery, refreshTrigger, o
               letterSpacing: '0.02em',
             }}>
               {CATEGORY_LABELS[post.category] || (post.category[0].toUpperCase() + post.category.slice(1))}
+            </div>
+          )}
+
+          {/* Private badge (visible only to editors — viewers never receive
+              private posts from the server) */}
+          {post.is_private && (
+            <div
+              className="glass-pill"
+              title="Conținut privat — vizibil doar pentru editori"
+              aria-label="Conținut privat"
+              style={{
+                position: 'absolute',
+                top: 12,
+                left: post.category ? 'auto' : 12,
+                right: post.category ? 'auto' : 'auto',
+                ...(post.category ? { left: 'calc(12px + 110px)' } : {}),
+                padding: '4px 8px', fontSize: 11, fontWeight: 700,
+                color: '#fff',
+                background: 'rgba(124, 58, 237, 0.55)',
+                border: '1px solid rgba(255,255,255,0.25)',
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                letterSpacing: '0.02em',
+                boxShadow: '0 4px 14px -4px rgba(124, 58, 237, 0.55)',
+              }}
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+              Privat
             </div>
           )}
         </div>

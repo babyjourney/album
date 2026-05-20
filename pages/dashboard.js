@@ -29,6 +29,7 @@ export default function Dashboard() {
   const [postCount, setPostCount] = useState(0)
   const [albumTitle, setAlbumTitle] = useState('Family Album')
   const [familyProfilePicture, setFamilyProfilePicture] = useState('')
+  const [feedColumns, setFeedColumns] = useState(2)
 
   // Drawers
   const [showSettings, setShowSettings] = useState(false)
@@ -54,6 +55,18 @@ export default function Dashboard() {
 
   useEffect(() => { checkAuth() }, [])
 
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('feedColumns')
+      if (saved === '2' || saved === '3') setFeedColumns(parseInt(saved, 10))
+    } catch {}
+  }, [])
+
+  const handleColumnsChange = (n) => {
+    setFeedColumns(n)
+    try { localStorage.setItem('feedColumns', String(n)) } catch {}
+  }
+
   const checkAuth = async () => {
     if (!isAuthenticated()) { router.push('/login'); return }
     const userSession = getSession()
@@ -74,7 +87,7 @@ export default function Dashboard() {
     const cacheAge = 5 * 60 * 1000
 
     if (!cachedTitle || !titleAge || (now - titleAge) > cacheAge) {
-      fetch(`/api/album-settings/get-title?familyId=${familyId}`)
+      authenticatedFetch(`/api/album-settings/get-title?familyId=${familyId}`)
         .then(r => r.json()).then(({ title }) => {
           if (title) {
             setAlbumTitle(title)
@@ -182,7 +195,27 @@ export default function Dashboard() {
     if (!session?.familyId || slideshowLoading) return
     setSlideshowLoading(true)
     try {
-      const res = await fetch(`/api/photos/list?familyId=${session.familyId}&sort=newest`)
+      // Mirror BentoMasonry.fetchPosts query serialization so the slideshow
+      // respects the user's active filters/search/childId.
+      const params = new URLSearchParams({ familyId: session.familyId })
+      if (searchQuery?.trim()) params.append('search', searchQuery.trim())
+      if (filters) {
+        if (filters.category && filters.category !== 'all') params.append('category', filters.category)
+        if (filters.hashtag?.trim()) params.append('hashtag', filters.hashtag.trim())
+        if (filters.date) {
+          const d = new Date(filters.date)
+          const start = new Date(d); start.setDate(start.getDate() - 5)
+          const end   = new Date(d); end.setDate(end.getDate() + 5)
+          params.append('dateStart', start.toISOString())
+          params.append('dateEnd',   end.toISOString())
+        }
+        params.append('sort', filters.sort || 'newest')
+      } else {
+        params.append('sort', 'newest')
+      }
+      if (selectedChildId) params.append('childId', selectedChildId)
+
+      const res = await authenticatedFetch(`/api/photos/list?${params.toString()}`)
       const json = await res.json()
       if (res.ok && json.photos) {
         const media = json.photos.filter(p => p.type !== 'text' && (p.fileUrl || p.file_url))
@@ -233,16 +266,16 @@ export default function Dashboard() {
         onSearch={() => setShowFilters(true)}
         onSettings={() => setShowSettings(true)}
         onSignOut={() => setShowSignOutConfirm(true)}
+        children={railChildren}
+        selectedChildId={selectedChildId}
+        onSelectChild={isMultiChild ? handleChildFilterChange : undefined}
       />
 
       {/* Left: vertical rail (desktop only) */}
       <VerticalRail
-        selectedId={selectedChildId}
-        onSelect={handleChildFilterChange}
         onFilters={() => setShowFilters(true)}
         onSearch={handleSearchChange}
         searchQuery={searchQuery}
-        children={railChildren}
       />
 
       {/* Bottom right: action cluster */}
@@ -280,41 +313,6 @@ export default function Dashboard() {
           </p>
         </header>
 
-        {/* Children pill row on mobile (since rail is hidden) */}
-        {isMultiChild && children.length > 0 && (
-          <div className="mobile-children-row" style={{
-            display: 'none',
-            gap: 8, marginBottom: 22,
-            overflowX: 'auto', WebkitOverflowScrolling: 'touch',
-            scrollbarWidth: 'none', msOverflowStyle: 'none',
-            paddingBottom: 4,
-          }}>
-            <button
-              onClick={() => handleChildFilterChange(null)}
-              className={!selectedChildId ? 'category-pill category-pill--selected' : 'category-pill'}
-              style={{ flexShrink: 0 }}
-            >
-              👶 Toate
-            </button>
-            {children.map((c) => (
-              <button
-                key={c.id}
-                onClick={() => handleChildFilterChange(c.id)}
-                className={selectedChildId === c.id ? 'category-pill category-pill--selected' : 'category-pill'}
-                style={{ flexShrink: 0 }}
-              >
-                {c.name}
-              </button>
-            ))}
-            <style jsx>{`
-              @media (max-width: 900px) {
-                .mobile-children-row { display: flex !important; }
-              }
-              .mobile-children-row::-webkit-scrollbar { display: none; }
-            `}</style>
-          </div>
-        )}
-
         <BentoMasonry
           familyId={session.familyId}
           searchQuery={searchQuery}
@@ -324,6 +322,7 @@ export default function Dashboard() {
           onHashtagClick={handleHashtagClick}
           filters={filters}
           selectedChildId={selectedChildId}
+          columns={feedColumns}
         />
       </main>
 
@@ -333,6 +332,8 @@ export default function Dashboard() {
         onClose={() => setShowSettings(false)}
         onProfilePicture={() => { setShowSettings(false); setShowProfilePicture(true) }}
         onSignOut={() => { setShowSettings(false); setShowSignOutConfirm(true) }}
+        columns={feedColumns}
+        onColumnsChange={handleColumnsChange}
       />
 
       <FilterDrawer

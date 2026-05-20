@@ -218,3 +218,17 @@ CREATE POLICY "Service role full access - skills_progress" ON skills_progress FO
 
 -- constientizeaza ca munca creativa si daruirea il vor stoarce, dar nu renunta: "ticaloasa asta de sculptura zice e o amanta nesatioasa iti soarbe si maduva din oase"
 -- "sa lucram cot la cot" "solidari in aceiasi munca" "aceiasi mana si aceiasi gandire"
+
+-- =========================
+-- PRIVATE CONTENT (post-launch migration)
+-- =========================
+ALTER TABLE photos ADD COLUMN IF NOT EXISTS is_private BOOLEAN NOT NULL DEFAULT FALSE;
+CREATE INDEX IF NOT EXISTS idx_photos_family_private ON photos(family_id, is_private);
+
+-- =========================
+-- PACKAGES / TIERS (post-launch migration)
+-- =========================
+ALTER TABLE families ADD COLUMN IF NOT EXISTS package TEXT NOT NULL DEFAULT 'free';
+ALTER TABLE families DROP CONSTRAINT IF EXISTS families_package_check;
+ALTER TABLE families ADD CONSTRAINT families_package_check
+  CHECK (package IN ('free', 'premium'));

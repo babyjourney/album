@@ -3,6 +3,7 @@ import { useToast } from '../contexts/ToastContext'
 import { useLanguage } from '../contexts/LanguageContext'
 import DatePicker from './DatePicker'
 import { getCategories } from '../lib/categoriesData'
+import { authenticatedFetch } from '../lib/pinAuth'
 
 export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVideoClick }) {
   const [postText, setPostText] = useState('')
@@ -53,13 +54,9 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
     setError('')
 
     try {
-      const response = await fetch('/api/posts/create', {
+      const response = await authenticatedFetch('/api/posts/create', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
-          familyId,
           type: 'text',
           title: '', // Text posts don't need titles
           description: postText.trim(),

@@ -3,7 +3,7 @@ import { useRouter } from 'next/router'
 import { supabase } from '../../lib/supabaseClient'
 import imageCompression from 'browser-image-compression'
 import { useLanguage } from '../../contexts/LanguageContext'
-import { isAdminAuthenticated, clearAdminSession } from '../../lib/adminAuth'
+import { isAdminAuthenticated, clearAdminSession, adminFetch } from '../../lib/adminAuth'
 
 export default function AdminDashboard() {
   const { language, t } = useLanguage()
@@ -132,7 +132,7 @@ export default function AdminDashboard() {
   const fetchFamilyData = async (familyId) => {
     try {
       // Fetch album settings
-      const settingsResponse = await fetch(`/api/album-settings/get?familyId=${familyId}`)
+      const settingsResponse = await adminFetch(`/api/album-settings/get?familyId=${familyId}`)
       const settingsResult = await settingsResponse.json()
 
       if (settingsResponse.ok) {
@@ -140,7 +140,7 @@ export default function AdminDashboard() {
       }
 
       // Fetch children
-      const childrenResponse = await fetch(`/api/children/list?familyId=${familyId}`)
+      const childrenResponse = await adminFetch(`/api/children/list?familyId=${familyId}`)
       const childrenResult = await childrenResponse.json()
 
       if (childrenResponse.ok) {
@@ -148,7 +148,7 @@ export default function AdminDashboard() {
       }
 
       // Fetch current album title
-      const titleResponse = await fetch(`/api/album-settings/get-title?familyId=${familyId}`)
+      const titleResponse = await adminFetch(`/api/album-settings/get-title?familyId=${familyId}`)
       const titleResult = await titleResponse.json()
 
       if (titleResponse.ok) {
@@ -169,11 +169,8 @@ export default function AdminDashboard() {
     }
 
     try {
-      const response = await fetch('/api/album-settings/update', {
+      const response = await adminFetch('/api/album-settings/update', {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           familyId: selectedFamilyId,
           isMultiChild: !albumSettings?.is_multi_child
@@ -210,11 +207,8 @@ export default function AdminDashboard() {
     try {
       setUploading(true)
 
-      const response = await fetch('/api/children/create', {
+      const response = await adminFetch('/api/children/create', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           familyId: selectedFamilyId,
           name: newChild.name,
@@ -250,11 +244,8 @@ export default function AdminDashboard() {
     }
 
     try {
-      const response = await fetch('/api/children/delete', {
+      const response = await adminFetch('/api/children/delete', {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ childId })
       })
 
@@ -431,11 +422,8 @@ export default function AdminDashboard() {
 
             // Create a post in the album for the family profile picture
             try {
-              const postResponse = await fetch('/api/posts/create', {
+              const postResponse = await adminFetch('/api/posts/create', {
                 method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
                 body: JSON.stringify({
                   familyId: data.id,
                   type: 'image',
@@ -468,11 +456,8 @@ export default function AdminDashboard() {
 
       // Create the first child
       try {
-        const childResponse = await fetch('/api/children/create', {
+        const childResponse = await adminFetch('/api/children/create', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
           body: JSON.stringify({
             familyId: data.id,
             name: childName.trim(),

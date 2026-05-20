@@ -1,6 +1,7 @@
 import { supabase } from '../../../lib/supabaseClient'
+import { requireAdmin } from '../../../lib/authMiddleware'
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
@@ -147,9 +148,11 @@ ALTER TABLE family_categories ENABLE ROW LEVEL SECURITY;
 
   } catch (error) {
     console.error('Error in setup-categories:', error)
-    res.status(500).json({ 
-      error: 'Setup failed', 
-      details: error.message 
+    res.status(500).json({
+      error: 'Setup failed',
+      details: error.message
     })
   }
 }
+
+export default requireAdmin(handler)

@@ -1,11 +1,13 @@
 import { supabase } from '../../../lib/supabaseClient'
+import { requireAuthOrAdmin } from '../../../lib/authMiddleware'
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const { familyId } = req.body
+  const { familyId: rawFamilyId } = req.body
+  const familyId = req.auth.isAdmin ? rawFamilyId : req.auth.familyId
 
   if (!familyId) {
     return res.status(400).json({ error: 'Family ID este obligatoriu' })
@@ -15,7 +17,7 @@ export default async function handler(req, res) {
     // Update the last_accessed timestamp for the family
     const { data, error } = await supabase
       .from('families')
-      .update({ 
+      .update({
         last_accessed: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
@@ -41,3 +43,5 @@ export default async function handler(req, res) {
     })
   }
 }
+
+export default requireAuthOrAdmin(handler)

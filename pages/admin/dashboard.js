@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
-import { isAdminAuthenticated, clearAdminSession } from '../../lib/adminAuth'
+import { isAdminAuthenticated, clearAdminSession, adminFetch } from '../../lib/adminAuth'
 
 export default function AdminDashboard() {
   const router = useRouter()
@@ -37,7 +37,7 @@ export default function AdminDashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      const response = await fetch('/api/admin/dashboard-data')
+      const response = await adminFetch('/api/admin/dashboard-data')
       const data = await response.json()
 
       if (response.ok) {
@@ -53,7 +53,7 @@ export default function AdminDashboard() {
   const handleExportData = async () => {
     setExportLoading(true)
     try {
-      const response = await fetch('/api/admin/export-data')
+      const response = await adminFetch('/api/admin/export-data')
       const data = await response.json()
 
       if (response.ok) {
@@ -235,12 +235,35 @@ export default function AdminDashboard() {
     }
   }
 
+  const handleChangePackage = async (familyId, newPackage) => {
+    try {
+      const response = await adminFetch('/api/admin/set-package', {
+        method: 'POST',
+        body: JSON.stringify({ familyId, package: newPackage })
+      })
+      const data = await response.json()
+
+      if (response.ok) {
+        setDashboardData(prev => ({
+          ...prev,
+          familiesList: prev.familiesList.map(f =>
+            f.id === familyId ? { ...f, package: newPackage } : f
+          )
+        }))
+      } else {
+        alert('Eroare: ' + (data.error || 'Nu s-a putut actualiza pachetul'))
+      }
+    } catch (error) {
+      console.error('Change package error:', error)
+      alert('Eroare la actualizarea pachetului')
+    }
+  }
+
   const handleToggleSuspend = async (familyId, currentSuspended) => {
     const newSuspended = !currentSuspended
     try {
-      const response = await fetch('/api/admin/toggle-suspend', {
+      const response = await adminFetch('/api/admin/toggle-suspend', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ familyId, isSuspended: newSuspended })
       })
       const data = await response.json()
@@ -647,6 +670,9 @@ export default function AdminDashboard() {
                     Creat La
                   </th>
                   <th className="text-eyebrow" style={{ textAlign: 'left', padding: '8px 12px' }}>
+                    Pachet
+                  </th>
+                  <th className="text-eyebrow" style={{ textAlign: 'left', padding: '8px 12px' }}>
                     Acțiuni
                   </th>
                 </tr>
@@ -767,6 +793,44 @@ export default function AdminDashboard() {
                       </td>
                       <td className="text-body nums" style={{ padding: '14px 12px' }}>
                         {formatDate(family.created_at)}
+                      </td>
+                      <td style={{ padding: '14px 12px' }}>
+                        {(() => {
+                          const currentPkg = family.package || 'free'
+                          const isPremium = currentPkg === 'premium'
+                          return (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-start' }}>
+                              <span className="glass-pill" style={{
+                                padding: '3px 10px',
+                                fontSize: '10.5px',
+                                fontWeight: 700,
+                                letterSpacing: '0.06em',
+                                color: isPremium ? 'var(--accent-iris)' : 'var(--ink-2)',
+                                borderColor: isPremium ? 'rgba(124,58,237,0.45)' : 'var(--glass-hairline)',
+                                background: isPremium ? 'rgba(124,58,237,0.12)' : 'var(--glass-1)'
+                              }}>
+                                {isPremium ? 'PREMIUM' : 'FREE'}
+                              </span>
+                              <select
+                                value={currentPkg}
+                                onChange={(e) => {
+                                  const next = e.target.value
+                                  if (next === currentPkg) return
+                                  handleChangePackage(family.id, next)
+                                }}
+                                className="input-glass"
+                                style={{
+                                  padding: '6px 10px',
+                                  fontSize: '12px',
+                                  minWidth: '110px'
+                                }}
+                              >
+                                <option value="free">Free</option>
+                                <option value="premium">Premium</option>
+                              </select>
+                            </div>
+                          )
+                        })()}
                       </td>
                       <td style={{ padding: '14px 12px', borderRadius: '0 14px 14px 0' }}>
                         <button

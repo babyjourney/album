@@ -1,6 +1,7 @@
 import { supabase } from '../../../lib/supabaseClient'
+import { requireAdmin } from '../../../lib/authMiddleware'
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
@@ -95,9 +96,11 @@ export default async function handler(req, res) {
     })
   } catch (error) {
     console.error('Error setting up categories table:', error)
-    res.status(500).json({ 
-      error: 'Failed to setup categories table', 
-      details: error.message 
+    res.status(500).json({
+      error: 'Failed to setup categories table',
+      details: error.message
     })
   }
 }
+
+export default requireAdmin(handler)

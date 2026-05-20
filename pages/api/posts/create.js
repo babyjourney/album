@@ -1,15 +1,19 @@
 import { supabase } from '../../../lib/supabaseClient'
-import { requireEditor } from '../../../lib/authMiddleware'
+import { requireAuthOrAdmin } from '../../../lib/authMiddleware'
 
 async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Metoda nu este permisă' })
   }
 
-  const { type, title, description, fileUrl, category, hashtags, customDate } = req.body
+  const { type, title, description, fileUrl, category, hashtags, customDate, isPrivate, familyId: rawFamilyId } = req.body
 
-  // Use authenticated family ID instead of accepting it from request
-  const familyId = req.auth.familyId
+  // SECURITY: family editor session uses its own familyId; admin can target any
+  const familyId = req.auth.isAdmin ? rawFamilyId : req.auth.familyId
+
+  if (!familyId) {
+    return res.status(400).json({ error: 'ID-ul familiei este obligatoriu' })
+  }
 
   if (!type || (!description && !fileUrl)) {
     return res.status(400).json({ error: 'Câmpuri obligatorii lipsă' })
@@ -43,7 +47,8 @@ async function handler(req, res) {
       title: title || '',
       description: description?.trim() || '',
       file_url: fileUrl,
-      file_type: type // Keep for backwards compatibility
+      file_type: type, // Keep for backwards compatibility
+      is_private: isPrivate === true
     }
 
     // Add optional fields only if they're provided (safely check if columns exist)
@@ -97,4 +102,4 @@ async function handler(req, res) {
 }
 
 // Export with authentication middleware
-export default requireEditor(handler)
+export default requireAuthOrAdmin(handler, { editorOnlyForFamily: true })

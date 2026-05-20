@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useLanguage } from '../contexts/LanguageContext'
+import { authenticatedFetch } from '../lib/pinAuth'
 
 export default function SkillsTracker({ familyId, readOnly = false }) {
   const { t, language } = useLanguage()
@@ -18,7 +19,7 @@ export default function SkillsTracker({ familyId, readOnly = false }) {
   const fetchSkills = async () => {
     try {
       setLoading(true)
-      const response = await fetch(`/api/skills/list?familyId=${familyId}`)
+      const response = await authenticatedFetch(`/api/skills/list?familyId=${familyId}`)
       const result = await response.json()
 
       if (!response.ok) {
@@ -46,13 +47,9 @@ export default function SkillsTracker({ familyId, readOnly = false }) {
     setError('')
 
     try {
-      const response = await fetch('/api/skills/create', {
+      const response = await authenticatedFetch('/api/skills/create', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
-          familyId,
           skillName: newSkillName.trim(),
           progress: 0
         })
@@ -77,11 +74,8 @@ export default function SkillsTracker({ familyId, readOnly = false }) {
 
   const handleUpdateProgress = async (skillId, newProgress) => {
     try {
-      const response = await fetch('/api/skills/update', {
+      const response = await authenticatedFetch('/api/skills/update', {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           skillId,
           progress: newProgress
@@ -109,11 +103,8 @@ export default function SkillsTracker({ familyId, readOnly = false }) {
     }
 
     try {
-      const response = await fetch('/api/skills/delete', {
+      const response = await authenticatedFetch('/api/skills/delete', {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           skillId
         })

@@ -1,6 +1,7 @@
 import { supabase } from '../../../lib/supabaseClient'
+import { requireAuthOrAdmin } from '../../../lib/authMiddleware'
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== 'DELETE') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
@@ -23,19 +24,25 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'Child not found' })
     }
 
+    // SECURITY: family sessions can only delete their own family's children
+    if (!req.auth.isAdmin && childData.family_id !== req.auth.familyId) {
+      return res.status(403).json({ error: 'Accesul la această resursă este interzis' })
+    }
+
     // Delete the child from the database
     const { error: deleteError } = await supabase
       .from('children')
       .delete()
       .eq('id', childId)
+      .eq('family_id', childData.family_id) // belt-and-suspenders
 
     if (deleteError) {
       console.error('Error deleting child:', deleteError)
       return res.status(500).json({ error: 'Failed to delete child' })
     }
 
-    res.status(200).json({ 
-      success: true, 
+    res.status(200).json({
+      success: true,
       message: `Child ${childData.name} has been removed successfully`,
       deletedChild: childData
     })
@@ -44,3 +51,5 @@ export default async function handler(req, res) {
     res.status(500).json({ error: 'Internal server error' })
   }
 }
+
+export default requireAuthOrAdmin(handler, { editorOnlyForFamily: true })

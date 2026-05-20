@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { adminFetch, isAdminAuthenticated } from '../lib/adminAuth'
 
 export default function AdminSetup() {
   const [status, setStatus] = useState('')
@@ -55,7 +56,12 @@ export default function AdminSetup() {
       setStatus('✅ Table already exists! Setting up default categories...')
 
       // Set up default categories for all families
-      const setupResult = await fetch('/api/admin/setup-categories', {
+      if (!isAdminAuthenticated()) {
+        setStatus('❌ Trebuie să fiți autentificat ca admin. Mergeți la /admin/login.')
+        setIsLoading(false)
+        return
+      }
+      const setupResult = await adminFetch('/api/admin/setup-categories', {
         method: 'POST'
       })
 
