@@ -31,31 +31,10 @@ export default function AdminSetup() {
     }
   }, [])
 
-  const generateUniquePin = async (length) => {
-    const column = length === 4 ? 'viewer_pin' : 'editor_pin'
-    let attempts = 0
-    const maxAttempts = 100
-
-    while (attempts < maxAttempts) {
-      const pin = Math.floor(Math.random() * Math.pow(10, length))
-        .toString()
-        .padStart(length, '0')
-
-      const { data, error } = await supabase
-        .from('families')
-        .select('id')
-        .eq(column, pin)
-        .single()
-
-      if (error && error.code === 'PGRST116') {
-        return pin
-      }
-
-      attempts++
-    }
-
-    throw new Error(`Nu s-a putut genera un PIN unic de ${length} cifre după ${maxAttempts} încercări`)
-  }
+  // PIN generation moved server-side — see /api/admin/families/create.js.
+  // The browser shouldn't query for PIN uniqueness (a) because RLS denies
+  // the read under strict policy, and (b) because it would leak existing
+  // PINs to anyone with admin access to the DOM.
 
   const handleProfilePictureChange = async (e) => {
     const selectedFile = e.target.files[0]
@@ -129,34 +108,34 @@ export default function AdminSetup() {
     setSuccess(null)
 
     try {
-      const viewerPin = await generateUniquePin(4)
-      const editorPin = await generateUniquePin(8)
-
-      // First create the family record
-      const { data, error } = await supabase
-        .from('families')
-        .insert({
+      // Create the family via the admin API (service_role / RLS-safe).
+      const createResponse = await adminFetch('/api/admin/families/create', {
+        method: 'POST',
+        body: JSON.stringify({
           name: familyName.trim(),
-          viewer_pin: viewerPin,
-          editor_pin: editorPin
         })
-        .select()
-        .single()
-
-      if (error) {
-        throw error
+      })
+      const createPayload = await createResponse.json()
+      if (!createResponse.ok) {
+        throw new Error(createPayload.error || 'Crearea familiei a eșuat')
       }
+      const data = createPayload.family
+      const viewerPin = data.viewer_pin
+      const editorPin = data.editor_pin
 
       // Upload profile picture if provided
       let profilePictureUrl = null
       if (profilePicture) {
         profilePictureUrl = await uploadProfilePicture(data.id)
 
-        // Update the family record with the profile picture URL
-        const { error: updateError } = await supabase
-          .from('families')
-          .update({ profile_picture_url: profilePictureUrl })
-          .eq('id', data.id)
+        // Update the family record with the profile picture URL via the
+        // admin API (direct table updates are RLS-blocked from the browser).
+        const updateResponse = await adminFetch('/api/admin/families/update', {
+          method: 'POST',
+          body: JSON.stringify({ id: data.id, profilePictureUrl })
+        })
+        const updatePayload = await updateResponse.json()
+        const updateError = updateResponse.ok ? null : updatePayload
 
         if (updateError) {
           console.error('Error updating profile picture URL:', updateError)

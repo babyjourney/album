@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { getSession, isAuthenticated, isEditor, authenticatedFetch, clearSession } from '../lib/pinAuth'
-import { supabase } from '../lib/supabaseClient'
 import { useChildren } from '../lib/useChildren'
 
 import FloatingDock from '../components/layout/FloatingDock'
@@ -97,11 +96,15 @@ export default function Dashboard() {
         }).catch(() => {})
     }
     if (!cachedPicture || !picAge || (now - picAge) > cacheAge) {
-      supabase.from('families').select('profile_picture_url').eq('id', familyId).single()
-        .then(({ data, error }) => {
-          if (!error && data?.profile_picture_url) {
-            setFamilyProfilePicture(data.profile_picture_url)
-            sessionStorage.setItem(`familyPicture_${familyId}`, data.profile_picture_url)
+      // Direct supabase.from('families') is RLS-blocked under the anon key
+      // (see migration.sql strict policy). Go through the family-scoped API
+      // which authenticates via the session token + service_role.
+      authenticatedFetch(`/api/families/get?familyId=${familyId}`)
+        .then(r => r.json())
+        .then(({ family }) => {
+          if (family?.profile_picture_url) {
+            setFamilyProfilePicture(family.profile_picture_url)
+            sessionStorage.setItem(`familyPicture_${familyId}`, family.profile_picture_url)
             sessionStorage.setItem(`familyPicture_${familyId}_time`, now.toString())
           }
         }).catch(() => {})

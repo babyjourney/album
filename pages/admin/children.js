@@ -25,6 +25,9 @@ export default function AdminDashboard() {
   const [parentName, setParentName] = useState('')
   const [childName, setChildName] = useState('')
   const [phoneNumber, setPhoneNumber] = useState('')
+  // Email is optional but recommended — enables email-channel OTP for
+  // forgot-PIN / 2FA login (see lib/notifications.js).
+  const [email, setEmail] = useState('')
   const [profilePicture, setProfilePicture] = useState(null)
   const [profilePreview, setProfilePreview] = useState('')
   const [setupLoading, setSetupLoading] = useState(false)
@@ -70,73 +73,21 @@ export default function AdminDashboard() {
     setLoading(false)
   }
 
+  // Fetch all families via the admin API (service-role bypasses RLS).
+  // We previously went direct to supabase.from('families') from the browser,
+  // which the strict RLS policy correctly blocks under the anon key. The
+  // /api/admin/families/list endpoint runs server-side with the admin token.
   const fetchAllFamilies = async () => {
     try {
-      console.log('Fetching families...')
-      const { data, error } = await supabase
-        .from('families')
-        .select('id, name, phone_number')
-        .order('name')
-
-      if (error) {
-        console.error('Supabase error:', error)
-        throw error
+      const response = await adminFetch('/api/admin/families/list')
+      const payload = await response.json()
+      if (!response.ok) {
+        throw new Error(payload.error || 'List failed')
       }
-
-      console.log('Families data:', data)
-
-      if (!data || data.length === 0) {
-        console.log('No families found')
-        setAllFamilies([])
-        return
-      }
-
-      // Process each family to add display info
-      const processedFamilies = await Promise.all(
-        data.map(async (family) => {
-          try {
-            // Get children count
-            const { data: children } = await supabase
-              .from('children')
-              .select('name')
-              .eq('family_id', family.id)
-
-            const childrenCount = children?.length || 0
-            const phoneDisplay = family.phone_number || 'Fără telefon'
-
-            // Generate correct display title based on children count
-            let displayTitle
-            if (childrenCount === 1) {
-              displayTitle = `Albumul lui ${children[0].name}`
-            } else {
-              displayTitle = `Albumul familiei ${family.name}`
-            }
-
-            return {
-              ...family,
-              childrenCount,
-              displayTitle,
-              phoneDisplay,
-              settings: {}
-            }
-          } catch (familyError) {
-            console.error(`Error processing family ${family.id}:`, familyError)
-            return {
-              ...family,
-              childrenCount: 0,
-              displayTitle: family.name,
-              phoneDisplay: family.phone_number || 'No phone',
-              settings: {}
-            }
-          }
-        })
-      )
-
-      console.log('Processed families:', processedFamilies)
-      setAllFamilies(processedFamilies)
+      setAllFamilies(payload.families || [])
     } catch (error) {
       console.error('Error fetching families:', error)
-      setAllFamilies([]) // Ensure we don't break the UI
+      setAllFamilies([])
     }
   }
 
@@ -277,32 +228,10 @@ export default function AdminDashboard() {
     }
   }
 
-  // Family setup functions
-  const generateUniquePin = async (length) => {
-    const column = length === 4 ? 'viewer_pin' : 'editor_pin'
-    let attempts = 0
-    const maxAttempts = 100
-
-    while (attempts < maxAttempts) {
-      const pin = Math.floor(Math.random() * Math.pow(10, length))
-        .toString()
-        .padStart(length, '0')
-
-      const { error } = await supabase
-        .from('families')
-        .select('id')
-        .eq(column, pin)
-        .single()
-
-      if (error && error.code === 'PGRST116') {
-        return pin
-      }
-
-      attempts++
-    }
-
-    throw new Error(`Nu s-a putut genera un PIN unic de ${length} cifre după ${maxAttempts} încercări`)
-  }
+  // PIN generation now happens server-side in /api/admin/families/create
+  // (see comments there). The previous client-side generateUniquePin
+  // function read directly from the families table, which RLS blocks under
+  // strict policies — and it leaked all existing PINs to the browser anyway.
 
   const handleProfilePictureChange = async (e) => {
     const selectedFile = e.target.files[0]
@@ -389,48 +318,56 @@ export default function AdminDashboard() {
       return
     }
 
+    // Optional email — validated server-side, but check format here too
+    // so the user gets immediate feedback.
+    const cleanEmail = email.trim().toLowerCase()
+    if (cleanEmail) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(cleanEmail)) {
+        setSetupError('Adresa de email nu este validă')
+        return
+      }
+    }
+
     setSetupLoading(true)
     setSetupError('')
     setSetupSuccess(null)
 
     try {
-      const viewerPin = await generateUniquePin(4)
-      const editorPin = await generateUniquePin(8)
-
-      const { data, error } = await supabase
-        .from('families')
-        .insert({
+      // Create the family via the admin API. The server generates the PINs
+      // and inserts with service_role — direct browser inserts are blocked
+      // by RLS (see /api/admin/families/create.js for the full rationale).
+      const createResponse = await adminFetch('/api/admin/families/create', {
+        method: 'POST',
+        body: JSON.stringify({
           name: familyName.trim(),
-          phone_number: phoneNumber.replace(/\s/g, ''),
-          viewer_pin: viewerPin,
-          editor_pin: editorPin
+          phoneNumber: phoneNumber.replace(/\s/g, ''),
+          email: cleanEmail || undefined,
         })
-        .select()
-        .single()
-
-      if (error) {
-        throw error
+      })
+      const createPayload = await createResponse.json()
+      if (!createResponse.ok) {
+        throw new Error(createPayload.error || 'Crearea familiei a eșuat')
       }
+      const data = createPayload.family
+      const viewerPin = data.viewer_pin
+      const editorPin = data.editor_pin
 
       let profilePictureUrl = null
       if (profilePicture) {
         try {
-          console.log('Uploading profile picture for family:', data.id)
           profilePictureUrl = await uploadProfilePicture(data.id)
-          console.log('Profile picture uploaded successfully:', profilePictureUrl)
 
-          const { data: updateData, error: updateError } = await supabase
-            .from('families')
-            .update({ profile_picture_url: profilePictureUrl })
-            .eq('id', data.id)
-            .select()
-
-          if (updateError) {
-            console.error('Error updating profile picture URL:', updateError)
-            setSetupError(`Eroare la salvarea pozei de profil: ${updateError.message}`)
+          // Persist the URL via the admin update endpoint (RLS-safe).
+          const updateResponse = await adminFetch('/api/admin/families/update', {
+            method: 'POST',
+            body: JSON.stringify({ id: data.id, profilePictureUrl })
+          })
+          const updatePayload = await updateResponse.json()
+          if (!updateResponse.ok) {
+            console.error('Profile picture URL save failed:', updatePayload.error)
+            setSetupError(`Eroare la salvarea pozei de profil: ${updatePayload.error}`)
           } else {
-            console.log('Profile picture URL saved successfully:', updateData)
-
             // Create a post in the album for the family profile picture
             try {
               const postResponse = await adminFetch('/api/posts/create', {
@@ -450,8 +387,6 @@ export default function AdminDashboard() {
 
               if (!postResponse.ok) {
                 console.warn('Failed to create album post for profile picture:', postResult.error)
-              } else {
-                console.log('Profile picture post created successfully:', postResult.post.id)
               }
             } catch (postError) {
               console.warn('Error creating album post for profile picture:', postError)
@@ -482,19 +417,16 @@ export default function AdminDashboard() {
 
         if (!childResponse.ok) {
           console.warn('Failed to create first child:', childResult.error)
-          // Don't fail the family creation for this, but log it
-        } else {
-          console.log('First child created successfully:', childResult.child.id)
         }
       } catch (childError) {
         console.warn('Error creating first child:', childError)
-        // Don't fail the family creation for this
       }
 
       setSetupSuccess({
         familyId: data.id,
         familyName: data.name,
         phoneNumber: data.phone_number,
+        email: data.email,
         parentName: parentName.trim(),
         childName: childName.trim(),
         viewerPin,
@@ -505,6 +437,7 @@ export default function AdminDashboard() {
       setParentName('')
       setChildName('')
       setPhoneNumber('')
+      setEmail('')
       setProfilePicture(null)
       setProfilePreview('')
 
@@ -719,6 +652,22 @@ export default function AdminDashboard() {
 
               <div>
                 <label className="text-eyebrow" style={{ display: 'block', marginBottom: '8px' }}>
+                  Email (Opțional)
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="input-glass"
+                  placeholder="parinte@email.com"
+                />
+                <div className="text-tertiary" style={{ marginTop: '6px' }}>
+                  Folosit pentru resetare PIN și autentificare 2FA via email.
+                </div>
+              </div>
+
+              <div>
+                <label className="text-eyebrow" style={{ display: 'block', marginBottom: '8px' }}>
                   Poza de Profil (Opțional)
                 </label>
                 <input
@@ -868,6 +817,12 @@ export default function AdminDashboard() {
                   <div className="text-eyebrow" style={{ color: 'var(--accent-mint)', marginBottom: '4px' }}>Telefon</div>
                   <div className="text-body nums" style={{ fontWeight: 600 }}>{setupSuccess.phoneNumber}</div>
                 </div>
+                {setupSuccess.email && (
+                  <div>
+                    <div className="text-eyebrow" style={{ color: 'var(--accent-mint)', marginBottom: '4px' }}>Email</div>
+                    <div className="text-body" style={{ fontWeight: 600, wordBreak: 'break-all' }}>{setupSuccess.email}</div>
+                  </div>
+                )}
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginBottom: '18px' }}>
