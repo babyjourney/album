@@ -29,77 +29,109 @@ import { requireAdmin } from '../../../../lib/authMiddleware'
 const PHONE_REGEX = /^(0)?[67][0-9]{7}$/
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-// Generate a numeric PIN whose value is not already taken by another family
-// on the given column. Uses crypto.randomInt for unpredictability. Throws
-// after MAX_ATTEMPTS — the search space is large enough (10^4 / 10^8) that
-// running out implies a corrupted state.
-async function generateUniquePin(column, length) {
+// Numeric PIN generator. Falls back to Math.random if crypto.randomInt is
+// somehow unavailable (older Node runtimes) — still uniform enough for an
+// account PIN, and we re-check uniqueness against the DB anyway.
+function randomPin(length) {
   const max = 10 ** length
+  let n
+  try {
+    n = crypto.randomInt(0, max)
+  } catch {
+    n = Math.floor(Math.random() * max)
+  }
+  return n.toString().padStart(length, '0')
+}
+
+async function generateUniquePin(column, length) {
   for (let i = 0; i < 100; i++) {
-    const pin = crypto.randomInt(0, max).toString().padStart(length, '0')
-    const { data } = await supabase
+    const pin = randomPin(length)
+    // .maybeSingle() — returns { data:null, error:null } when no row matches,
+    // which is the "this PIN is free" case. Using .limit(1) without
+    // .maybeSingle() returns an array, equally fine.
+    const { data, error } = await supabase
       .from('families')
       .select('id')
       .eq(column, pin)
       .limit(1)
+
+    if (error) {
+      // Service-role queries should always succeed; if this fires we likely
+      // don't have SUPABASE_SERVICE_ROLE_KEY set. Bubble up a clear error.
+      throw new Error(
+        `Nu pot verifica unicitatea PIN-urilor (${error.code || 'unknown'}: ${error.message}). ` +
+        `Verifică SUPABASE_SERVICE_ROLE_KEY în .env.local.`
+      )
+    }
     if (!data || data.length === 0) return pin
   }
   throw new Error(`Nu s-a putut genera un PIN unic de ${length} cifre`)
 }
 
 async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' })
-  }
-
-  const {
-    name,
-    phoneNumber,
-    email,
-    profilePictureUrl,
-    package: pkg,
-    requireOtpLogin,
-    viewerPin: providedViewerPin,
-    editorPin: providedEditorPin,
-  } = req.body || {}
-
-  if (!name || typeof name !== 'string' || !name.trim()) {
-    return res.status(400).json({ error: 'Numele familiei este obligatoriu' })
-  }
-
-  const cleanName = name.trim()
-  const cleanPhone = phoneNumber ? String(phoneNumber).replace(/\s/g, '') : null
-  const cleanEmail = email ? String(email).trim().toLowerCase() : null
-  const finalPackage = pkg === 'premium' ? 'premium' : 'free'
-  const finalRequireOtp = requireOtpLogin === true
-
-  if (cleanPhone && !PHONE_REGEX.test(cleanPhone)) {
-    return res.status(400).json({ error: 'Numărul de telefon nu este valid (format: 061234567)' })
-  }
-  if (cleanEmail && !EMAIL_REGEX.test(cleanEmail)) {
-    return res.status(400).json({ error: 'Adresa de email nu este validă' })
-  }
-
-  // Custom PIN validation (admin can override auto-gen if they want a
-  // memorable one for a specific family — still must be unique).
-  let viewerPin = providedViewerPin ? String(providedViewerPin).replace(/\D/g, '') : null
-  let editorPin = providedEditorPin ? String(providedEditorPin).replace(/\D/g, '') : null
-  if (viewerPin && !/^\d{4}$/.test(viewerPin)) {
-    return res.status(400).json({ error: 'PIN-ul de viewer trebuie să aibă 4 cifre' })
-  }
-  if (editorPin && !/^\d{8}$/.test(editorPin)) {
-    return res.status(400).json({ error: 'PIN-ul de editor trebuie să aibă 8 cifre' })
-  }
-
+  // Single try/catch around EVERYTHING so any thrown error becomes a JSON
+  // response instead of a Next.js HTML error page.
   try {
-    // Reject duplicate phone numbers — the login flow keys on phone+PIN, so
-    // two families with the same phone would create login ambiguity.
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Method not allowed' })
+    }
+
+    // Defensive: req.body may be undefined (missing Content-Type), a string
+    // (body parser disabled), or an object. Handle all three.
+    let body = req.body
+    if (typeof body === 'string') {
+      try { body = JSON.parse(body) } catch { body = {} }
+    }
+    if (!body || typeof body !== 'object') body = {}
+
+    const {
+      name,
+      phoneNumber,
+      email,
+      profilePictureUrl,
+      package: pkg,
+      requireOtpLogin,
+      viewerPin: providedViewerPin,
+      editorPin: providedEditorPin,
+    } = body
+
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      return res.status(400).json({ error: 'Numele familiei este obligatoriu' })
+    }
+
+    const cleanName = name.trim()
+    const cleanPhone = phoneNumber ? String(phoneNumber).replace(/\s/g, '') : null
+    const cleanEmail = email ? String(email).trim().toLowerCase() : null
+    const finalPackage = pkg === 'premium' ? 'premium' : 'free'
+    const finalRequireOtp = requireOtpLogin === true
+
+    if (cleanPhone && !PHONE_REGEX.test(cleanPhone)) {
+      return res.status(400).json({ error: 'Numărul de telefon nu este valid (format: 061234567)' })
+    }
+    if (cleanEmail && !EMAIL_REGEX.test(cleanEmail)) {
+      return res.status(400).json({ error: 'Adresa de email nu este validă' })
+    }
+
+    let viewerPin = providedViewerPin ? String(providedViewerPin).replace(/\D/g, '') : null
+    let editorPin = providedEditorPin ? String(providedEditorPin).replace(/\D/g, '') : null
+    if (viewerPin && !/^\d{4}$/.test(viewerPin)) {
+      return res.status(400).json({ error: 'PIN-ul de viewer trebuie să aibă 4 cifre' })
+    }
+    if (editorPin && !/^\d{8}$/.test(editorPin)) {
+      return res.status(400).json({ error: 'PIN-ul de editor trebuie să aibă 8 cifre' })
+    }
+
+    // Reject duplicate phone numbers — login keys on phone+PIN.
     if (cleanPhone) {
-      const { data: existing } = await supabase
-        .from('families')
-        .select('id')
-        .eq('phone_number', cleanPhone)
-        .limit(1)
+      const { data: existing, error: phoneErr } = await supabase
+        .from('families').select('id').eq('phone_number', cleanPhone).limit(1)
+      if (phoneErr) {
+        return res.status(500).json({
+          error: `Eroare DB la verificare telefon: ${phoneErr.message}`,
+          code: phoneErr.code || null,
+          hint: 'Probabil SUPABASE_SERVICE_ROLE_KEY lipsește din .env.local.',
+        })
+      }
       if (existing && existing.length > 0) {
         return res.status(409).json({
           error: 'O familie cu acest număr de telefon există deja.',
@@ -108,7 +140,6 @@ async function handler(req, res) {
       }
     }
 
-    // Verify any admin-supplied PINs aren't already taken.
     if (viewerPin) {
       const { data: clash } = await supabase
         .from('families').select('id').eq('viewer_pin', viewerPin).limit(1)
@@ -140,33 +171,28 @@ async function handler(req, res) {
     if (cleanEmail) insertData.email = cleanEmail
     if (profilePictureUrl) insertData.profile_picture_url = profilePictureUrl
 
-    // Insert via service_role (RLS bypass). If the deployed schema is missing
-    // any of the recently added columns (require_otp_login, email, package),
-    // postgres returns code "42703" with a message like
-    //   'column "require_otp_login" of relation "families" does not exist'.
-    // We progressively strip the offending column and retry, up to 6 times,
-    // so the request succeeds on any schema that at least has name + PINs.
+    // Insert via service_role (RLS bypass). On column-missing errors we
+    // progressively strip non-essential fields and retry.
     const NON_ESSENTIAL = [
       'require_otp_login', 'package', 'email',
       'profile_picture_url', 'phone_number',
     ]
     let payload = { ...insertData }
-    let data, error
+    let data, insertError
     for (let attempt = 0; attempt < 6; attempt++) {
-      ;({ data, error } = await supabase
+      const result = await supabase
         .from('families')
         .insert(payload)
         .select()
-        .single())
+        .single()
+      data = result.data
+      insertError = result.error
+      if (!insertError) break
 
-      if (!error) break
-
-      const msg = error.message || ''
-      const code = error.code || ''
+      const msg = insertError.message || ''
+      const code = insertError.code || ''
       const missingMatch = /column "([^"]+)" .* does not exist/i.exec(msg)
       if (code === '42703' || code === 'PGRST204' || missingMatch || msg.toLowerCase().includes('column')) {
-        // Identify the missing column. If we can't parse it from the message,
-        // strip the next non-essential column.
         let stripped = false
         if (missingMatch && payload[missingMatch[1]] !== undefined) {
           delete payload[missingMatch[1]]
@@ -185,20 +211,23 @@ async function handler(req, res) {
       break
     }
 
-    if (error) {
-      console.error('admin/families/create insert failed:', error)
+    if (insertError) {
+      console.error('admin/families/create insert failed:', insertError)
       return res.status(500).json({
-        error: `Crearea familiei a eșuat: ${error.message}`,
-        code: error.code || null,
-        hint: error.hint || null,
-        details: error.details || null,
+        error: `Crearea familiei a eșuat: ${insertError.message}`,
+        code: insertError.code || null,
+        hint: insertError.hint || null,
+        details: insertError.details || null,
       })
     }
 
     return res.status(200).json({ ok: true, family: data })
   } catch (err) {
-    console.error('admin/families/create error:', err)
-    return res.status(500).json({ error: err.message || 'Eroare internă' })
+    console.error('admin/families/create unhandled error:', err)
+    return res.status(500).json({
+      error: err?.message || 'Eroare internă neașteptată',
+      where: 'create-family-handler',
+    })
   }
 }
 
