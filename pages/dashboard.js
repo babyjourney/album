@@ -369,7 +369,7 @@ export default function Dashboard() {
           <div
             className="modal-glass upload-modal-content"
             onClick={(e) => e.stopPropagation()}
-            style={{ width: '100%', maxWidth: 920, maxHeight: '92vh', position: 'relative' }}
+            style={{ width: '100%', maxWidth: 980, position: 'relative' }}
           >
             <button
               onClick={() => setShowUpload(false)}

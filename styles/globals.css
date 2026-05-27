@@ -424,7 +424,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: 12px;
   animation: scrim-in 0.3s cubic-bezier(0.22,1,0.36,1);
 }
 @keyframes scrim-in { from { opacity: 0; } to { opacity: 1; } }
@@ -440,7 +440,10 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
     0 32px 80px -16px rgba(0, 0, 0, 0.40),
     inset 0 1px 0 0 var(--glass-hairline-strong),
     inset 0 -1px 0 0 rgba(0, 0, 0, 0.05);
-  max-height: calc(100vh - 48px);
+  /* Use dvh on supporting browsers so iOS Safari's URL bar doesn't crop us.
+     Falls back to vh on older browsers. */
+  max-height: calc(100vh - 24px);
+  max-height: calc(100dvh - 24px);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -449,6 +452,12 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 @keyframes glass-in {
   0%   { opacity: 0; transform: scale(0.94) translateY(12px); }
   100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Instagram-style smooth progress bar (MemorySlideshow) */
+@keyframes story-progress {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
 }
 
 /* Specular sheen for buttons / chips on hover */

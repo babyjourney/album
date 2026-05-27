@@ -497,7 +497,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
       color: 'var(--ink-1)'
     }}>
       <div style={{
-        padding: isMobile ? '14px 18px' : '18px 22px',
+        padding: isMobile ? '10px 16px' : '12px 20px',
         borderBottom: '1px solid var(--glass-hairline)',
         flexShrink: 0,
         background: 'transparent'
@@ -505,11 +505,11 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: isMobile ? '12px' : '14px'
+          gap: isMobile ? '10px' : '12px'
         }}>
           <div style={{
-            width: isMobile ? '40px' : '44px',
-            height: isMobile ? '40px' : '44px',
+            width: isMobile ? '36px' : '40px',
+            height: isMobile ? '36px' : '40px',
             background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 50%, #6d28d9 100%)',
             borderRadius: '14px',
             display: 'flex',
@@ -538,25 +538,25 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
       <div style={{
         flex: 1,
         overflowY: 'auto',
-        padding: isMobile ? '14px 18px' : '18px 22px',
+        padding: isMobile ? '10px 14px' : '12px 18px',
         minHeight: 0,
         background: 'transparent'
       }}>
         <div className="upload-form-grid" style={{
           display: isMobile ? 'flex' : 'grid',
           flexDirection: isMobile ? 'column' : 'initial',
-          gap: isMobile ? '12px' : '18px',
+          gap: isMobile ? '10px' : '14px',
           maxWidth: isMobile ? '500px' : '100%',
           margin: '0 auto'
         }}>
 
           <div>
             <div className="card-glass" style={{
-              padding: isMobile ? '14px' : '16px',
-              borderRadius: isMobile ? '20px' : '22px'
+              padding: isMobile ? '12px' : '14px',
+              borderRadius: isMobile ? '18px' : '20px'
             }}>
               <h3 className="text-eyebrow" style={{
-                margin: '0 0 12px 0'
+                margin: '0 0 10px 0'
               }}>
                 {t('uploadPhotosVideos')}
               </h3>
@@ -567,15 +567,15 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                 onDrop={handleDrop}
                 style={{
                   border: `2px dashed ${dragOver ? 'var(--accent-iris)' : 'var(--glass-hairline-strong)'}`,
-                  borderRadius: isMobile ? '16px' : '18px',
-                  padding: isMobile ? '20px 14px' : '26px 18px',
+                  borderRadius: isMobile ? '14px' : '16px',
+                  padding: isMobile ? '14px 12px' : '18px 14px',
                   textAlign: 'center',
                   background: dragOver ? 'rgba(124, 58, 237, 0.10)' : 'var(--glass-1)',
                   backdropFilter: 'blur(12px)',
                   WebkitBackdropFilter: 'blur(12px)',
                   transition,
                   cursor: 'pointer',
-                  marginBottom: '14px',
+                  marginBottom: '10px',
                   boxShadow: dragOver
                     ? 'inset 0 1px 0 0 var(--glass-hairline-strong), 0 0 0 4px rgba(124, 58, 237, 0.18)'
                     : 'inset 0 1px 0 0 var(--glass-hairline)'
@@ -583,10 +583,10 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                 onClick={() => document.getElementById('file-upload').click()}
               >
                 <div style={{
-                  width: isMobile ? '44px' : '52px',
-                  height: isMobile ? '44px' : '52px',
+                  width: isMobile ? '36px' : '42px',
+                  height: isMobile ? '36px' : '42px',
                   margin: '0 auto',
-                  marginBottom: isMobile ? '10px' : '12px',
+                  marginBottom: isMobile ? '6px' : '8px',
                   borderRadius: '14px',
                   display: 'flex',
                   alignItems: 'center',
@@ -654,7 +654,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
               {files.length > 0 && (
                 <div className="glass-soft" style={{
                   padding: isMobile ? '12px' : '14px',
-                  marginBottom: '12px'
+                  marginBottom: '10px'
                 }}>
                   <div style={{
                     display: 'flex',
@@ -898,8 +898,8 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
 
           <div>
             <div className="card-glass" style={{
-              padding: isMobile ? '14px' : '16px',
-              borderRadius: isMobile ? '20px' : '22px'
+              padding: isMobile ? '12px' : '14px',
+              borderRadius: isMobile ? '18px' : '20px'
             }}>
               <h3 className="text-eyebrow" style={{
                 margin: '0 0 12px 0'
@@ -907,7 +907,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                 {t('postDetails')}
               </h3>
 
-              <div style={{ marginBottom: '12px' }}>
+              <div style={{ marginBottom: '10px' }}>
                 <label className="text-eyebrow" style={{
                   display: 'block',
                   marginBottom: '6px'
@@ -924,7 +924,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                 />
               </div>
 
-              <div style={{ marginBottom: '12px' }}>
+              <div style={{ marginBottom: '10px' }}>
                 <label className="text-eyebrow" style={{
                   display: 'block',
                   marginBottom: '6px'
@@ -945,7 +945,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                 />
               </div>
 
-              <div style={{ marginBottom: '12px' }}>
+              <div style={{ marginBottom: '10px' }}>
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -1048,7 +1048,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
               </div>
 
               {/* Private content toggle */}
-              <div style={{ marginBottom: '12px' }}>
+              <div style={{ marginBottom: '10px' }}>
                 <label
                   htmlFor="upload-private-toggle"
                   style={{
@@ -1093,7 +1093,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
               </div>
 
               {isMobile && (
-                <div style={{ marginBottom: '12px' }}>
+                <div style={{ marginBottom: '10px' }}>
                   <label className="text-eyebrow" style={{
                     display: 'block',
                     marginBottom: '8px'
@@ -1120,7 +1120,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
               )}
 
               {isMobile && (
-                <div style={{ marginBottom: '12px' }}>
+                <div style={{ marginBottom: '10px' }}>
                   <label className="text-eyebrow" style={{
                     display: 'block',
                     marginBottom: '8px'
@@ -1140,7 +1140,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
               <div className="card-glass" style={{
                 padding: '14px',
                 marginTop: '12px',
-                marginBottom: '12px',
+                marginBottom: '10px',
                 borderRadius: '20px'
               }}>
                 <label className="text-eyebrow" style={{
@@ -1248,7 +1248,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
       </div>
 
       <div style={{
-        padding: isMobile ? '12px 18px' : '14px 22px',
+        padding: isMobile ? '10px 16px' : '10px 20px',
         borderTop: '1px solid var(--glass-hairline)',
         flexShrink: 0,
         background: 'transparent'

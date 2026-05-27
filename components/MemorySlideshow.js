@@ -29,10 +29,14 @@ const fisherYatesShuffle = (arr) => {
   return result
 }
 
+// Slide duration in ms. Used both by the auto-advance timer and by the
+// CSS progress-bar animation duration — kept in one constant so they stay
+// in sync.
+const SLIDE_DURATION_MS = 4000
+
 export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(true)
-  const [progress, setProgress] = useState(0)
   const [isShuffled, setIsShuffled] = useState(false)
   const [shuffledMemories, setShuffledMemories] = useState([])
 
@@ -42,7 +46,6 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
       setIsShuffled(false)
       setShuffledMemories([])
       setCurrentIndex(0)
-      setProgress(0)
       setIsPlaying(true)
     }
   }, [isOpen])
@@ -50,31 +53,18 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
   // Get current memories array (shuffled or normal)
   const currentMemories = isShuffled && shuffledMemories.length > 0 ? shuffledMemories : memories
 
-  // Auto-advance slideshow
+  // Auto-advance. The progress bar uses pure CSS animation (see below) so
+  // we don't need a separate progress interval — eliminates the choppy
+  // 100ms React re-renders that produced the visible step pattern.
   useEffect(() => {
     if (!isPlaying || currentMemories.length === 0) return
 
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % currentMemories.length)
-      setProgress(0)
-    }, 4000) // 4 seconds per slide
+    }, SLIDE_DURATION_MS)
 
     return () => clearInterval(interval)
-  }, [isPlaying, currentMemories.length])
-
-  // Progress bar animation
-  useEffect(() => {
-    if (!isPlaying || currentMemories.length === 0) return
-
-    const progressInterval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) return 0
-        return prev + (100 / 40) // 4000ms / 100ms = 40 steps
-      })
-    }, 100)
-
-    return () => clearInterval(progressInterval)
-  }, [isPlaying, currentIndex, currentMemories.length])
+  }, [isPlaying, currentMemories.length, currentIndex])
 
   // Keyboard navigation
   useEffect(() => {
@@ -96,12 +86,10 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
 
   const goToNext = useCallback(() => {
     setCurrentIndex((prev) => (prev + 1) % currentMemories.length)
-    setProgress(0)
   }, [currentMemories.length])
 
   const goToPrevious = useCallback(() => {
     setCurrentIndex((prev) => (prev - 1 + currentMemories.length) % currentMemories.length)
-    setProgress(0)
   }, [currentMemories.length])
 
   const toggleShuffle = useCallback(() => {
@@ -114,7 +102,6 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
       return next
     })
     setCurrentIndex(0)
-    setProgress(0)
   }, [memories])
 
   if (!isOpen) return null
@@ -151,31 +138,49 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
         gap: '6px',
         zIndex: 1001
       }}>
-        {currentMemories.map((_, index) => (
-          <div
-            key={index}
-            style={{
-              flex: 1,
-              height: '3px',
-              background: 'rgba(255, 255, 255, 0.18)',
-              borderRadius: '999px',
-              overflow: 'hidden',
-              backdropFilter: 'blur(8px)',
-              WebkitBackdropFilter: 'blur(8px)'
-            }}
-          >
+        {currentMemories.map((_, index) => {
+          // Instagram-story style progress bars:
+          //   • already-watched slides  → solid full fill
+          //   • current slide           → CSS-animated scaleX(0→1) over
+          //                               SLIDE_DURATION_MS (smooth, GPU-
+          //                               accelerated, no React re-renders)
+          //   • future slides           → empty
+          // The `key` includes currentIndex so the active bar's animation
+          // restarts cleanly when we jump or auto-advance.
+          const isPast = index < safeIndex
+          const isCurrent = index === safeIndex
+          return (
             <div
+              key={index}
               style={{
-                width: index < safeIndex ? '100%' :
-                       index === safeIndex ? `${progress}%` : '0%',
-                height: '100%',
-                background: 'linear-gradient(90deg, var(--accent-iris), var(--accent-aqua))',
+                flex: 1,
+                height: '3px',
+                background: 'rgba(255, 255, 255, 0.18)',
                 borderRadius: '999px',
-                transition: index !== safeIndex ? 'width 220ms cubic-bezier(0.22, 1, 0.36, 1)' : 'none'
+                overflow: 'hidden',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
               }}
-            />
-          </div>
-        ))}
+            >
+              <div
+                key={isCurrent ? `active-${currentIndex}-${isPlaying}` : `static-${index}`}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  background: 'linear-gradient(90deg, var(--accent-iris), var(--accent-aqua))',
+                  borderRadius: '999px',
+                  transformOrigin: 'left',
+                  transform: isPast ? 'scaleX(1)' : 'scaleX(0)',
+                  animation: isCurrent
+                    ? `story-progress ${SLIDE_DURATION_MS}ms linear forwards`
+                    : 'none',
+                  animationPlayState: isCurrent && !isPlaying ? 'paused' : 'running',
+                  willChange: isCurrent ? 'transform' : 'auto',
+                }}
+              />
+            </div>
+          )
+        })}
       </div>
 
       {/* Control buttons */}
