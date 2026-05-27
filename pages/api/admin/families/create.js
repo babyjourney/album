@@ -23,7 +23,7 @@
 //           editor_pin, package, require_otp_login, ... } }
 
 import crypto from 'crypto'
-import { supabase } from '../../../../lib/supabaseClient'
+import { supabase, assertServerHasServiceRole } from '../../../../lib/supabaseClient'
 import { requireAdmin } from '../../../../lib/authMiddleware'
 
 const PHONE_REGEX = /^(0)?[67][0-9]{7}$/
@@ -74,6 +74,15 @@ async function handler(req, res) {
   try {
     if (req.method !== 'POST') {
       return res.status(405).json({ error: 'Method not allowed' })
+    }
+
+    // Refuse to proceed without the elevated key — otherwise the insert
+    // would hit the RLS policy and return the confusing
+    //   "new row violates row-level security policy for table 'families'"
+    // error. This guard turns it into a clear, fixable config message.
+    const configError = assertServerHasServiceRole()
+    if (configError) {
+      return res.status(500).json(configError)
     }
 
     // Defensive: req.body may be undefined (missing Content-Type), a string
@@ -213,6 +222,29 @@ async function handler(req, res) {
 
     if (insertError) {
       console.error('admin/families/create insert failed:', insertError)
+
+      // The RLS error means the Supabase client is running as anon, not
+      // service_role. Either SUPABASE_SERVICE_ROLE_KEY is missing (caught
+      // by assertServerHasServiceRole above) or it's set to a wrong value
+      // (e.g. the user pasted the anon key by mistake). Surface a clear
+      // diagnosis instead of the raw postgres message.
+      const msg = String(insertError.message || '')
+      if (
+        msg.includes('row-level security') ||
+        insertError.code === '42501' ||
+        insertError.code === 'PGRST301'
+      ) {
+        return res.status(500).json({
+          error:
+            'Configurare incorectă: cheia SUPABASE_SERVICE_ROLE_KEY din .env.local nu e validă.\n' +
+            'Recopiază-o din Supabase Dashboard → Settings → API → service_role secret ' +
+            '(NU anon key) și repornește serverul.',
+          code: 'INVALID_SERVICE_ROLE_KEY',
+          rawCode: insertError.code || null,
+          rawMessage: insertError.message,
+        })
+      }
+
       return res.status(500).json({
         error: `Crearea familiei a eșuat: ${insertError.message}`,
         code: insertError.code || null,
