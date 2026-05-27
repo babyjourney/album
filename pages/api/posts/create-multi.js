@@ -83,13 +83,32 @@ async function handler(req, res) {
         .map(tag => tag.toLowerCase().replace('#', ''))
         .filter(tag => tag.length > 0) : []
 
+    // Quality tier stamp (Task #15) — derived from the family's package so
+    // it persists with the row and the UI can show an HD/SD badge later.
+    // We attach it to basePostData below; if a deployed schema doesn't have
+    // the column yet, the existing column-error fallback strips it.
+    const { data: famQuality } = await supabase
+      .from('families')
+      .select('package')
+      .eq('id', familyId)
+      .single()
+    const tier = famQuality?.package || 'free'
+    const quality = tier === 'premium' ? 'hd' : 'sd'
+
     // Build base post data
     const basePostData = {
       family_id: familyId,
       title: title?.trim() || '',
       file_url: imageUrls[0], // Primary file for backward compatibility
       file_type: postFileType, // Set correct type based on content
-      is_private: isPrivate === true
+      is_private: isPrivate === true,
+      quality
+    }
+    // Helper used by every fallback path so the quality field disappears
+    // gracefully when the column doesn't exist in the deployed schema.
+    const stripQuality = (obj) => {
+      const { quality: _q, ...rest } = obj
+      return rest
     }
 
     // Add optional fields
@@ -157,11 +176,12 @@ async function handler(req, res) {
       useOldFormat = true
     }
 
-    // Second try: Schema without file_urls (fallback)
+    // Second try: Schema without file_urls (fallback). Also drops the new
+    // `quality` column in case the deployed schema doesn't have it yet.
     if (useOldFormat) {
       try {
         const mediumSchemaData = {
-          ...basePostData,
+          ...stripQuality(basePostData),
           description: description?.trim() || '',
           type: 'image'
         }
@@ -184,7 +204,7 @@ async function handler(req, res) {
         
         // Third try: Old schema with URLs in description
         const oldSchemaData = {
-          ...basePostData,
+          ...stripQuality(basePostData),
           description: (description?.trim() || '') + '\n__MULTI_PHOTO_URLS__:' + JSON.stringify(imageUrls) + 
             (coverIndex !== undefined && coverIndex !== null ? '\n__COVER_INDEX__:' + validCoverIndex : '')
         }

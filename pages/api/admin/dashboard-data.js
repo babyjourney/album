@@ -1,101 +1,119 @@
 import { supabase } from '../../../lib/supabaseClient'
 import { requireAdmin } from '../../../lib/authMiddleware'
 
+// Activity status thresholds (days since last post).
+// 🔥 very active  : posted within VERY_ACTIVE_DAYS
+// 🙂 active       : posted within ACTIVE_DAYS
+// 😴 sleeping     : no post in the last SLEEPING_DAYS
+// 💀 dead         : no post in the last DEAD_DAYS  (or no posts at all and the
+//                   account is older than DEAD_DAYS)
+const VERY_ACTIVE_DAYS = 7
+const ACTIVE_DAYS = 30
+const SLEEPING_DAYS = 30
+const DEAD_DAYS = 90
+
+function classifyActivity({ daysSinceLastPost, photosCount, accountAgeDays }) {
+  // Brand-new families (< 7d old) with no posts are "active" by default —
+  // they haven't had time to go silent yet.
+  if (photosCount === 0) {
+    if (accountAgeDays !== null && accountAgeDays < VERY_ACTIVE_DAYS) {
+      return { emoji: '🙂', code: 'active', rank: 2 }
+    }
+    if (accountAgeDays !== null && accountAgeDays >= DEAD_DAYS) {
+      return { emoji: '💀', code: 'dead', rank: 0 }
+    }
+    return { emoji: '😴', code: 'sleeping', rank: 1 }
+  }
+  if (daysSinceLastPost === null) {
+    return { emoji: '😴', code: 'sleeping', rank: 1 }
+  }
+  if (daysSinceLastPost <= VERY_ACTIVE_DAYS) {
+    return { emoji: '🔥', code: 'very_active', rank: 3 }
+  }
+  if (daysSinceLastPost <= ACTIVE_DAYS) {
+    return { emoji: '🙂', code: 'active', rank: 2 }
+  }
+  if (daysSinceLastPost <= DEAD_DAYS) {
+    return { emoji: '😴', code: 'sleeping', rank: 1 }
+  }
+  return { emoji: '💀', code: 'dead', rank: 0 }
+}
+
 async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
   try {
-    // Get total families
-    const { count: totalFamilies, error: familiesError } = await supabase
+    const now = new Date()
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+
+    // ─── totals ───────────────────────────────────────────────────────────
+    const { count: totalFamilies } = await supabase
       .from('families')
       .select('*', { count: 'exact', head: true })
 
-    if (familiesError) {
-      console.error('Error counting families:', familiesError)
-    }
-
-    // Get total children
-    const { count: totalChildren, error: childrenError } = await supabase
+    const { count: totalChildren } = await supabase
       .from('children')
       .select('*', { count: 'exact', head: true })
 
-    if (childrenError) {
-      console.error('Error counting children:', childrenError)
-    }
-
-    // Get total photos
-    const { count: totalPhotos, error: photosError } = await supabase
+    const { count: totalPhotos } = await supabase
       .from('photos')
       .select('*', { count: 'exact', head: true })
 
-    if (photosError) {
-      console.error('Error counting photos:', photosError)
-    }
-
-    // Get families list with details
-    const { data: familiesList, error: familiesListError } = await supabase
+    // ─── families list ────────────────────────────────────────────────────
+    const { data: familiesList } = await supabase
       .from('families')
-      .select(`
-        id,
-        name,
-        phone_number,
-        created_at,
-        last_accessed,
-        is_suspended,
-        package
-      `)
+      .select('id, name, phone_number, created_at, last_accessed, is_suspended, package, email')
       .order('created_at', { ascending: false })
 
-    if (familiesListError) {
-      console.error('Error fetching families list:', familiesListError)
-    }
-
-    // Get children count, photos count, and storage info for each family
+    // Per-family stats (children, photos, posts in last 30d, storage estimate)
     const familiesWithStats = await Promise.all(
       (familiesList || []).map(async (family) => {
-        // Get children count
         const { count: childrenCount } = await supabase
           .from('children')
           .select('*', { count: 'exact', head: true })
           .eq('family_id', family.id)
 
-        // Get photos count and last post date
         const { data: photosData, count: photosCount } = await supabase
           .from('photos')
           .select('created_at, file_url, file_urls', { count: 'exact' })
           .eq('family_id', family.id)
           .order('created_at', { ascending: false })
 
-        // Calculate storage usage for this family
         let storageUsed = 0
+        let postsLast30Days = 0
         if (photosData && photosData.length > 0) {
-          // Estimate storage based on number of photos
-          // For single photos: ~2MB average
-          // For multi-photos: count files in file_urls array
           photosData.forEach(photo => {
             if (photo.file_urls && Array.isArray(photo.file_urls)) {
-              // Multi-photo post
-              storageUsed += photo.file_urls.length * 2 * 1024 * 1024 // 2MB per photo
+              storageUsed += photo.file_urls.length * 2 * 1024 * 1024
             } else if (photo.file_url) {
-              // Single photo
-              storageUsed += 2 * 1024 * 1024 // 2MB
+              storageUsed += 2 * 1024 * 1024
             }
+            const createdAt = new Date(photo.created_at)
+            if (createdAt >= thirtyDaysAgo) postsLast30Days += 1
           })
         }
 
-        // Get last post date
         const lastPostDate = photosData && photosData.length > 0 ? photosData[0].created_at : null
 
-        // Calculate days since last post
         let daysSinceLastPost = null
         if (lastPostDate) {
           const lastPost = new Date(lastPostDate)
-          const today = new Date()
-          const diffTime = today - lastPost
-          daysSinceLastPost = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+          daysSinceLastPost = Math.ceil((now - lastPost) / (1000 * 60 * 60 * 24))
         }
+
+        const accountAgeDays = family.created_at
+          ? Math.ceil((now - new Date(family.created_at)) / (1000 * 60 * 60 * 24))
+          : null
+
+        const activity = classifyActivity({
+          daysSinceLastPost,
+          photosCount: photosCount || 0,
+          accountAgeDays,
+        })
 
         return {
           ...family,
@@ -103,40 +121,162 @@ async function handler(req, res) {
           photos_count: photosCount || 0,
           storage_used: storageUsed,
           last_post_date: lastPostDate,
-          days_since_last_post: daysSinceLastPost
+          days_since_last_post: daysSinceLastPost,
+          posts_last_30d: postsLast30Days,
+          activity_emoji: activity.emoji,
+          activity_code: activity.code,
+          activity_rank: activity.rank,
+          account_age_days: accountAgeDays,
         }
       })
     )
 
-    // Get recent activity (last 10 photo uploads)
-    const { data: recentActivity, error: activityError } = await supabase
+    // ─── recent activity feed ─────────────────────────────────────────────
+    const { data: recentActivity } = await supabase
       .from('photos')
-      .select(`
-        id,
-        title,
-        description,
-        created_at,
-        family_id,
-        families!inner(name)
-      `)
+      .select('id, title, description, created_at, family_id, families!inner(name)')
       .order('created_at', { ascending: false })
       .limit(10)
 
     const formattedActivity = (recentActivity || []).map(photo => ({
       description: `Fotografie nouă: ${photo.title || photo.description?.substring(0, 50) + '...' || 'Fără titlu'}`,
       family_name: photo.families?.name || 'Familie necunoscută',
-      timestamp: photo.created_at
+      timestamp: photo.created_at,
     }))
 
-    if (activityError) {
-      console.error('Error fetching recent activity:', activityError)
+    const estimatedStoragePerPhoto = 2 * 1024 * 1024
+    const estimatedStorageUsed = (totalPhotos || 0) * estimatedStoragePerPhoto
+
+    // ─── growth analytics ─────────────────────────────────────────────────
+    // New families per day for the last 30 days. We compute this client-side
+    // from the families list (already loaded above) to avoid an extra query.
+    const newFamiliesPerDay = []
+    {
+      const buckets = new Map()
+      for (let i = 29; i >= 0; i--) {
+        const day = new Date(now)
+        day.setHours(0, 0, 0, 0)
+        day.setDate(day.getDate() - i)
+        const key = day.toISOString().slice(0, 10)
+        buckets.set(key, 0)
+      }
+      ;(familiesList || []).forEach(f => {
+        if (!f.created_at) return
+        const key = new Date(f.created_at).toISOString().slice(0, 10)
+        if (buckets.has(key)) buckets.set(key, buckets.get(key) + 1)
+      })
+      buckets.forEach((count, day) => newFamiliesPerDay.push({ day, count }))
     }
 
-    // Calculate storage used (rough estimate)
-    // This would typically require checking the actual file sizes in storage
-    // For now, we'll estimate based on photo count
-    const estimatedStoragePerPhoto = 2 * 1024 * 1024 // 2MB per photo average
-    const estimatedStorageUsed = (totalPhotos || 0) * estimatedStoragePerPhoto
+    // Cumulative family count over the last 30 days (running total).
+    const familyGrowth = []
+    {
+      const sortedFamilies = (familiesList || []).slice().sort(
+        (a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0)
+      )
+      const totalBefore30 = sortedFamilies.filter(
+        f => f.created_at && new Date(f.created_at) < thirtyDaysAgo
+      ).length
+      let running = totalBefore30
+      for (let i = 29; i >= 0; i--) {
+        const day = new Date(now)
+        day.setHours(0, 0, 0, 0)
+        day.setDate(day.getDate() - i)
+        const key = day.toISOString().slice(0, 10)
+        // count families created on or before this day, after the baseline
+        running = sortedFamilies.filter(f => {
+          if (!f.created_at) return false
+          const d = new Date(f.created_at)
+          d.setHours(0, 0, 0, 0)
+          return d.toISOString().slice(0, 10) <= key
+        }).length
+        familyGrowth.push({ day, total: running })
+      }
+    }
+
+    // Storage growth per day for the last 30 days (approx: 2MB per photo).
+    // We fetch only photo rows from the last 30 days plus a count of all
+    // older photos to seed the baseline.
+    const { data: recentPhotosForGrowth } = await supabase
+      .from('photos')
+      .select('created_at, file_url, file_urls')
+      .gte('created_at', thirtyDaysAgo.toISOString())
+
+    const { count: olderPhotosCount } = await supabase
+      .from('photos')
+      .select('*', { count: 'exact', head: true })
+      .lt('created_at', thirtyDaysAgo.toISOString())
+
+    const photoBytesAt = new Map()
+    for (let i = 29; i >= 0; i--) {
+      const day = new Date(now)
+      day.setHours(0, 0, 0, 0)
+      day.setDate(day.getDate() - i)
+      photoBytesAt.set(day.toISOString().slice(0, 10), 0)
+    }
+
+    const baselineBytes = (olderPhotosCount || 0) * estimatedStoragePerPhoto
+
+    // For each recent photo, accumulate bytes into its day. Then we'll
+    // convert to a running total.
+    const dayBytesDelta = new Map()
+    ;(recentPhotosForGrowth || []).forEach(p => {
+      const day = new Date(p.created_at).toISOString().slice(0, 10)
+      if (!dayBytesDelta.has(day)) dayBytesDelta.set(day, 0)
+      const bytes = Array.isArray(p.file_urls)
+        ? p.file_urls.length * estimatedStoragePerPhoto
+        : (p.file_url ? estimatedStoragePerPhoto : 0)
+      dayBytesDelta.set(day, dayBytesDelta.get(day) + bytes)
+    })
+
+    const storageGrowth = []
+    {
+      let running = baselineBytes
+      const sortedDays = Array.from(photoBytesAt.keys()).sort()
+      sortedDays.forEach(day => {
+        running += dayBytesDelta.get(day) || 0
+        storageGrowth.push({ day, bytes: running })
+      })
+    }
+
+    // Daily Active Users (DAU) — based on `last_accessed`. Counts how many
+    // families had any access activity per day in the last 30 days. Best
+    // effort: last_accessed is a single timestamp, so a family with multiple
+    // accesses is only counted for the LAST day. Acceptable for trend.
+    const dailyActiveUsers = []
+    {
+      const dauBuckets = new Map()
+      for (let i = 29; i >= 0; i--) {
+        const day = new Date(now)
+        day.setHours(0, 0, 0, 0)
+        day.setDate(day.getDate() - i)
+        dauBuckets.set(day.toISOString().slice(0, 10), 0)
+      }
+      ;(familiesList || []).forEach(f => {
+        if (!f.last_accessed) return
+        if (f.last_accessed === f.created_at) return // never-accessed sentinel
+        const key = new Date(f.last_accessed).toISOString().slice(0, 10)
+        if (dauBuckets.has(key)) dauBuckets.set(key, dauBuckets.get(key) + 1)
+      })
+      dauBuckets.forEach((count, day) => dailyActiveUsers.push({ day, count }))
+    }
+
+    // Retention rate (30d) — % of families that have created a post within
+    // the last 30 days. A blunt metric, but a useful trendline for now.
+    let retentionRate = 0
+    if ((totalFamilies || 0) > 0) {
+      const activeFamilies = familiesWithStats.filter(f => f.posts_last_30d > 0).length
+      retentionRate = Math.round((activeFamilies / totalFamilies) * 100)
+    }
+
+    // Totals for the analytics summary card
+    const newFamiliesLast30d = newFamiliesPerDay.reduce((s, d) => s + d.count, 0)
+    const newFamiliesLast7d = familiesWithStats.filter(f =>
+      f.created_at && new Date(f.created_at) >= sevenDaysAgo
+    ).length
+    const dauToday = (familiesList || []).filter(f =>
+      f.last_accessed && f.last_accessed !== f.created_at && new Date(f.last_accessed) >= oneDayAgo
+    ).length
 
     res.status(200).json({
       totalFamilies: totalFamilies || 0,
@@ -144,14 +284,23 @@ async function handler(req, res) {
       totalPhotos: totalPhotos || 0,
       storageUsed: estimatedStorageUsed,
       familiesList: familiesWithStats,
-      recentActivity: formattedActivity
+      recentActivity: formattedActivity,
+      analytics: {
+        newFamiliesPerDay,
+        familyGrowth,
+        storageGrowth,
+        dailyActiveUsers,
+        retentionRate,
+        newFamiliesLast30d,
+        newFamiliesLast7d,
+        dauToday,
+      },
     })
-
   } catch (error) {
     console.error('Dashboard data error:', error)
     res.status(500).json({
       error: 'Eroare la încărcarea datelor dashboard-ului',
-      details: error.message
+      details: error.message,
     })
   }
 }

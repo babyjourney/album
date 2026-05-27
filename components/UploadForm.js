@@ -7,7 +7,7 @@ import { useOnClickOutside } from '../hooks/useOnClickOutside'
 import { useLanguage } from '../contexts/LanguageContext'
 import DatePicker from './DatePicker'
 import { getCategories } from '../lib/categoriesData'
-import { getPackageLimits } from '../lib/packages'
+import { getPackageLimits, getImageCompressionOptions, getVideoLimits } from '../lib/packages'
 
 export default function UploadForm({ familyId, onUploadSuccess, onClose, refreshTrigger }) {
   const [title, setTitle] = useState('')
@@ -258,7 +258,10 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
     setLoading(true)
 
     const maxVideoSeconds = getPackageLimits(currentPackage).maxVideoSeconds
+    const videoLimits = getVideoLimits(currentPackage)
+    const maxVideoBytes = videoLimits.maxMB * 1024 * 1024
     let rejectedLongVideos = 0
+    let rejectedLargeVideos = 0
 
     for (const selectedFile of selectedFiles) {
       const fileExists = processedFiles.some(existingFile =>
@@ -294,6 +297,11 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
       // reject over-limit files without wasting bandwidth on the upload.
       let videoDurationSec = null
       if (selectedFile.type.startsWith('video/')) {
+        // Tier-based byte cap (Task #15) — Premium gets larger video budget.
+        if (selectedFile.size > maxVideoBytes) {
+          rejectedLargeVideos += 1
+          continue
+        }
         videoDurationSec = await probeVideoDuration(selectedFile)
         if (videoDurationSec !== null && videoDurationSec > maxVideoSeconds) {
           rejectedLongVideos += 1
@@ -303,13 +311,11 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
 
       try {
         if (selectedFile.type.startsWith('image/')) {
+          // Tier-based compression (Task #15): Free uses tighter caps for
+          // SD quality, Premium uses higher caps for HD. See lib/packages.js.
           const options = {
-            maxSizeMB: 2,
-            maxWidthOrHeight: 2048,
-            useWebWorker: true,
+            ...getImageCompressionOptions(currentPackage),
             fileType: selectedFile.type,
-            initialQuality: 0.8,
-            alwaysKeepResolution: false
           }
 
           const compressedFile = await imageCompression(selectedFile, options)
@@ -330,6 +336,13 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
       const msg = rejectedLongVideos === 1
         ? `Un video a fost respins: durata maximă pentru pachetul ${currentPackage === 'premium' ? 'Premium' : 'Free'} este ${maxVideoSeconds} secunde. Treci la Premium pentru video-uri mai lungi.`
         : `${rejectedLongVideos} video-uri au fost respinse: durata maximă pentru pachetul ${currentPackage === 'premium' ? 'Premium' : 'Free'} este ${maxVideoSeconds} secunde. Treci la Premium pentru video-uri mai lungi.`
+      setError(msg)
+      showError(msg)
+    }
+    if (rejectedLargeVideos > 0) {
+      const msg = rejectedLargeVideos === 1
+        ? `Un video a fost respins: dimensiunea maximă pentru pachetul ${currentPackage === 'premium' ? 'Premium (HD)' : 'Free (SD)'} este ${videoLimits.maxMB}MB. Comprimă-l sau treci la Premium pentru video HD.`
+        : `${rejectedLargeVideos} video-uri au fost respinse: dimensiunea maximă pentru pachetul ${currentPackage === 'premium' ? 'Premium (HD)' : 'Free (SD)'} este ${videoLimits.maxMB}MB.`
       setError(msg)
       showError(msg)
     }
@@ -610,6 +623,21 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                     : `${t('dragAndDropBrowse')} • ${t('fileTypesSupported')} • ${t('maxFiles')}`
                   }
                 </p>
+
+                {/* Quality tier indicator (Task #15) */}
+                <div style={{ marginTop: 10, display: 'flex', justifyContent: 'center', gap: 6 }}>
+                  <span className="glass-pill" style={{
+                    padding: '3px 10px',
+                    fontSize: '10.5px',
+                    fontWeight: 700,
+                    letterSpacing: '0.06em',
+                    color: currentPackage === 'premium' ? 'var(--accent-iris)' : 'var(--ink-2)',
+                    borderColor: currentPackage === 'premium' ? 'rgba(124,58,237,0.45)' : 'var(--glass-hairline)',
+                    background: currentPackage === 'premium' ? 'rgba(124,58,237,0.12)' : 'var(--glass-1)'
+                  }}>
+                    {currentPackage === 'premium' ? '📷 HD · 🎬 HD video' : '📷 SD · 🎬 SD video'}
+                  </span>
+                </div>
 
                 <input
                   id="file-upload"

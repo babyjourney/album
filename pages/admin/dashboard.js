@@ -17,14 +17,28 @@ export default function AdminDashboard() {
   const [exportData, setExportData] = useState([])
   const [exportLoading, setExportLoading] = useState(false)
   const [showExportModal, setShowExportModal] = useState(false)
-  const [sortBy, setSortBy] = useState('name') // name, last_post, last_access, photos, storage
+  const [sortBy, setSortBy] = useState('name') // name, last_post, last_access, photos, storage, posts_30d, activity
   const [sortOrder, setSortOrder] = useState('asc') // asc, desc
-  const [filterBy, setFilterBy] = useState('all') // all, active, inactive, no_posts
+  const [filterBy, setFilterBy] = useState('all') // all, active, inactive, no_posts, very_active, sleeping, dead
   const [searchTerm, setSearchTerm] = useState('')
+  // Per-family year selection for the year-scoped export dropdown.
+  // Keyed by family id; defaults to the current year on first interaction.
+  const [exportYearByFamily, setExportYearByFamily] = useState({})
 
   useEffect(() => {
     checkAuth()
     fetchDashboardData()
+  }, [])
+
+  // Force dark theme for the admin panel (see admin/login.js for rationale).
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    const prev = document.documentElement.getAttribute('data-theme')
+    document.documentElement.setAttribute('data-theme', 'dark')
+    return () => {
+      if (prev) document.documentElement.setAttribute('data-theme', prev)
+      else document.documentElement.removeAttribute('data-theme')
+    }
   }, [])
 
   const checkAuth = () => {
@@ -83,6 +97,67 @@ export default function AdminDashboard() {
     } finally {
       setExportLoading(false)
     }
+  }
+
+  // Download a JSON response straight from the admin export endpoints,
+  // preserving the server-supplied filename when present.
+  const downloadJsonResponse = async (response, fallbackName) => {
+    const dispo = response.headers.get('content-disposition') || ''
+    const match = /filename="?([^";]+)"?/i.exec(dispo)
+    const filename = match ? match[1] : fallbackName
+    const json = await response.json()
+    const blob = new Blob([JSON.stringify(json, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
+  const handleExportFamilyAll = async (family) => {
+    try {
+      const response = await adminFetch(`/api/admin/export-family-all?familyId=${family.id}`)
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}))
+        alert('Eroare export: ' + (err.error || response.statusText))
+        return
+      }
+      await downloadJsonResponse(response, `${family.name || 'familie'}-export-complet.json`)
+    } catch (error) {
+      console.error('Export family all error:', error)
+      alert('Eroare la exportarea familiei')
+    }
+  }
+
+  const handleExportFamilyYear = async (family, year) => {
+    if (!year) return
+    try {
+      const response = await adminFetch(`/api/admin/export-family-year?familyId=${family.id}&year=${year}`)
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}))
+        alert('Eroare export: ' + (err.error || response.statusText))
+        return
+      }
+      await downloadJsonResponse(response, `${family.name || 'familie'}-${year}.json`)
+    } catch (error) {
+      console.error('Export family year error:', error)
+      alert('Eroare la exportarea anului')
+    }
+  }
+
+  // The dropdown lets the admin pick any year between the family's account
+  // creation and the current year (inclusive). Used to scope EXPORT (per ani).
+  const yearsForFamily = (family) => {
+    const startYear = family.created_at
+      ? new Date(family.created_at).getFullYear()
+      : new Date().getFullYear()
+    const endYear = new Date().getFullYear()
+    const years = []
+    for (let y = endYear; y >= startYear; y--) years.push(y)
+    return years
   }
 
   const createCSV = (data) => {
@@ -180,6 +255,15 @@ export default function AdminDashboard() {
         case 'suspended':
           matchesFilter = family.is_suspended === true
           break
+        case 'very_active':
+          matchesFilter = family.activity_code === 'very_active'
+          break
+        case 'sleeping':
+          matchesFilter = family.activity_code === 'sleeping'
+          break
+        case 'dead':
+          matchesFilter = family.activity_code === 'dead'
+          break
         default:
           matchesFilter = true
       }
@@ -210,6 +294,15 @@ export default function AdminDashboard() {
         case 'storage':
           aValue = a.storage_used || 0
           bValue = b.storage_used || 0
+          break
+        case 'posts_30d':
+          aValue = a.posts_last_30d || 0
+          bValue = b.posts_last_30d || 0
+          break
+        case 'activity':
+          // Higher rank = more active. Stored on the row by the API.
+          aValue = a.activity_rank ?? -1
+          bValue = b.activity_rank ?? -1
           break
         case 'name':
         default:
@@ -435,6 +528,71 @@ export default function AdminDashboard() {
           ))}
         </div>
 
+        {/* Growth Analytics — Tasks #10/#11.
+            Shows trendlines for the past 30 days. Sparkline-based so we don't
+            need an external charting lib. */}
+        {dashboardData.analytics && (
+          <div className="card-glass" style={{ padding: '24px', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '18px', flexWrap: 'wrap', gap: '8px' }}>
+              <h2 className="text-section-title" style={{ margin: 0 }}>
+                Growth Analytics
+              </h2>
+              <span className="text-tertiary" style={{ fontSize: '12.5px' }}>
+                Ultimele 30 zile
+              </span>
+            </div>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+              gap: '14px',
+            }}>
+              <AnalyticsCard
+                eyebrow="Familii noi (30 zile)"
+                value={dashboardData.analytics.newFamiliesLast30d}
+                sub={`${dashboardData.analytics.newFamiliesLast7d} în ultimele 7 zile`}
+                series={dashboardData.analytics.newFamiliesPerDay.map(d => d.count)}
+                stroke="var(--accent-iris)"
+                fill="rgba(124, 58, 237, 0.18)"
+              />
+              <AnalyticsCard
+                eyebrow="Total familii (cumulativ)"
+                value={dashboardData.totalFamilies}
+                sub={`+${dashboardData.analytics.newFamiliesLast30d} luna aceasta`}
+                series={dashboardData.analytics.familyGrowth.map(d => d.total)}
+                stroke="var(--accent-mint)"
+                fill="rgba(52, 211, 153, 0.18)"
+              />
+              <AnalyticsCard
+                eyebrow="Storage (cumulativ)"
+                value={formatFileSize(dashboardData.storageUsed)}
+                sub="creștere reală"
+                series={dashboardData.analytics.storageGrowth.map(d => d.bytes)}
+                stroke="var(--accent-amber)"
+                fill="rgba(245, 158, 11, 0.18)"
+                isMonetary={false}
+              />
+              <AnalyticsCard
+                eyebrow="DAU (azi)"
+                value={dashboardData.analytics.dauToday}
+                sub="utilizatori activi azi"
+                series={dashboardData.analytics.dailyActiveUsers.map(d => d.count)}
+                stroke="var(--accent-aqua)"
+                fill="rgba(6, 182, 212, 0.18)"
+              />
+              <AnalyticsCard
+                eyebrow="Retention rate (30z)"
+                value={`${dashboardData.analytics.retentionRate}%`}
+                sub="familii cu postări recente"
+                series={null}
+                stroke="var(--accent-peach)"
+                fill="rgba(251, 113, 133, 0.18)"
+                bigValue
+              />
+            </div>
+          </div>
+        )}
+
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
@@ -577,6 +735,9 @@ export default function AdminDashboard() {
                 <option value="inactive">Inactive (peste 30 zile)</option>
                 <option value="no_posts">Fără postări</option>
                 <option value="suspended">Suspendate</option>
+                <option value="very_active">🔥 Very active</option>
+                <option value="sleeping">😴 Sleeping</option>
+                <option value="dead">💀 Dead</option>
               </select>
             </div>
 
@@ -596,6 +757,8 @@ export default function AdminDashboard() {
                 <option value="last_access">Ultima accesare</option>
                 <option value="photos">Număr fotografii</option>
                 <option value="storage">Spațiu folosit</option>
+                <option value="posts_30d">Postări 30 zile</option>
+                <option value="activity">Activitate (emoji)</option>
               </select>
             </div>
 
@@ -651,6 +814,22 @@ export default function AdminDashboard() {
                     style={{ textAlign: 'left', padding: '8px 12px', cursor: 'pointer', userSelect: 'none' }}
                   >
                     Spațiu {getSortIcon('storage')}
+                  </th>
+                  <th
+                    onClick={() => handleSort('posts_30d')}
+                    className="text-eyebrow"
+                    style={{ textAlign: 'left', padding: '8px 12px', cursor: 'pointer', userSelect: 'none' }}
+                    title="Numărul de postări din ultimele 30 de zile"
+                  >
+                    Postări 30z {getSortIcon('posts_30d')}
+                  </th>
+                  <th
+                    onClick={() => handleSort('activity')}
+                    className="text-eyebrow"
+                    style={{ textAlign: 'left', padding: '8px 12px', cursor: 'pointer', userSelect: 'none' }}
+                    title="🔥 very active · 🙂 active · 😴 sleeping · 💀 dead"
+                  >
+                    Activ {getSortIcon('activity')}
                   </th>
                   <th
                     onClick={() => handleSort('last_post')}
@@ -762,6 +941,33 @@ export default function AdminDashboard() {
                         )}
                       </td>
                       <td style={{ padding: '14px 12px' }}>
+                        <div className="text-body nums" style={{ fontWeight: 600 }}>
+                          {family.posts_last_30d || 0}
+                        </div>
+                        <div className="text-tertiary" style={{ fontSize: '11.5px' }}>
+                          {family.posts_last_30d > 0 ? 'postări' : 'fără postări'}
+                        </div>
+                      </td>
+                      <td style={{ padding: '14px 12px', textAlign: 'center' }}>
+                        <span
+                          title={
+                            family.activity_code === 'very_active' ? 'Very active — postare recentă' :
+                            family.activity_code === 'active' ? 'Active — postare în ultima lună' :
+                            family.activity_code === 'sleeping' ? 'Sleeping — fără postări de peste 30 zile' :
+                            family.activity_code === 'dead' ? 'Dead — fără postări de peste 90 zile' :
+                            ''
+                          }
+                          style={{
+                            fontSize: '24px',
+                            display: 'inline-block',
+                            filter: family.activity_code === 'dead' ? 'grayscale(0.4)' : 'none',
+                          }}
+                          aria-label={family.activity_code}
+                        >
+                          {family.activity_emoji || '😴'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '14px 12px' }}>
                         <div className="text-body nums">{formatDate(family.last_post_date)}</div>
                         {family.days_since_last_post !== null && (
                           <div className="nums" style={{
@@ -833,28 +1039,82 @@ export default function AdminDashboard() {
                         })()}
                       </td>
                       <td style={{ padding: '14px 12px', borderRadius: '0 14px 14px 0' }}>
-                        <button
-                          onClick={() => handleToggleSuspend(family.id, family.is_suspended)}
-                          style={{
-                            padding: '7px 14px',
-                            background: family.is_suspended
-                              ? 'linear-gradient(135deg, #34d399, #10b981)'
-                              : 'linear-gradient(135deg, #f87171, #dc2626)',
-                            color: 'white',
-                            border: '1px solid rgba(255,255,255,0.18)',
-                            borderRadius: '12px',
-                            cursor: 'pointer',
-                            fontSize: '12.5px',
-                            fontWeight: 600,
-                            whiteSpace: 'nowrap',
-                            boxShadow: family.is_suspended
-                              ? 'inset 0 1px 0 0 rgba(255,255,255,0.30), 0 6px 18px -6px rgba(16,185,129,0.50)'
-                              : 'inset 0 1px 0 0 rgba(255,255,255,0.30), 0 6px 18px -6px rgba(220,38,38,0.50)',
-                            transition: 'transform 180ms cubic-bezier(0.22,1,0.36,1), filter 180ms cubic-bezier(0.22,1,0.36,1)'
-                          }}
-                        >
-                          {family.is_suspended ? 'Reactivează' : 'Suspendă'}
-                        </button>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '140px' }}>
+                          <button
+                            onClick={() => handleToggleSuspend(family.id, family.is_suspended)}
+                            style={{
+                              padding: '7px 14px',
+                              background: family.is_suspended
+                                ? 'linear-gradient(135deg, #34d399, #10b981)'
+                                : 'linear-gradient(135deg, #f87171, #dc2626)',
+                              color: 'white',
+                              border: '1px solid rgba(255,255,255,0.18)',
+                              borderRadius: '12px',
+                              cursor: 'pointer',
+                              fontSize: '12.5px',
+                              fontWeight: 600,
+                              whiteSpace: 'nowrap',
+                              boxShadow: family.is_suspended
+                                ? 'inset 0 1px 0 0 rgba(255,255,255,0.30), 0 6px 18px -6px rgba(16,185,129,0.50)'
+                                : 'inset 0 1px 0 0 rgba(255,255,255,0.30), 0 6px 18px -6px rgba(220,38,38,0.50)',
+                              transition: 'transform 180ms cubic-bezier(0.22,1,0.36,1), filter 180ms cubic-bezier(0.22,1,0.36,1)'
+                            }}
+                          >
+                            {family.is_suspended ? 'Reactivează' : 'Suspendă'}
+                          </button>
+
+                          <button
+                            onClick={() => handleExportFamilyAll(family)}
+                            title="Exportă tot conținutul familiei (poze, video, texte, metadate) — pentru migrare sau încheiere contract"
+                            style={{
+                              padding: '6px 12px',
+                              background: 'linear-gradient(135deg, #6366f1, #4338ca)',
+                              color: 'white',
+                              border: '1px solid rgba(255,255,255,0.18)',
+                              borderRadius: '12px',
+                              cursor: 'pointer',
+                              fontSize: '12px',
+                              fontWeight: 600,
+                              whiteSpace: 'nowrap',
+                              boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.30), 0 6px 18px -6px rgba(67,56,202,0.50)',
+                            }}
+                          >
+                            ⬇ EXPORT all
+                          </button>
+
+                          <div style={{ display: 'flex', gap: '4px' }}>
+                            <select
+                              value={exportYearByFamily[family.id] ?? new Date().getFullYear()}
+                              onChange={(e) => setExportYearByFamily(prev => ({ ...prev, [family.id]: e.target.value }))}
+                              className="input-glass"
+                              style={{ padding: '5px 8px', fontSize: '11.5px', flex: '0 0 auto' }}
+                              title="An pentru export"
+                            >
+                              {yearsForFamily(family).map(y => (
+                                <option key={y} value={y}>{y}</option>
+                              ))}
+                            </select>
+                            <button
+                              onClick={() => handleExportFamilyYear(family, exportYearByFamily[family.id] ?? new Date().getFullYear())}
+                              title="Exportă doar postările din anul selectat — pentru album cadou sau contra plată la sfârșit de an"
+                              style={{
+                                flex: 1,
+                                padding: '6px 8px',
+                                background: 'linear-gradient(135deg, #06b6d4, #0e7490)',
+                                color: 'white',
+                                border: '1px solid rgba(255,255,255,0.18)',
+                                borderRadius: '12px',
+                                cursor: 'pointer',
+                                fontSize: '11.5px',
+                                fontWeight: 600,
+                                whiteSpace: 'nowrap',
+                                boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.30), 0 6px 18px -6px rgba(14,116,144,0.50)',
+                              }}
+                            >
+                              ⬇ EXPORT
+                            </button>
+                          </div>
+                        </div>
                       </td>
                     </tr>
                   )
@@ -934,5 +1194,50 @@ export default function AdminDashboard() {
         }
       `}</style>
     </div>
+  )
+}
+
+// Inline sparkline-style card used by the Growth Analytics section.
+// Stays in this file (no new file) since it's only used here. Pure SVG —
+// no charting dep.
+function AnalyticsCard({ eyebrow, value, sub, series, stroke, fill, bigValue }) {
+  return (
+    <div className="glass-soft" style={{ padding: '16px 18px', borderRadius: '16px' }}>
+      <p className="text-eyebrow" style={{ marginBottom: '8px' }}>{eyebrow}</p>
+      <p className="text-display nums" style={{ fontSize: bigValue ? '32px' : '24px', margin: '0 0 6px' }}>
+        {value}
+      </p>
+      {sub && (
+        <p className="text-tertiary" style={{ margin: 0, fontSize: '12px' }}>
+          {sub}
+        </p>
+      )}
+      {series && series.length > 1 && (
+        <div style={{ marginTop: '10px' }}>
+          <Sparkline values={series} stroke={stroke} fill={fill} />
+        </div>
+      )}
+    </div>
+  )
+}
+
+function Sparkline({ values, stroke = 'var(--accent-iris)', fill = 'rgba(124,58,237,0.18)', width = 200, height = 44 }) {
+  if (!values || values.length === 0) return null
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  const range = max - min || 1
+  const stepX = width / (values.length - 1 || 1)
+  const points = values.map((v, i) => {
+    const x = i * stepX
+    const y = height - ((v - min) / range) * (height - 4) - 2
+    return [x, y]
+  })
+  const pathD = points.map(([x, y], i) => (i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`)).join(' ')
+  const areaD = `${pathD} L ${width} ${height} L 0 ${height} Z`
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" style={{ width: '100%', height: height, display: 'block' }}>
+      <path d={areaD} fill={fill} />
+      <path d={pathD} fill="none" stroke={stroke} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
   )
 }

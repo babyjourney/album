@@ -1,28 +1,34 @@
 import { supabase } from '../../../lib/supabaseClient'
 import rateLimiter from '../../../lib/rateLimiter'
 import { issueFamilyToken } from '../../../lib/authMiddleware'
+import { verifyOtp } from '../../../lib/otpStore'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Metoda nu este permisă' })
   }
 
-  const { pin, phoneNumber } = req.body
+  // `email` and `otpCode` are optional. They're only required when the
+  // family has `require_otp_login = true` (Task #3 — 2FA login).
+  const { pin, phoneNumber, email, otpCode } = req.body
 
   if (!pin) {
     return res.status(400).json({ error: 'PIN-ul este obligatoriu' })
   }
 
-  if (!phoneNumber) {
-    return res.status(400).json({ error: 'Numărul de telefon este obligatoriu' })
+  // Either phone OR email must be provided. Phone remains the primary path
+  // for backward compatibility; email is allowed for 2FA-enabled families.
+  if (!phoneNumber && !email) {
+    return res.status(400).json({ error: 'Numărul de telefon sau email-ul este obligatoriu' })
   }
 
   // Remove any spaces and validate formats first
   const cleanPin = pin.toString().replace(/\s/g, '')
-  const cleanPhone = phoneNumber.toString().replace(/\s/g, '')
+  const cleanPhone = phoneNumber ? phoneNumber.toString().replace(/\s/g, '') : ''
+  const cleanEmail = email ? String(email).trim().toLowerCase() : ''
 
-  // Get client identifier for rate limiting (include phone number for better tracking)
-  const clientId = rateLimiter.getClientId(req, cleanPhone)
+  // Get client identifier for rate limiting (include phone or email for better tracking)
+  const clientId = rateLimiter.getClientId(req, cleanPhone || cleanEmail)
   
   // Check if client is currently blocked
   const blockStatus = rateLimiter.isBlocked(clientId)
@@ -43,44 +49,47 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'PIN-ul trebuie să aibă 4 sau 8 cifre' })
   }
 
-  // Validate phone number format (Romanian format: 068327082 or 68327082)
-  const phoneRegex = /^(0)?[67][0-9]{7}$/
-  if (!phoneRegex.test(cleanPhone)) {
-    return res.status(400).json({ error: 'Numărul de telefon nu este valid (format: 061234567 sau 61234567)' })
+  // Validate phone number format (Romanian format: 068327082 or 68327082).
+  // Only enforced when caller supplied a phone (email-only login is allowed
+  // for 2FA-enabled families).
+  if (cleanPhone) {
+    const phoneRegex = /^(0)?[67][0-9]{7}$/
+    if (!phoneRegex.test(cleanPhone)) {
+      return res.status(400).json({ error: 'Numărul de telefon nu este valid (format: 061234567 sau 61234567)' })
+    }
+  }
+
+  if (cleanEmail) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(cleanEmail)) {
+      return res.status(400).json({ error: 'Adresa de email nu este validă' })
+    }
   }
 
   try {
     let family = null
     let role = null
 
-    // Check if it's a 4-digit viewer PIN with matching phone number
-    if (cleanPin.length === 4) {
-      const { data, error } = await supabase
-        .from('families')
-        .select('id, name, phone_number, viewer_pin, is_suspended, package')
-        .eq('viewer_pin', cleanPin)
-        .eq('phone_number', cleanPhone)
-        .single()
+    // PIN + contact (phone OR email) must both match an existing family.
+    // We try the role implied by PIN length first.
+    const pinColumn = cleanPin.length === 4 ? 'viewer_pin' : 'editor_pin'
+    const roleForPin = cleanPin.length === 4 ? 'viewer' : 'editor'
 
-      if (!error && data) {
-        family = data
-        role = 'viewer'
-      }
+    let query = supabase
+      .from('families')
+      .select('id, name, phone_number, email, viewer_pin, editor_pin, is_suspended, package, require_otp_login')
+      .eq(pinColumn, cleanPin)
+
+    if (cleanPhone) {
+      query = query.eq('phone_number', cleanPhone)
+    } else if (cleanEmail) {
+      query = query.ilike('email', cleanEmail)
     }
 
-    // Check if it's an 8-digit editor PIN with matching phone number
-    if (cleanPin.length === 8 && !family) {
-      const { data, error } = await supabase
-        .from('families')
-        .select('id, name, phone_number, editor_pin, is_suspended, package')
-        .eq('editor_pin', cleanPin)
-        .eq('phone_number', cleanPhone)
-        .single()
-
-      if (!error && data) {
-        family = data
-        role = 'editor'
-      }
+    const { data, error } = await query.maybeSingle()
+    if (!error && data) {
+      family = data
+      role = roleForPin
     }
 
     // If no family found with this PIN
@@ -117,6 +126,34 @@ export default async function handler(req, res) {
         error: 'Acest album a fost suspendat. Contactați administratorul pentru mai multe informații.',
         suspended: true
       })
+    }
+
+    // 2FA gate (Task #3): if this family requires OTP login, we need to
+    // verify the OTP code BEFORE issuing the session token. The OTP was
+    // requested earlier via /api/auth/request-otp.
+    if (family.require_otp_login) {
+      if (!otpCode) {
+        return res.status(401).json({
+          error: 'Cod de verificare necesar.',
+          code: 'OTP_REQUIRED',
+          otpRequired: true,
+          deliveryHint: cleanEmail ? 'email' : 'phone',
+        })
+      }
+      const otpContactValue = cleanEmail || cleanPhone
+      const otpResult = await verifyOtp({
+        familyId: family.id,
+        contactValue: otpContactValue,
+        purpose: 'login_2fa',
+        code: otpCode,
+      })
+      if (!otpResult.ok) {
+        return res.status(401).json({
+          error: otpResult.error,
+          code: 'OTP_INVALID',
+          otpRequired: true,
+        })
+      }
     }
 
     // Success! Clear any rate limiting for this client

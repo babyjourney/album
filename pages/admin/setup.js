@@ -20,6 +20,17 @@ export default function AdminSetup() {
     }
   }, [router])
 
+  // Force dark theme for admin pages.
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    const prev = document.documentElement.getAttribute('data-theme')
+    document.documentElement.setAttribute('data-theme', 'dark')
+    return () => {
+      if (prev) document.documentElement.setAttribute('data-theme', prev)
+      else document.documentElement.removeAttribute('data-theme')
+    }
+  }, [])
+
   const generateUniquePin = async (length) => {
     const column = length === 4 ? 'viewer_pin' : 'editor_pin'
     let attempts = 0

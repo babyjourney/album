@@ -1,19 +1,35 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
-import { loginWithPin, isAuthenticated } from '../lib/pinAuth'
+import Head from 'next/head'
+import Link from 'next/link'
+import { loginWithPin, isAuthenticated, requestLoginOtp } from '../lib/pinAuth'
 
 export default function Login() {
+  const router = useRouter()
   const [pin, setPin] = useState('')
   const [phoneNumber, setPhoneNumber] = useState('')
+  const [email, setEmail] = useState('')
+  const [otpCode, setOtpCode] = useState('')
+  // 'phone' | 'email' — how the user wants to identify themselves
+  const [channel, setChannel] = useState('phone')
+  // 2FA second step is only shown when the server tells us OTP is required.
+  // The login is a single submit unless the family has require_otp_login=true.
+  const [otpStep, setOtpStep] = useState(false)
+  const [otpDeliveryHint, setOtpDeliveryHint] = useState(null)
+  const [resetSuccess, setResetSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [rateLimitInfo, setRateLimitInfo] = useState(null)
   const [cooldownTimer, setCooldownTimer] = useState(null)
-  const router = useRouter()
 
   useEffect(() => {
     if (isAuthenticated()) router.push('/dashboard')
   }, [])
+
+  // Show a success banner when the user lands here from /forgot-password.
+  useEffect(() => {
+    if (router.query.reset === 'ok') setResetSuccess(true)
+  }, [router.query.reset])
 
   useEffect(() => {
     if (rateLimitInfo && rateLimitInfo.blockedUntil) {
@@ -42,19 +58,73 @@ export default function Login() {
     return `${s}s`
   }
 
+  const contactPayload = () => (
+    channel === 'email'
+      ? { email: email.trim() }
+      : { phoneNumber: phoneNumber.trim() }
+  )
+
+  // Single login submit. We first call /api/auth/request-otp to find out
+  // whether this family has 2FA enabled. If yes, we collect the OTP code
+  // before calling pin-login. If no, we go straight to pin-login.
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setLoading(true)
     setError('')
 
-    if (!phoneNumber) { setError('Introduceți numărul de telefon'); setLoading(false); return }
-    if (!pin)         { setError('Introduceți PIN-ul');           setLoading(false); return }
+    if (channel === 'phone' && !phoneNumber) {
+      setError('Introduceți numărul de telefon')
+      return
+    }
+    if (channel === 'email' && !email) {
+      setError('Introduceți adresa de email')
+      return
+    }
+    if (!pin) {
+      setError('Introduceți PIN-ul')
+      return
+    }
+    if (otpStep && !otpCode) {
+      setError('Introduceți codul de verificare primit')
+      return
+    }
 
-    const result = await loginWithPin(pin, phoneNumber)
+    setLoading(true)
+
+    // If we're not already in the OTP step, ask the server whether 2FA
+    // is required for this contact. This is a non-leaking probe — the
+    // endpoint replies the same shape for found and not-found accounts.
+    if (!otpStep) {
+      const probe = await requestLoginOtp(contactPayload())
+      if (probe.success && probe.otpRequired) {
+        setOtpStep(true)
+        setOtpDeliveryHint(probe.deliveryHint)
+        setLoading(false)
+        return
+      }
+      // Either probe.success === false (network error) or otpRequired === false.
+      // In either case, fall through to pin-login: it will return OTP_REQUIRED
+      // again if the server thinks 2FA is needed.
+    }
+
+    const result = await loginWithPin({
+      pin,
+      ...contactPayload(),
+      otpCode: otpStep ? otpCode : undefined,
+    })
 
     if (result.success) {
       setRateLimitInfo(null); setCooldownTimer(null); setError('')
       router.push('/dashboard')
+      return
+    }
+
+    // Server told us OTP is required (covers the case where the probe
+    // missed — e.g. user changed phone after request-otp).
+    if (result.otpRequired) {
+      setOtpStep(true)
+      setOtpDeliveryHint(result.deliveryHint || null)
+      setError(result.code === 'OTP_INVALID' ? result.error : '')
+      setLoading(false)
       return
     }
 
@@ -70,10 +140,45 @@ export default function Login() {
     setLoading(false)
   }
 
+  const handleResendOtp = async () => {
+    setError('')
+    setLoading(true)
+    const probe = await requestLoginOtp(contactPayload())
+    setLoading(false)
+    if (!probe.success) {
+      setError(probe.error || 'Nu am putut retrimite codul.')
+      return
+    }
+    setOtpDeliveryHint(probe.deliveryHint || otpDeliveryHint)
+  }
+
   const isBlocked = rateLimitInfo && cooldownTimer
 
   return (
-    <div style={{
+    <>
+      <Head>
+        {/* Task #13 — SEO + social-share metadata for the public album login.
+            All image references use absolute Chisinau-tagged WebP filenames
+            following the BabyJourney naming convention (see public/img/SEO.md). */}
+        <title>Album familie — Intră în BabyJourney</title>
+        <meta name="description" content="Albumul tău privat de familie BabyJourney. Conectează-te cu numărul de telefon sau email-ul și PIN-ul de viewer sau editor pentru a vedea amintirile copiilor tăi." />
+        <meta name="keywords" content="album familie, BabyJourney, jurnal bebe, amintiri copii, album privat, Chisinau, Moldova, foto familie, jurnal nou-nascut" />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="BabyJourney — Album privat de familie" />
+        <meta property="og:description" content="Albumul tău privat de familie. Toate momentele copilăriei într-un singur loc, în siguranță." />
+        <meta property="og:image" content="https://album.babyjourney.life/img/BabyJourney_couple_with_little_boy.webp" />
+        <meta property="og:image:alt" content="Părinți zâmbind cu băiețelul lor — album de familie BabyJourney din Chisinau" />
+        <meta property="og:locale" content="ro_RO" />
+        <meta property="og:site_name" content="BabyJourney" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="BabyJourney — Album privat de familie" />
+        <meta name="twitter:description" content="Toate momentele copilăriei într-un singur loc." />
+        <meta name="twitter:image" content="https://album.babyjourney.life/img/BabyJourney_couple_with_little_boy.webp" />
+        <meta name="geo.region" content="MD-CU" />
+        <meta name="geo.placename" content="Chișinău, Moldova" />
+        <link rel="canonical" href="https://album.babyjourney.life/login" />
+      </Head>
+      <div style={{
       minHeight: '100vh',
       display: 'flex',
       alignItems: 'center',
@@ -147,18 +252,69 @@ export default function Login() {
             style={{ position: 'absolute', left: '-9999px', opacity: 0, pointerEvents: 'none' }}
           />
 
-          <label htmlFor="phone" className="text-eyebrow" style={{ display: 'block', marginBottom: 8 }}>
-            Număr de telefon
-          </label>
-          <input
-            id="phone" name="phone" type="tel" autoComplete="tel"
-            value={phoneNumber}
-            onChange={(e) => setPhoneNumber(e.target.value)}
-            placeholder="061234567"
-            required
-            className="input-glass"
-            style={{ marginBottom: 18 }}
-          />
+          {resetSuccess && (
+            <div role="status" style={{
+              marginBottom: 16, padding: '10px 12px',
+              background: 'rgba(52,211,153,0.10)',
+              border: '1px solid rgba(52,211,153,0.30)',
+              borderRadius: 12, color: 'var(--ink-1)',
+              backdropFilter: 'blur(12px)', fontSize: 13,
+            }}>
+              PIN-ul a fost actualizat. Conectează-te cu noul PIN.
+            </div>
+          )}
+
+          {/* Contact channel selector — phone or email (Task #3) */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+            <button
+              type="button"
+              onClick={() => { setChannel('phone'); setOtpStep(false); setOtpCode('') }}
+              className={`category-pill${channel === 'phone' ? ' category-pill--selected sheen' : ''}`}
+              style={{ flex: 1 }}
+            >
+              📱 Telefon
+            </button>
+            <button
+              type="button"
+              onClick={() => { setChannel('email'); setOtpStep(false); setOtpCode('') }}
+              className={`category-pill${channel === 'email' ? ' category-pill--selected sheen' : ''}`}
+              style={{ flex: 1 }}
+            >
+              ✉️ Email
+            </button>
+          </div>
+
+          {channel === 'phone' ? (
+            <>
+              <label htmlFor="phone" className="text-eyebrow" style={{ display: 'block', marginBottom: 8 }}>
+                Număr de telefon
+              </label>
+              <input
+                id="phone" name="phone" type="tel" autoComplete="tel"
+                value={phoneNumber}
+                onChange={(e) => { setPhoneNumber(e.target.value); setOtpStep(false); setOtpCode('') }}
+                placeholder="061234567"
+                required
+                className="input-glass"
+                style={{ marginBottom: 18 }}
+              />
+            </>
+          ) : (
+            <>
+              <label htmlFor="email" className="text-eyebrow" style={{ display: 'block', marginBottom: 8 }}>
+                Adresă de email
+              </label>
+              <input
+                id="email" name="email" type="email" autoComplete="email"
+                value={email}
+                onChange={(e) => { setEmail(e.target.value); setOtpStep(false); setOtpCode('') }}
+                placeholder="parinte@email.com"
+                required
+                className="input-glass"
+                style={{ marginBottom: 18 }}
+              />
+            </>
+          )}
 
           <label htmlFor="pin" className="text-eyebrow" style={{ display: 'block', marginBottom: 8 }}>
             PIN
@@ -178,6 +334,40 @@ export default function Login() {
               marginBottom: 12,
             }}
           />
+
+          {/* OTP step — only rendered when the server says 2FA is required. */}
+          {otpStep && (
+            <>
+              <label htmlFor="otp" className="text-eyebrow" style={{ display: 'block', marginBottom: 8, marginTop: 6 }}>
+                Cod de verificare {otpDeliveryHint ? `(${otpDeliveryHint === 'email' ? 'email' : 'SMS'})` : ''}
+              </label>
+              <input
+                id="otp" name="otp" type="text" inputMode="numeric" pattern="[0-9]*" maxLength="6"
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                placeholder="• • • • • •"
+                required
+                className="input-glass nums"
+                style={{
+                  textAlign: 'center', letterSpacing: 10, fontSize: 20,
+                  fontFamily: '"JetBrains Mono", SF Mono, monospace',
+                  marginBottom: 8,
+                }}
+              />
+              <button
+                type="button"
+                onClick={handleResendOtp}
+                disabled={loading}
+                style={{
+                  background: 'transparent', border: 'none',
+                  color: 'var(--ink-2)', fontSize: 12,
+                  cursor: 'pointer', padding: '2px 0', marginBottom: 12,
+                }}
+              >
+                Retrimite codul
+              </button>
+            </>
+          )}
 
           <div style={{
             display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 24,
@@ -244,6 +434,23 @@ export default function Login() {
           </div>
         </form>
 
+        {/* Forgot password — opens email-based PIN reset flow */}
+        <div style={{
+          textAlign: 'center', marginTop: 18,
+        }}>
+          <Link href="/forgot-password" legacyBehavior>
+            <a style={{
+              fontSize: 13,
+              color: 'var(--ink-2)',
+              textDecoration: 'none',
+              borderBottom: '1px dashed var(--glass-hairline-strong)',
+              paddingBottom: 1,
+            }}>
+              Ai uitat PIN-ul?
+            </a>
+          </Link>
+        </div>
+
         {/* Tagline below */}
         <div style={{
           textAlign: 'center', marginTop: 22,
@@ -252,7 +459,26 @@ export default function Login() {
         }}>
           Album · Familie · Momente
         </div>
+
+        {/* Legal footer */}
+        <div style={{
+          textAlign: 'center', marginTop: 18,
+          fontSize: 12, color: 'var(--ink-3)',
+          display: 'flex',
+          justifyContent: 'center',
+          gap: 12,
+          flexWrap: 'wrap',
+        }}>
+          <Link href="/terms" legacyBehavior><a style={{ color: 'inherit', textDecoration: 'none' }}>Termeni</a></Link>
+          <span aria-hidden>·</span>
+          <Link href="/privacy" legacyBehavior><a style={{ color: 'inherit', textDecoration: 'none' }}>Confidențialitate</a></Link>
+          <span aria-hidden>·</span>
+          <Link href="/cookies" legacyBehavior><a style={{ color: 'inherit', textDecoration: 'none' }}>Cookies</a></Link>
+          <span aria-hidden>·</span>
+          <Link href="/demo" legacyBehavior><a style={{ color: 'inherit', textDecoration: 'none' }}>Demo</a></Link>
+        </div>
       </div>
     </div>
+    </>
   )
 }

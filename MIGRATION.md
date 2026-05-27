@@ -15,6 +15,16 @@
    ADMIN_USERNAME=admin
    ADMIN_PASSWORD=<parola admin>
    SESSION_SECRET=<rulează: openssl rand -hex 32>
+
+   # Opțional — pentru OTP via email (forgot-PIN + 2FA login).
+   # Fără ele, codurile sunt logate în consolă (dev mode).
+   RESEND_API_KEY=<resend api key>
+   RESEND_FROM_EMAIL="BabyJourney <noreply@babyjourney.life>"
+
+   # Opțional — pentru OTP via SMS (forgot-PIN + 2FA login).
+   TWILIO_ACCOUNT_SID=<twilio sid>
+   TWILIO_AUTH_TOKEN=<twilio token>
+   TWILIO_FROM_NUMBER=+15555555555
    ```
 
 4. SQL Editor → New Query → paste `migration.sql` → Run
