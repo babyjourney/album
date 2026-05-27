@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../../lib/supabaseClient'
 import imageCompression from 'browser-image-compression'
-import { isAdminAuthenticated, clearAdminSession, adminFetch } from '../../lib/adminAuth'
+import { isAdminAuthenticated, clearAdminSession, adminFetch, parseAdminResponse } from '../../lib/adminAuth'
 
 export default function AdminSetup() {
   const router = useRouter()
@@ -115,11 +115,11 @@ export default function AdminSetup() {
           name: familyName.trim(),
         })
       })
-      const createPayload = await createResponse.json()
-      if (!createResponse.ok) {
-        throw new Error(createPayload.error || 'Crearea familiei a eșuat')
+      const parsed = await parseAdminResponse(createResponse)
+      if (!parsed.ok) {
+        throw new Error(parsed.error || 'Crearea familiei a eșuat')
       }
-      const data = createPayload.family
+      const data = parsed.data.family
       const viewerPin = data.viewer_pin
       const editorPin = data.editor_pin
 
@@ -134,8 +134,8 @@ export default function AdminSetup() {
           method: 'POST',
           body: JSON.stringify({ id: data.id, profilePictureUrl })
         })
-        const updatePayload = await updateResponse.json()
-        const updateError = updateResponse.ok ? null : updatePayload
+        const updateParsed = await parseAdminResponse(updateResponse)
+        const updateError = updateParsed.ok ? null : { error: updateParsed.error }
 
         if (updateError) {
           console.error('Error updating profile picture URL:', updateError)

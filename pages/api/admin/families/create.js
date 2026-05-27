@@ -140,27 +140,59 @@ async function handler(req, res) {
     if (cleanEmail) insertData.email = cleanEmail
     if (profilePictureUrl) insertData.profile_picture_url = profilePictureUrl
 
-    // Insert via service_role (RLS bypass).
-    let { data, error } = await supabase
-      .from('families')
-      .insert(insertData)
-      .select()
-      .single()
-
-    // Tolerate older deployed schemas that don't yet have the new columns.
-    if (error && error.message && (error.message.includes('column') || error.code === '42703')) {
-      const fallback = { ...insertData }
-      delete fallback.require_otp_login
+    // Insert via service_role (RLS bypass). If the deployed schema is missing
+    // any of the recently added columns (require_otp_login, email, package),
+    // postgres returns code "42703" with a message like
+    //   'column "require_otp_login" of relation "families" does not exist'.
+    // We progressively strip the offending column and retry, up to 6 times,
+    // so the request succeeds on any schema that at least has name + PINs.
+    const NON_ESSENTIAL = [
+      'require_otp_login', 'package', 'email',
+      'profile_picture_url', 'phone_number',
+    ]
+    let payload = { ...insertData }
+    let data, error
+    for (let attempt = 0; attempt < 6; attempt++) {
       ;({ data, error } = await supabase
         .from('families')
-        .insert(fallback)
+        .insert(payload)
         .select()
         .single())
+
+      if (!error) break
+
+      const msg = error.message || ''
+      const code = error.code || ''
+      const missingMatch = /column "([^"]+)" .* does not exist/i.exec(msg)
+      if (code === '42703' || code === 'PGRST204' || missingMatch || msg.toLowerCase().includes('column')) {
+        // Identify the missing column. If we can't parse it from the message,
+        // strip the next non-essential column.
+        let stripped = false
+        if (missingMatch && payload[missingMatch[1]] !== undefined) {
+          delete payload[missingMatch[1]]
+          stripped = true
+        } else {
+          for (const col of NON_ESSENTIAL) {
+            if (payload[col] !== undefined) {
+              delete payload[col]
+              stripped = true
+              break
+            }
+          }
+        }
+        if (stripped) continue
+      }
+      break
     }
 
     if (error) {
       console.error('admin/families/create insert failed:', error)
-      return res.status(500).json({ error: `Crearea familiei a eșuat: ${error.message}` })
+      return res.status(500).json({
+        error: `Crearea familiei a eșuat: ${error.message}`,
+        code: error.code || null,
+        hint: error.hint || null,
+        details: error.details || null,
+      })
     }
 
     return res.status(200).json({ ok: true, family: data })

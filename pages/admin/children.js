@@ -3,7 +3,7 @@ import { useRouter } from 'next/router'
 import { supabase } from '../../lib/supabaseClient'
 import imageCompression from 'browser-image-compression'
 import { useLanguage } from '../../contexts/LanguageContext'
-import { isAdminAuthenticated, clearAdminSession, adminFetch } from '../../lib/adminAuth'
+import { isAdminAuthenticated, clearAdminSession, adminFetch, parseAdminResponse } from '../../lib/adminAuth'
 
 export default function AdminDashboard() {
   const { language, t } = useLanguage()
@@ -80,11 +80,13 @@ export default function AdminDashboard() {
   const fetchAllFamilies = async () => {
     try {
       const response = await adminFetch('/api/admin/families/list')
-      const payload = await response.json()
-      if (!response.ok) {
-        throw new Error(payload.error || 'List failed')
+      const parsed = await parseAdminResponse(response)
+      if (!parsed.ok) {
+        console.error('Families list failed:', parsed.error)
+        setAllFamilies([])
+        return
       }
-      setAllFamilies(payload.families || [])
+      setAllFamilies(parsed.data.families || [])
     } catch (error) {
       console.error('Error fetching families:', error)
       setAllFamilies([])
@@ -345,11 +347,13 @@ export default function AdminDashboard() {
           email: cleanEmail || undefined,
         })
       })
-      const createPayload = await createResponse.json()
-      if (!createResponse.ok) {
-        throw new Error(createPayload.error || 'Crearea familiei a eșuat')
+      const parsed = await parseAdminResponse(createResponse)
+      if (!parsed.ok) {
+        // parsed.error is already user-readable (HTML 404, schema mismatch,
+        // duplicate phone, etc.). No more cryptic "Unexpected token '<'".
+        throw new Error(parsed.error || 'Crearea familiei a eșuat')
       }
-      const data = createPayload.family
+      const data = parsed.data.family
       const viewerPin = data.viewer_pin
       const editorPin = data.editor_pin
 
@@ -363,10 +367,10 @@ export default function AdminDashboard() {
             method: 'POST',
             body: JSON.stringify({ id: data.id, profilePictureUrl })
           })
-          const updatePayload = await updateResponse.json()
-          if (!updateResponse.ok) {
-            console.error('Profile picture URL save failed:', updatePayload.error)
-            setSetupError(`Eroare la salvarea pozei de profil: ${updatePayload.error}`)
+          const updateParsed = await parseAdminResponse(updateResponse)
+          if (!updateParsed.ok) {
+            console.error('Profile picture URL save failed:', updateParsed.error)
+            setSetupError(`Eroare la salvarea pozei de profil: ${updateParsed.error}`)
           } else {
             // Create a post in the album for the family profile picture
             try {
