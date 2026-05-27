@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
+import { useRouter } from 'next/router'
 
 const ThemeContext = createContext()
 
@@ -33,7 +34,15 @@ export const themes = {
 }
 
 export function ThemeProvider({ children }) {
+  const router = useRouter()
   const [currentTheme, setCurrentTheme] = useState('light')
+
+  // Routes that ALWAYS render in dark mode regardless of the user's
+  // saved family preference. The admin panel was designed for a dark
+  // canvas (white text on glass surfaces); rendering it on the light
+  // canvas makes the text invisible.
+  const isAdminRoute = router?.pathname?.startsWith('/admin')
+  const effectiveTheme = isAdminRoute ? 'dark' : currentTheme
 
   useEffect(() => {
     const saved = typeof window !== 'undefined' && localStorage.getItem('album-theme')
@@ -42,14 +51,17 @@ export function ThemeProvider({ children }) {
 
   useEffect(() => {
     if (typeof document === 'undefined') return
-    document.documentElement.setAttribute('data-theme', currentTheme)
+    // Pin the document attribute to `effectiveTheme`, NOT `currentTheme`,
+    // so admin routes stay dark even when the family-side preference is
+    // light/blue/pink.
+    document.documentElement.setAttribute('data-theme', effectiveTheme)
     // Update <meta name="theme-color"> for mobile browser chrome.
     const meta = document.querySelector('meta[name="theme-color"]')
     if (meta) {
       const map = { light: '#f4f5fb', dark: '#07070d', blue: '#dde9f4', pink: '#faecf2' }
-      meta.setAttribute('content', map[currentTheme] || '#f4f5fb')
+      meta.setAttribute('content', map[effectiveTheme] || '#f4f5fb')
     }
-  }, [currentTheme])
+  }, [effectiveTheme])
 
   const changeTheme = (themeName) => {
     if (themes[themeName]) {
@@ -59,7 +71,14 @@ export function ThemeProvider({ children }) {
   }
 
   return (
-    <ThemeContext.Provider value={{ currentTheme, themes, changeTheme, themeData: themes[currentTheme] }}>
+    <ThemeContext.Provider value={{
+      currentTheme: effectiveTheme,    // what's actually on the page right now
+      savedTheme: currentTheme,        // what the user picked (for the theme picker UI)
+      themes,
+      changeTheme,
+      themeData: themes[effectiveTheme],
+      isAdminRoute,
+    }}>
       {children}
     </ThemeContext.Provider>
   )

@@ -9,19 +9,8 @@ export default function AdminLogin() {
   const [error, setError] = useState('')
   const router = useRouter()
 
-  // Admin panel is always dark, regardless of the family-side theme. We push
-  // data-theme=dark to <html> on mount so the body backdrop, aurora, glass
-  // surfaces and text colors all resolve to dark variants — otherwise white
-  // text rendered on top of the light canvas is invisible.
-  useEffect(() => {
-    if (typeof document === 'undefined') return
-    const prev = document.documentElement.getAttribute('data-theme')
-    document.documentElement.setAttribute('data-theme', 'dark')
-    return () => {
-      if (prev) document.documentElement.setAttribute('data-theme', prev)
-      else document.documentElement.removeAttribute('data-theme')
-    }
-  }, [])
+  // Admin routes are pinned to dark by ThemeProvider (contexts/ThemeContext.js).
+  // No per-page override needed.
 
   useEffect(() => {
     if (isAdminAuthenticated()) router.push('/admin/dashboard')

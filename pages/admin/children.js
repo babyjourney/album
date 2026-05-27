@@ -47,16 +47,7 @@ export default function AdminDashboard() {
     fetchAllFamilies()
   }, [])
 
-  // Force dark theme for admin pages.
-  useEffect(() => {
-    if (typeof document === 'undefined') return
-    const prev = document.documentElement.getAttribute('data-theme')
-    document.documentElement.setAttribute('data-theme', 'dark')
-    return () => {
-      if (prev) document.documentElement.setAttribute('data-theme', prev)
-      else document.documentElement.removeAttribute('data-theme')
-    }
-  }, [])
+  // Admin routes are pinned to dark by ThemeProvider.
 
   useEffect(() => {
     if (selectedFamilyId) {

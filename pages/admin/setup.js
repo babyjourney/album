@@ -20,16 +20,7 @@ export default function AdminSetup() {
     }
   }, [router])
 
-  // Force dark theme for admin pages.
-  useEffect(() => {
-    if (typeof document === 'undefined') return
-    const prev = document.documentElement.getAttribute('data-theme')
-    document.documentElement.setAttribute('data-theme', 'dark')
-    return () => {
-      if (prev) document.documentElement.setAttribute('data-theme', prev)
-      else document.documentElement.removeAttribute('data-theme')
-    }
-  }, [])
+  // Admin routes are pinned to dark by ThemeProvider.
 
   // PIN generation moved server-side — see /api/admin/families/create.js.
   // The browser shouldn't query for PIN uniqueness (a) because RLS denies
