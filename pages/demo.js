@@ -80,14 +80,18 @@ export default function Demo() {
   return (
     <>
       <Head>
+        {/* TODO (Task #13): replace /img/pfp.webp with a proper 1200×630
+            screenshot card (BabyJourney_album_screenshot.webp per
+            public/img/SEO.md). For now we point at the only real image
+            so the link doesn't 404. */}
         <title>Demo · BabyJourney — Album privat de familie din Chișinău</title>
         <meta name="description" content="Vezi cum arată albumul BabyJourney înainte să-l încerci. Un tur al feed-ului, categoriilor și momentelor copilăriei — albumul privat de familie #1 din Moldova." />
         <meta name="keywords" content="album familie, BabyJourney, jurnal bebe, demo album, amintiri copii, Chișinău, Moldova" />
         <meta property="og:type" content="website" />
         <meta property="og:title" content="BabyJourney Demo — vezi albumul tău de familie" />
         <meta property="og:description" content="Toate momentele copilăriei într-un singur loc privat. Vezi demo-ul interactiv." />
-        <meta property="og:image" content="https://album.babyjourney.life/img/BabyJourney_album_screenshot.webp" />
-        <meta property="og:image:alt" content="Captură de ecran a albumului BabyJourney — feed cu poze de familie din Chișinău" />
+        <meta property="og:image" content="https://album.babyjourney.life/img/pfp.webp" />
+        <meta property="og:image:alt" content="Logo BabyJourney — demo album privat din Chișinău" />
         <meta property="og:locale" content="ro_RO" />
         <meta property="og:site_name" content="BabyJourney" />
         <meta name="twitter:card" content="summary_large_image" />

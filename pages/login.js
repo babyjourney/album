@@ -157,23 +157,27 @@ export default function Login() {
   return (
     <>
       <Head>
-        {/* Task #13 — SEO + social-share metadata for the public album login.
-            All image references use absolute Chisinau-tagged WebP filenames
-            following the BabyJourney naming convention (see public/img/SEO.md). */}
+        {/* Task #13 — SEO + social-share metadata.
+            TODO: replace /img/pfp.webp with a proper 1200×630 hero card
+            (BabyJourney_couple_with_little_boy.webp per public/img/SEO.md).
+            Until then we point at the existing profile picture so the
+            og:image link isn't broken (returns a real WebP, not a 404). */}
         <title>Album familie — Intră în BabyJourney</title>
         <meta name="description" content="Albumul tău privat de familie BabyJourney. Conectează-te cu numărul de telefon sau email-ul și PIN-ul de viewer sau editor pentru a vedea amintirile copiilor tăi." />
-        <meta name="keywords" content="album familie, BabyJourney, jurnal bebe, amintiri copii, album privat, Chisinau, Moldova, foto familie, jurnal nou-nascut" />
+        <meta name="keywords" content="album familie, BabyJourney, jurnal bebe, amintiri copii, album privat, Chișinău, Moldova, foto familie, jurnal nou-nascut" />
         <meta property="og:type" content="website" />
         <meta property="og:title" content="BabyJourney — Album privat de familie" />
         <meta property="og:description" content="Albumul tău privat de familie. Toate momentele copilăriei într-un singur loc, în siguranță." />
-        <meta property="og:image" content="https://album.babyjourney.life/img/BabyJourney_couple_with_little_boy.webp" />
-        <meta property="og:image:alt" content="Părinți zâmbind cu băiețelul lor — album de familie BabyJourney din Chisinau" />
+        <meta property="og:image" content="https://album.babyjourney.life/img/pfp.webp" />
+        <meta property="og:image:alt" content="Logo BabyJourney — album privat de familie din Chișinău" />
+        <meta property="og:image:width" content="900" />
+        <meta property="og:image:height" content="898" />
         <meta property="og:locale" content="ro_RO" />
         <meta property="og:site_name" content="BabyJourney" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="BabyJourney — Album privat de familie" />
         <meta name="twitter:description" content="Toate momentele copilăriei într-un singur loc." />
-        <meta name="twitter:image" content="https://album.babyjourney.life/img/BabyJourney_couple_with_little_boy.webp" />
+        <meta name="twitter:image" content="https://album.babyjourney.life/img/pfp.webp" />
         <meta name="geo.region" content="MD-CU" />
         <meta name="geo.placename" content="Chișinău, Moldova" />
         <link rel="canonical" href="https://album.babyjourney.life/login" />

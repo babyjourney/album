@@ -1,3 +1,9 @@
+// NOTE: this component is not currently rendered anywhere. The active
+// slideshow trigger lives on the ActionCluster dock in pages/dashboard.js
+// (handleOpenSlideshow). It's kept here in case we want to re-enable a
+// floating PLAY button later. The fetch logic mirrors handleOpenSlideshow
+// so it respects the same filter state when wired up.
+
 import { useState, useEffect } from 'react'
 import MemorySlideshow from './MemorySlideshow'
 import { authenticatedFetch } from '../lib/pinAuth'
@@ -29,55 +35,54 @@ if (typeof document !== 'undefined' && !document.getElementById('slideshow-butto
   document.head.appendChild(styleEl)
 }
 
-export default function FloatingSlideshowButton({ familyId }) {
+export default function FloatingSlideshowButton({
+  familyId,
+  filters = null,
+  searchQuery = '',
+  selectedChildId = null,
+}) {
   const [showSlideshow, setShowSlideshow] = useState(false)
   const [memories, setMemories] = useState([])
   const [loading, setLoading] = useState(false)
 
-  const fetchAllMemories = async () => {
-    if (!familyId) {
-      console.log('No familyId provided')
-      return []
+  // Mirrors dashboard.js → handleOpenSlideshow so filters / search / child
+  // selection all reach the API. Without this the slideshow would iterate
+  // every post in the family album, which is exactly the bug Sergiu raised.
+  const buildParams = () => {
+    const params = new URLSearchParams({ familyId })
+    if (searchQuery?.trim()) params.append('search', searchQuery.trim())
+    if (filters) {
+      if (filters.category && filters.category !== 'all') params.append('category', filters.category)
+      if (filters.hashtag?.trim()) params.append('hashtag', filters.hashtag.trim())
+      if (filters.date) {
+        const d = new Date(filters.date)
+        const start = new Date(d); start.setDate(start.getDate() - 5)
+        const end   = new Date(d); end.setDate(end.getDate() + 5)
+        params.append('dateStart', start.toISOString())
+        params.append('dateEnd',   end.toISOString())
+      }
+      params.append('sort', filters.sort || 'newest')
+    } else {
+      params.append('sort', 'newest')
     }
+    if (selectedChildId) params.append('childId', selectedChildId)
+    return params
+  }
 
+  const fetchMemories = async () => {
+    if (!familyId) return []
     setLoading(true)
     try {
-      console.log('Fetching memories for familyId:', familyId)
-      const response = await authenticatedFetch(`/api/photos/list?familyId=${familyId}&sort=newest`)
+      const response = await authenticatedFetch(`/api/photos/list?${buildParams().toString()}`)
       const result = await response.json()
-
-      console.log('API Response:', response.ok, result)
-
       if (response.ok && result.photos) {
-        console.log('Raw photos from API:', result.photos.length, result.photos)
-
-        const mediaMemories = result.photos.filter(photo => {
-          console.log('Checking photo:', {
-            id: photo.id,
-            type: photo.type,
-            file_type: photo.file_type,
-            fileUrl: photo.fileUrl,
-            file_url: photo.file_url
-          })
-
-          const isNotTextPost = photo.type !== 'text'
-
-          const hasFile = (photo.fileUrl && photo.fileUrl.trim() !== '') ||
-                          (photo.file_url && photo.file_url.trim() !== '')
-
-          const typeOK = !photo.type || photo.type !== 'text'
-
-          const passes = typeOK && hasFile
-          console.log('Photo passes filter:', passes, 'typeOK:', typeOK, 'hasFile:', hasFile)
-          return passes
-        })
-        console.log('Filtered memories:', mediaMemories.length, mediaMemories)
-        setMemories(mediaMemories)
-        return mediaMemories
+        const media = result.photos.filter(p => p.type !== 'text' && (p.fileUrl || p.file_url))
+        setMemories(media)
+        return media
       }
       return []
     } catch (error) {
-      console.error('Error fetching memories:', error)
+      console.error('Slideshow fetch error:', error)
       return []
     } finally {
       setLoading(false)
@@ -85,16 +90,8 @@ export default function FloatingSlideshowButton({ familyId }) {
   }
 
   const handleSlideshowClick = async () => {
-    console.log('SLIDESHOW: Button clicked - fetching real album photos/videos')
-    const fetchedMemories = await fetchAllMemories()
-    console.log('SLIDESHOW: Got memories:', fetchedMemories?.length, fetchedMemories)
-
-    if (fetchedMemories && fetchedMemories.length > 0) {
-      setShowSlideshow(true)
-      console.log('SLIDESHOW: Opening slideshow with', fetchedMemories.length, 'memories')
-    } else {
-      console.log('SLIDESHOW: No photos/videos found in album - check API response above')
-    }
+    const fetched = await fetchMemories()
+    if (fetched && fetched.length > 0) setShowSlideshow(true)
   }
 
   return (
@@ -143,13 +140,9 @@ export default function FloatingSlideshowButton({ familyId }) {
         </button>
       </div>
 
-      {console.log('Rendering MemorySlideshow with:', { showSlideshow, memoriesCount: memories.length })}
       <MemorySlideshow
         isOpen={showSlideshow}
-        onClose={() => {
-          console.log('Slideshow close clicked')
-          setShowSlideshow(false)
-        }}
+        onClose={() => setShowSlideshow(false)}
         memories={memories}
       />
     </>
