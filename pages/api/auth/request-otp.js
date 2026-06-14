@@ -75,7 +75,10 @@ export default async function handler(req, res) {
     // If 2FA is not enabled for this family, tell the UI it can skip
     // straight to PIN entry. (Backwards compat — most families won't
     // enable OTP login.)
-    if (!family.require_otp_login) {
+    //
+    // TEMPORARY: LOGIN_OTP_BYPASS also skips the OTP step while SMS/email
+    // delivery (Twilio/Resend) is not yet configured. Remove once verified.
+    if (!family.require_otp_login || process.env.LOGIN_OTP_BYPASS === 'true') {
       return ok(contactKind, false)
     }
 

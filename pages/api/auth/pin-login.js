@@ -131,7 +131,11 @@ export default async function handler(req, res) {
     // 2FA gate (Task #3): if this family requires OTP login, we need to
     // verify the OTP code BEFORE issuing the session token. The OTP was
     // requested earlier via /api/auth/request-otp.
-    if (family.require_otp_login) {
+    //
+    // TEMPORARY: LOGIN_OTP_BYPASS skips the OTP step while SMS/email
+    // delivery (Twilio/Resend) is not yet configured. Remove once verified.
+    const otpBypass = process.env.LOGIN_OTP_BYPASS === 'true'
+    if (family.require_otp_login && !otpBypass) {
       if (!otpCode) {
         return res.status(401).json({
           error: 'Cod de verificare necesar.',
