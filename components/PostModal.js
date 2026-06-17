@@ -6,6 +6,42 @@ import { authenticatedFetch, isEditor } from '../lib/pinAuth'
 import { getCategories } from '../lib/categoriesData'
 import InstagramCarousel from './InstagramCarousel'
 import DatePicker from './DatePicker'
+import { detectFileTypeFromUrl, documentMeta } from '../lib/fileTypes'
+
+// Full-view renderer for audio + document posts (single-file). Audio gets a
+// native player; documents get an inline PDF preview (when possible) plus an
+// open/download link.
+function AudioDocView({ url, kind, title }) {
+  if (kind === 'audio') {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18, padding: 32, maxWidth: 520, width: '100%' }}>
+        <div style={{ fontSize: 64 }}>🎧</div>
+        {title && <div style={{ color: '#fff', fontSize: 18, fontWeight: 600, textAlign: 'center' }}>{title}</div>}
+        <audio src={url} controls autoPlay={false} style={{ width: '100%' }} />
+      </div>
+    )
+  }
+  const meta = documentMeta(url)
+  const isPdf = String(url || '').toLowerCase().split('?')[0].endsWith('.pdf')
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, padding: 24, width: '100%', height: '100%', boxSizing: 'border-box' }}>
+      {isPdf ? (
+        <iframe title={meta.name} src={url} style={{ flex: 1, width: '100%', minHeight: 320, border: 'none', borderRadius: 12, background: '#fff' }} />
+      ) : (
+        <div style={{ fontSize: 72 }}>{meta.icon}</div>
+      )}
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="btn-glass"
+        style={{ padding: '10px 18px', fontSize: 14, textDecoration: 'none', color: '#fff' }}
+      >
+        {meta.icon} Deschide {meta.name}
+      </a>
+    </div>
+  )
+}
 
 // Helper function to detect and extract multi-photo URLs with cover reordering
 const getMultiPhotoUrls = (post) => {
@@ -111,7 +147,7 @@ const getTruncatedDescription = (description, isExpanded) => {
 }
 
 // Mobile 3-dot menu component
-function MobileActionMenu({ currentPost, isTextPost, onDownload, onDelete, onEdit, isDescriptionExpanded }) {
+function MobileActionMenu({ currentPost, isTextPost, onDownload, onShare, onDelete, onEdit, isDescriptionExpanded }) {
   const [showMenu, setShowMenu] = useState(false)
   const menuRef = useRef(null)
   const { t } = useLanguage()
@@ -170,6 +206,25 @@ function MobileActionMenu({ currentPost, isTextPost, onDownload, onDelete, onEdi
               {t('download')}
             </button>
           )}
+
+          <button
+            onClick={() => {
+              if (onShare) onShare()
+              setShowMenu(false)
+            }}
+            className="btn-ghost"
+            style={{
+              width: '100%', padding: '12px 14px', borderRadius: '14px',
+              color: 'var(--ink-1)', fontSize: '14px', fontWeight: 500,
+              textAlign: 'left', display: 'flex', alignItems: 'center', gap: '12px',
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+            </svg>
+            {t('share') || 'Distribuie'}
+          </button>
 
           <button
             onClick={() => {
@@ -717,6 +772,34 @@ export default function PostModal({
     }
   }
 
+  // Share Photos & Videos (baseline). Uses the native share sheet when
+  // available; otherwise copies the media/post link to the clipboard.
+  const handleShare = async () => {
+    const shareUrl = currentPost.file_url || (typeof window !== 'undefined' ? window.location.href : '')
+    const shareData = {
+      title: currentPost.title || 'BabyJourney',
+      text: currentPost.title || currentPost.description || 'Amintire BabyJourney',
+      url: shareUrl,
+    }
+    try {
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        await navigator.share(shareData)
+        return
+      }
+      if (typeof navigator !== 'undefined' && navigator.clipboard && shareUrl) {
+        await navigator.clipboard.writeText(shareUrl)
+        showSuccess(t('linkCopied') || 'Link copiat')
+        return
+      }
+      showError(t('error'))
+    } catch (err) {
+      // AbortError = user dismissed the share sheet; ignore quietly.
+      if (err && err.name !== 'AbortError') {
+        console.error('Share failed:', err)
+      }
+    }
+  }
+
   const formatDate = (dateString) => {
     const { language } = useLanguage()
     const locale = language === 'ru' ? 'ru-RU' : 'ro-RO'
@@ -733,6 +816,9 @@ export default function PostModal({
 
   const isTextPost = currentPost.type === 'text'
   const isVideo = currentPost.file_type === 'video' || currentPost.type === 'video'
+  const primaryKind = detectFileTypeFromUrl(currentPost.file_url)
+  const isAudio = currentPost.file_type === 'audio' || currentPost.type === 'audio' || primaryKind === 'audio'
+  const isDocument = currentPost.file_type === 'document' || currentPost.type === 'document' || primaryKind === 'document'
 
   // Mobile: Instagram-style vertical scroll
   if (isMobile) {
@@ -825,7 +911,10 @@ export default function PostModal({
           {allPosts.map((post, index) => {
             const postIsText = post.type === 'text'
             const postIsVideo = post.file_type === 'video' || post.type === 'video'
-            
+            const postPrimaryKind = detectFileTypeFromUrl(post.file_url)
+            const postIsAudio = post.file_type === 'audio' || post.type === 'audio' || postPrimaryKind === 'audio'
+            const postIsDocument = post.file_type === 'document' || post.type === 'document' || postPrimaryKind === 'document'
+
             return (
               <div
                 key={post.id}
@@ -900,6 +989,8 @@ export default function PostModal({
                             }}
                             post={post}
                           />)
+                      } else if (postIsAudio || postIsDocument) {
+                        return <AudioDocView url={post.file_url} kind={postIsAudio ? 'audio' : 'document'} title={post.title} />
                       } else {
                         // Single image/video post or non-current multi-photo (show first image)
                         return postIsVideo ? (
@@ -907,7 +998,7 @@ export default function PostModal({
                             src={post.file_url}
                             controls
                             autoPlay={index === currentIdx}
-                            style={{ 
+                            style={{
                               maxWidth: '100%',
                               maxHeight: '100%',
                               width: 'auto',
@@ -939,10 +1030,11 @@ export default function PostModal({
 
         {/* Mobile action menu - only show if not readonly */}
         {!readOnly && (
-          <MobileActionMenu 
+          <MobileActionMenu
             currentPost={currentPost}
             isTextPost={isTextPost}
             onDownload={handleDownload}
+            onShare={handleShare}
             onDelete={handleDelete}
             onEdit={handleEdit}
             isDescriptionExpanded={isDescriptionExpanded}
@@ -1507,6 +1599,21 @@ export default function PostModal({
           </button>
         )}
 
+        <button
+          onClick={handleShare}
+          className="btn-icon"
+          style={{ width: '40px', height: '40px', color: 'var(--ink-1)' }}
+          title={t('share') || 'Distribuie'}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="18" cy="5" r="3"/>
+            <circle cx="6" cy="12" r="3"/>
+            <circle cx="18" cy="19" r="3"/>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+          </svg>
+        </button>
+
         {!readOnly && (
           <button
             onClick={handleEdit}
@@ -1836,14 +1943,16 @@ export default function PostModal({
                       </div>
                     </div>
                   )
+                } else if (isAudio || isDocument) {
+                  return <AudioDocView url={currentPost.file_url} kind={isAudio ? 'audio' : 'document'} title={currentPost.title} />
                 } else {
                   // Single image/video post
                   return isVideo ? (
                     <video
                       src={currentPost.file_url}
                       controls
-                      style={{ 
-                        maxWidth: '100%', 
+                      style={{
+                        maxWidth: '100%',
                         maxHeight: '100%',
                         width: 'auto',
                         height: 'auto',

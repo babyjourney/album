@@ -8,6 +8,7 @@ import { useLanguage } from '../contexts/LanguageContext'
 import DatePicker from './DatePicker'
 import { getCategories } from '../lib/categoriesData'
 import { getPackageLimits, getImageCompressionOptions, getVideoLimits } from '../lib/packages'
+import { UPLOAD_ACCEPT, isAcceptedUploadFile } from '../lib/fileTypes'
 
 export default function UploadForm({ familyId, onUploadSuccess, onClose, refreshTrigger }) {
   const [title, setTitle] = useState('')
@@ -286,7 +287,8 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
         continue
       }
 
-      if (!selectedFile.type.startsWith('image/') && !selectedFile.type.startsWith('video/')) {
+      // Accept images, videos, audio and documents/PDFs (all tiers).
+      if (!isAcceptedUploadFile(selectedFile)) {
         const errorMessage = t('invalidFileType', { fileName: selectedFile.name })
         setError(errorMessage)
         showError(errorMessage)
@@ -643,7 +645,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                   id="file-upload"
                   type="file"
                   onChange={handleFileChange}
-                  accept="image/*,video/*"
+                  accept={UPLOAD_ACCEPT}
                   multiple={true}
                   style={{ display: 'none' }}
                   disabled={files.length >= 10}

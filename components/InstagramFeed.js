@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { useToast } from '../contexts/ToastContext'
 import { useLanguage } from '../contexts/LanguageContext'
 import MediaThumbnail from './MediaThumbnail'
+import MediaTypeCard from './MediaTypeCard'
+import { detectFileTypeFromUrl } from '../lib/fileTypes'
 import { authenticatedFetch } from '../lib/pinAuth'
 
 // ---------- Multi-photo helpers ----------
@@ -112,6 +114,9 @@ export default function InstagramFeed({ familyId, searchQuery, refreshTrigger, o
   const renderPost = (post, index) => {
     const isTextPost = post.type === 'text'
     const isVideo = post.file_type === 'video' || post.type === 'video'
+    const primaryKind = detectFileTypeFromUrl(post.file_url)
+    const isAudio = post.file_type === 'audio' || post.type === 'audio' || primaryKind === 'audio'
+    const isDocument = post.file_type === 'document' || post.type === 'document' || primaryKind === 'document'
 
     const handleCardClick = (e) => {
       const sc = e.currentTarget.querySelector('.smooth-scroll-container')
@@ -147,7 +152,9 @@ export default function InstagramFeed({ familyId, searchQuery, refreshTrigger, o
             </div>
           ) : (
             <div style={{ aspectRatio: '1/1', overflow: 'hidden', background: 'var(--glass-1)', position: 'relative' }}>
-              {isVideo ? (
+              {(isAudio || isDocument) ? (
+                <MediaTypeCard kind={isAudio ? 'audio' : 'document'} url={post.file_url} title={post.title} />
+              ) : isVideo ? (
                 <MediaThumbnail
                   src={post.file_url}
                   alt={post.title || 'Video'}

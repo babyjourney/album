@@ -15,7 +15,12 @@ async function handler(req, res) {
     sort = 'newest',
     dateStart,
     dateEnd,
-    childId
+    childId,
+    ageMinMonths,   // age-range timeline tabs (Birth/Toddler/School/Teenage)
+    ageMaxMonths,
+    categoryAny,    // comma list — match any (Health/Education filtered views)
+    hashtagsAny,    // comma list — match any hashtag
+    monthDay        // 'MM-DD' — "On This Day" (same calendar day across years)
   } = req.query
 
   // SECURITY: family sessions can only read their own family; admins can pick.
@@ -47,6 +52,36 @@ async function handler(req, res) {
     // Apply date range filter
     if (dateStart && dateEnd) {
       query = query.gte('created_at', dateStart).lte('created_at', dateEnd)
+    }
+
+    // Age-range filter: translate a months window into a created_at window using
+    // the child's birth_date. Uses the given child, else the family's first
+    // child with a birth date. Silently no-ops if no birth date is available.
+    if (ageMinMonths !== undefined || ageMaxMonths !== undefined) {
+      let birthDate = null
+      if (childId) {
+        const { data: c } = await supabase
+          .from('children').select('birth_date, family_id').eq('id', childId).single()
+        if (c && c.family_id === familyId) birthDate = c.birth_date
+      } else {
+        const { data: kids } = await supabase
+          .from('children').select('birth_date').eq('family_id', familyId)
+          .order('display_order', { ascending: true })
+        birthDate = (kids || []).map(k => k.birth_date).find(Boolean) || null
+      }
+      if (birthDate) {
+        const base = new Date(birthDate)
+        const minM = parseInt(ageMinMonths)
+        const maxM = parseInt(ageMaxMonths)
+        if (Number.isFinite(minM)) {
+          const d = new Date(base); d.setMonth(d.getMonth() + minM)
+          query = query.gte('created_at', d.toISOString())
+        }
+        if (Number.isFinite(maxM)) {
+          const d = new Date(base); d.setMonth(d.getMonth() + maxM)
+          query = query.lt('created_at', d.toISOString())
+        }
+      }
     }
 
     // Apply sorting
@@ -132,6 +167,30 @@ async function handler(req, res) {
       filteredData = filteredData.filter(item => {
         if (!item.hashtags || !Array.isArray(item.hashtags)) return false
         return item.hashtags.some(tag => matchesSearch(tag, hashtag))
+      })
+    }
+
+    // "Match any" filters for themed views (Health, Education). A post passes
+    // if its category is in categoryAny OR any hashtag is in hashtagsAny.
+    const catList = (categoryAny || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
+    const tagList = (hashtagsAny || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
+    if (catList.length || tagList.length) {
+      filteredData = filteredData.filter(item => {
+        const catHit = item.category && catList.includes(String(item.category).toLowerCase())
+        const tagHit = Array.isArray(item.hashtags) &&
+          item.hashtags.some(tag => tagList.includes(String(tag).toLowerCase()))
+        return catHit || tagHit
+      })
+    }
+
+    // "On This Day": keep only posts whose created_at falls on the given
+    // month/day (any year). monthDay format: 'MM-DD'.
+    if (monthDay && /^\d{2}-\d{2}$/.test(monthDay)) {
+      filteredData = filteredData.filter((item) => {
+        const d = new Date(item.created_at)
+        const mm = String(d.getMonth() + 1).padStart(2, '0')
+        const dd = String(d.getDate()).padStart(2, '0')
+        return `${mm}-${dd}` === monthDay
       })
     }
 

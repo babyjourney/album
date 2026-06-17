@@ -17,9 +17,14 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
   const { showSuccess, showError } = useToast()
   const { t } = useLanguage()
 
-  // Load categories on mount
+  // Load categories on mount. getCategories() is async — awaiting it (rather
+  // than storing the Promise) avoids a render crash on `categories.map`.
   useEffect(() => {
-    setCategories(getCategories())
+    let active = true
+    getCategories()
+      .then((cats) => { if (active) setCategories(Array.isArray(cats) ? cats : []) })
+      .catch(() => { if (active) setCategories([]) })
+    return () => { active = false }
   }, [])
 
   const handleTextChange = (e) => {

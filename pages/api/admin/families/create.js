@@ -25,6 +25,7 @@
 import crypto from 'crypto'
 import { supabase, assertServerHasServiceRole } from '../../../../lib/supabaseClient'
 import { requireAdmin } from '../../../../lib/authMiddleware'
+import { normalizeTier } from '../../../../lib/tiers'
 
 const PHONE_REGEX = /^(0)?[67][0-9]{7}$/
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -111,7 +112,8 @@ async function handler(req, res) {
     const cleanName = name.trim()
     const cleanPhone = phoneNumber ? String(phoneNumber).replace(/\s/g, '') : null
     const cleanEmail = email ? String(email).trim().toLowerCase() : null
-    const finalPackage = pkg === 'premium' ? 'premium' : 'free'
+    // 3 tiers: starter | family | legacy. Accept legacy free/premium aliases.
+    const finalPackage = normalizeTier(pkg)
     const finalRequireOtp = requireOtpLogin === true
 
     if (cleanPhone && !PHONE_REGEX.test(cleanPhone)) {

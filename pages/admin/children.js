@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabaseClient'
 import imageCompression from 'browser-image-compression'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { isAdminAuthenticated, clearAdminSession, adminFetch, parseAdminResponse } from '../../lib/adminAuth'
+import { TIER_ORDER, TIERS } from '../../lib/tiers'
 
 export default function AdminDashboard() {
   const { language, t } = useLanguage()
@@ -28,6 +29,7 @@ export default function AdminDashboard() {
   // Email is optional but recommended — enables email-channel OTP for
   // forgot-PIN / 2FA login (see lib/notifications.js).
   const [email, setEmail] = useState('')
+  const [tier, setTier] = useState('starter')
   const [profilePicture, setProfilePicture] = useState(null)
   const [profilePreview, setProfilePreview] = useState('')
   const [setupLoading, setSetupLoading] = useState(false)
@@ -336,6 +338,7 @@ export default function AdminDashboard() {
           name: familyName.trim(),
           phoneNumber: phoneNumber.replace(/\s/g, ''),
           email: cleanEmail || undefined,
+          package: tier,
         })
       })
       const parsed = await parseAdminResponse(createResponse)
@@ -433,6 +436,7 @@ export default function AdminDashboard() {
       setChildName('')
       setPhoneNumber('')
       setEmail('')
+      setTier('starter')
       setProfilePicture(null)
       setProfilePreview('')
 
@@ -455,6 +459,8 @@ export default function AdminDashboard() {
     setParentName('')
     setChildName('')
     setPhoneNumber('')
+    setEmail('')
+    setTier('starter')
     setProfilePicture(null)
     setProfilePreview('')
     setShowFamilySetup(false)
@@ -658,6 +664,24 @@ export default function AdminDashboard() {
                 />
                 <div className="text-tertiary" style={{ marginTop: '6px' }}>
                   Folosit pentru resetare PIN și autentificare 2FA via email.
+                </div>
+              </div>
+
+              <div>
+                <label className="text-eyebrow" style={{ display: 'block', marginBottom: '8px' }}>
+                  Plan
+                </label>
+                <select
+                  value={tier}
+                  onChange={(e) => setTier(e.target.value)}
+                  className="input-glass"
+                >
+                  {TIER_ORDER.map((key) => (
+                    <option key={key} value={key}>{TIERS[key].label}</option>
+                  ))}
+                </select>
+                <div className="text-tertiary" style={{ marginTop: '6px' }}>
+                  {TIERS[tier]?.blurb}
                 </div>
               </div>
 

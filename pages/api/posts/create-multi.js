@@ -1,6 +1,7 @@
 import { supabase } from '../../../lib/supabaseClient'
 import { requireEditor } from '../../../lib/authMiddleware'
 import { getPackageLimits } from '../../../lib/packages'
+import { isVideoUrl, detectPostType } from '../../../lib/fileTypes'
 
 async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -29,15 +30,9 @@ async function handler(req, res) {
     return res.status(400).json({ error: 'Maximum 10 fișiere per postare' })
   }
 
-  // Helper function to detect if URL is a video
-  const isVideoUrl = (url) => {
-    const videoExtensions = ['.mp4', '.mov', '.avi', '.webm', '.ogg']
-    return videoExtensions.some(ext => url.toLowerCase().includes(ext))
-  }
-
-  // Determine the overall type of the post
+  // Determine the overall type of the post (video > audio > document > image).
   const hasVideo = imageUrls.some(url => isVideoUrl(url))
-  const postFileType = hasVideo ? 'video' : 'image'
+  const postFileType = detectPostType(imageUrls)
 
   // Enforce the family's package video-duration limit on any reported
   // video file. We only block when the client gave us a concrete duration
@@ -92,8 +87,8 @@ async function handler(req, res) {
       .select('package')
       .eq('id', familyId)
       .single()
-    const tier = famQuality?.package || 'free'
-    const quality = tier === 'premium' ? 'hd' : 'sd'
+    const tier = famQuality?.package
+    const quality = getPackageLimits(tier).imageQuality
 
     // Build base post data
     const basePostData = {
@@ -143,7 +138,7 @@ async function handler(req, res) {
       const newSchemaData = {
         ...basePostData,
         description: description?.trim() || '',
-        type: 'image',
+        type: postFileType,
         file_urls: imageUrls
       }
 
@@ -183,7 +178,7 @@ async function handler(req, res) {
         const mediumSchemaData = {
           ...stripQuality(basePostData),
           description: description?.trim() || '',
-          type: 'image'
+          type: postFileType
         }
         
         const { data: post, error: postError } = await supabase

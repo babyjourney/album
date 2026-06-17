@@ -3,6 +3,8 @@ import { useToast } from '../../contexts/ToastContext'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { authenticatedFetch } from '../../lib/pinAuth'
 import MediaThumbnail from '../MediaThumbnail'
+import MediaTypeCard from '../MediaTypeCard'
+import { detectFileTypeFromUrl } from '../../lib/fileTypes'
 
 // Multi-photo helpers (same logic as InstagramFeed but isolated here)
 const getMultiPhotoUrls = (post) => {
@@ -136,6 +138,9 @@ export default function BentoMasonry({ familyId, searchQuery, refreshTrigger, on
     const isTextPost = post.type === 'text'
     const isVideo = post.file_type === 'video' || post.type === 'video'
     const cover = getCoverUrl(post)
+    const coverKind = detectFileTypeFromUrl(cover)
+    const isAudio = post.file_type === 'audio' || post.type === 'audio' || coverKind === 'audio'
+    const isDocument = post.file_type === 'document' || post.type === 'document' || coverKind === 'document'
     const multi = getMultiPhotoUrls(post)
     const desc = getCleanDescription(post)
     const slot = BENTO_PATTERN[index % BENTO_PATTERN.length]
@@ -193,6 +198,8 @@ export default function BentoMasonry({ familyId, searchQuery, refreshTrigger, on
               {desc || 'Postare text'}
             </p>
           </div>
+        ) : (isAudio || isDocument) ? (
+          <MediaTypeCard kind={isAudio ? 'audio' : 'document'} url={cover} title={post.title} />
         ) : (
           <MediaThumbnail
             src={cover}

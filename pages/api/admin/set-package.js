@@ -1,23 +1,26 @@
 import { supabase } from '../../../lib/supabaseClient'
 import { requireAdmin } from '../../../lib/authMiddleware'
-import { VALID_PACKAGES } from '../../../lib/packages'
+import { VALID_PACKAGES, isValidPackage, normalizeTier } from '../../../lib/tiers'
 
 async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Metoda nu este permisă' })
   }
 
-  const { familyId, package: pkg } = req.body
+  const { familyId, package: rawPkg } = req.body
 
   if (!familyId) {
     return res.status(400).json({ error: 'familyId este obligatoriu' })
   }
 
-  if (!VALID_PACKAGES.includes(pkg)) {
+  if (!isValidPackage(rawPkg)) {
     return res.status(400).json({
       error: `Pachet invalid. Valori permise: ${VALID_PACKAGES.join(', ')}`
     })
   }
+
+  // Accept legacy aliases (free/premium) but always persist a current tier key.
+  const pkg = normalizeTier(rawPkg)
 
   try {
     const { data, error } = await supabase

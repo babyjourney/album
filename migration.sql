@@ -41,17 +41,19 @@ CREATE TABLE IF NOT EXISTS families (
   email VARCHAR(255),
   last_accessed TIMESTAMPTZ,
   is_suspended BOOLEAN DEFAULT FALSE,
-  package TEXT NOT NULL DEFAULT 'free',
+  package TEXT NOT NULL DEFAULT 'starter',
   require_otp_login BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- post-launch additions (idempotent for re-runs)
-ALTER TABLE families ADD COLUMN IF NOT EXISTS package TEXT NOT NULL DEFAULT 'free';
+-- Plan tier: starter (free) | family | legacy. Migrating an existing DB from
+-- the old free/premium scheme? Run sql/upgrade_tiers.sql.
+ALTER TABLE families ADD COLUMN IF NOT EXISTS package TEXT NOT NULL DEFAULT 'starter';
 ALTER TABLE families DROP CONSTRAINT IF EXISTS families_package_check;
 ALTER TABLE families ADD CONSTRAINT families_package_check
-  CHECK (package IN ('free', 'premium'));
+  CHECK (package IN ('starter', 'family', 'legacy'));
 
 -- Task #3: 2-factor album access (email OTP or SMS OTP before PIN).
 -- Default FALSE keeps existing logins unchanged; admin flips to TRUE per family.
@@ -61,7 +63,7 @@ COMMENT ON COLUMN families.viewer_pin  IS '4-digit PIN for read-only access. KNO
 COMMENT ON COLUMN families.editor_pin  IS '8-digit PIN for editor access. KNOWN ISSUE: stored plaintext — see MIGRATION.md follow-ups.';
 COMMENT ON COLUMN families.last_accessed     IS 'Timestamp of last album access (any role).';
 COMMENT ON COLUMN families.email             IS 'Family contact email — used for OTP login + PIN reset.';
-COMMENT ON COLUMN families.package           IS 'Tier: free (SD, 60s max video) | premium (HD, 60s max video).';
+COMMENT ON COLUMN families.package           IS 'Plan tier: starter (free, SD, 1 child) | family (HD, multi-child, full toolkit) | legacy (+ export, concierge, imports).';
 COMMENT ON COLUMN families.require_otp_login IS 'When TRUE, the family must enter an email/SMS OTP in addition to PIN.';
 
 CREATE INDEX IF NOT EXISTS idx_families_last_accessed ON families(last_accessed);

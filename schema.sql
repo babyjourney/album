@@ -228,7 +228,9 @@ CREATE INDEX IF NOT EXISTS idx_photos_family_private ON photos(family_id, is_pri
 -- =========================
 -- PACKAGES / TIERS (post-launch migration)
 -- =========================
-ALTER TABLE families ADD COLUMN IF NOT EXISTS package TEXT NOT NULL DEFAULT 'free';
+-- Plan tier. 3 tiers: starter (free) | family | legacy. (Legacy values
+-- 'free'/'premium' are migrated by sql/upgrade_tiers.sql.)
+ALTER TABLE families ADD COLUMN IF NOT EXISTS package TEXT NOT NULL DEFAULT 'starter';
 ALTER TABLE families DROP CONSTRAINT IF EXISTS families_package_check;
 ALTER TABLE families ADD CONSTRAINT families_package_check
-  CHECK (package IN ('free', 'premium'));
+  CHECK (package IN ('starter', 'family', 'legacy'));

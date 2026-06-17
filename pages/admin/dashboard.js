@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { isAdminAuthenticated, clearAdminSession, adminFetch } from '../../lib/adminAuth'
+import { TIER_ORDER, TIERS, getTierBadge, normalizeTier, TIER_FEATURE_SUMMARY } from '../../lib/tiers'
 
 export default function AdminDashboard() {
   const router = useRouter()
@@ -24,6 +25,8 @@ export default function AdminDashboard() {
   // Per-family year selection for the year-scoped export dropdown.
   // Keyed by family id; defaults to the current year on first interaction.
   const [exportYearByFamily, setExportYearByFamily] = useState({})
+  // Collapsible "what each plan includes" reference panel.
+  const [showTierGuide, setShowTierGuide] = useState(false)
 
   useEffect(() => {
     checkAuth()
@@ -679,6 +682,57 @@ export default function AdminDashboard() {
           </div>
         </div>
 
+        {/* Plan / tier reference — what each plan unlocks */}
+        <div className="card-glass" style={{ padding: '20px 24px', marginBottom: '20px' }}>
+          <button
+            onClick={() => setShowTierGuide((v) => !v)}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              width: '100%', background: 'transparent', border: 'none', cursor: 'pointer',
+              padding: 0, color: 'var(--ink-1)',
+            }}
+          >
+            <h2 className="text-section-title" style={{ margin: 0, fontSize: '18px' }}>
+              Planuri — ce include fiecare
+            </h2>
+            <span className="text-subtle" style={{ fontSize: '13px' }}>
+              {showTierGuide ? '▲ Ascunde' : '▼ Arată'}
+            </span>
+          </button>
+          {showTierGuide && (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+              gap: '16px', marginTop: '18px',
+            }}>
+              {TIER_ORDER.map((key) => {
+                const badge = getTierBadge(key)
+                return (
+                  <div key={key} className="glass-soft" style={{ padding: '16px', borderRadius: '14px' }}>
+                    <span className="glass-pill" style={{
+                      padding: '3px 10px', fontSize: '10.5px', fontWeight: 700,
+                      letterSpacing: '0.06em', color: badge.color,
+                      borderColor: badge.border, background: badge.bg,
+                    }}>
+                      {badge.label}
+                    </span>
+                    <p className="text-subtle" style={{ fontSize: '12px', margin: '10px 0 8px' }}>
+                      {TIERS[key].blurb}
+                    </p>
+                    <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '12.5px', lineHeight: 1.6, color: 'var(--ink-2)' }}>
+                      {TIER_FEATURE_SUMMARY[key].map((line, i) => (
+                        <li key={i} style={{ listStyle: line.endsWith(':') ? 'none' : 'disc', marginLeft: line.endsWith(':') ? '-18px' : 0, fontWeight: line.endsWith(':') ? 600 : 400 }}>
+                          {line}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
         {/* Families List */}
         <div className="card-glass" style={{ padding: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '12px', flexWrap: 'wrap' }}>
@@ -993,8 +1047,8 @@ export default function AdminDashboard() {
                       </td>
                       <td style={{ padding: '14px 12px' }}>
                         {(() => {
-                          const currentPkg = family.package || 'free'
-                          const isPremium = currentPkg === 'premium'
+                          const currentPkg = normalizeTier(family.package)
+                          const badge = getTierBadge(currentPkg)
                           return (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-start' }}>
                               <span className="glass-pill" style={{
@@ -1002,11 +1056,11 @@ export default function AdminDashboard() {
                                 fontSize: '10.5px',
                                 fontWeight: 700,
                                 letterSpacing: '0.06em',
-                                color: isPremium ? 'var(--accent-iris)' : 'var(--ink-2)',
-                                borderColor: isPremium ? 'rgba(124,58,237,0.45)' : 'var(--glass-hairline)',
-                                background: isPremium ? 'rgba(124,58,237,0.12)' : 'var(--glass-1)'
+                                color: badge.color,
+                                borderColor: badge.border,
+                                background: badge.bg
                               }}>
-                                {isPremium ? 'PREMIUM' : 'FREE'}
+                                {badge.label}
                               </span>
                               <select
                                 value={currentPkg}
@@ -1022,8 +1076,9 @@ export default function AdminDashboard() {
                                   minWidth: '110px'
                                 }}
                               >
-                                <option value="free">Free</option>
-                                <option value="premium">Premium</option>
+                                {TIER_ORDER.map((key) => (
+                                  <option key={key} value={key}>{TIERS[key].label}</option>
+                                ))}
                               </select>
                             </div>
                           )

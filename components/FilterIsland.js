@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Calendar, Hash, ArrowUpDown, Settings } from 'lucide-react'
 import { getCategories, clearCategoriesCache } from '../lib/categoriesData'
 import CategoryManager from './CategoryManager'
+import { useTier } from '../hooks/useTier'
 
 const SORT_OPTIONS = [
   { value: 'newest', label: 'Cel mai nou' },
@@ -19,6 +20,8 @@ export default function FilterIsland({
   const [localHashtag, setLocalHashtag] = useState(filters.hashtag || '')
   const [categories, setCategories] = useState([])
   const [showCategoryManager, setShowCategoryManager] = useState(false)
+  const { has: hasFeature, requiredTierLabel } = useTier()
+  const canCustomize = hasFeature('customCategories')
 
   // Load categories on mount
   useEffect(() => {
@@ -237,13 +240,16 @@ export default function FilterIsland({
                 🔄
               </button>
               <button
-                onClick={() => setShowCategoryManager(true)}
+                onClick={() => { if (canCustomize) setShowCategoryManager(true) }}
+                disabled={!canCustomize}
+                title={canCustomize ? undefined : `Disponibil în planul ${requiredTierLabel('customCategories')}`}
                 style={{
                   padding: '6px 12px',
                   background: 'var(--bg-gray)',
                   border: '1px solid var(--border-light)',
                   borderRadius: '6px',
-                  cursor: 'pointer',
+                  cursor: canCustomize ? 'pointer' : 'not-allowed',
+                  opacity: canCustomize ? 1 : 0.55,
                   fontSize: '12px',
                   display: 'flex',
                   alignItems: 'center',
@@ -253,6 +259,7 @@ export default function FilterIsland({
               >
                 <Settings size={14} />
                 Gestionează
+                {!canCustomize && <span>🔒</span>}
               </button>
             </div>
           </div>

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/router'
 import { useLanguage } from '../../contexts/LanguageContext'
+import { useTier } from '../../hooks/useTier'
 
 // Top-center floating dock — the only chrome on every page.
 // Contains: home, accentuated skills + family-tree pills, optional multi-child
@@ -19,8 +20,13 @@ export default function FloatingDock({
   const [showChildPopover, setShowChildPopover] = useState(false)
   const router = useRouter()
   const { t } = useLanguage()
+  const { has: hasFeature } = useTier()
+  const showJourney = hasFeature('biography') // any Family-tier feature unlocks the hub
+  const showLegacy = hasFeature('pdfExport')  // Legacy-only feature
   const isSkillsPage = router.pathname === '/skills'
   const isFamilyTreePage = router.pathname === '/family-tree'
+  const isJourneyPage = router.pathname === '/journey'
+  const isLegacyPage = router.pathname === '/legacy'
   const childPopoverRef = useRef(null)
 
   useEffect(() => {
@@ -103,6 +109,24 @@ export default function FloatingDock({
           </svg>
         </DockAccentPill>
 
+        {showJourney && (
+          <DockAccentPill
+            onClick={() => router.push(isJourneyPage ? '/dashboard' : '/journey')}
+            label={t('journey') || 'Parcurs'}
+            active={isJourneyPage}
+            isMobile={isMobile}
+            gradient="linear-gradient(135deg, #a78bfa, #7c3aed)"
+            glow="rgba(124,58,237,0.45)"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2v20"/>
+              <path d="M6 7h12"/>
+              <path d="M5 12h14"/>
+              <path d="M7 17h10"/>
+            </svg>
+          </DockAccentPill>
+        )}
+
         <DockAccentPill
           onClick={() => router.push(isFamilyTreePage ? '/dashboard' : '/family-tree')}
           label={t('familyTree') || 'Familie'}
@@ -120,6 +144,22 @@ export default function FloatingDock({
             <path d="M12 9v4"/>
           </svg>
         </DockAccentPill>
+
+        {showLegacy && (
+          <DockAccentPill
+            onClick={() => router.push(isLegacyPage ? '/dashboard' : '/legacy')}
+            label={t('legacy') || 'Legacy'}
+            active={isLegacyPage}
+            isMobile={isMobile}
+            gradient="linear-gradient(135deg, #fbbf24, #b45309)"
+            glow="rgba(217,119,6,0.45)"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2 4 5v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V5l-8-3Z"/>
+              <path d="M12 8v4"/><path d="M12 16h.01"/>
+            </svg>
+          </DockAccentPill>
+        )}
 
         {hasMultipleChildren && onSelectChild && (
           <div style={{ position: 'relative' }} ref={childPopoverRef}>

@@ -5,6 +5,7 @@ import { useLanguage } from '../contexts/LanguageContext'
 import { getCategories, getCategoriesSync } from '../lib/categoriesData'
 import CategoryManager from './CategoryManager'
 import { useOnClickOutside } from '../hooks/useOnClickOutside'
+import { useTier } from '../hooks/useTier'
 
 const animations = `
   @keyframes slideInLeft {
@@ -68,6 +69,8 @@ export default function SidebarFilter({
   const [showCategoryManager, setShowCategoryManager] = useState(false)
   const [categories, setCategories] = useState([])
   const { t } = useLanguage()
+  const { has: hasFeature, requiredTierLabel } = useTier()
+  const canCustomize = hasFeature('customCategories')
   const sidebarRef = useRef(null)
 
   useOnClickOutside(sidebarRef, () => setShowDesktopSidebar(false))
@@ -428,17 +431,25 @@ export default function SidebarFilter({
                 {t('categories')}
               </label>
               <button
-                onClick={() => setShowCategoryManager(true)}
+                onClick={() => {
+                  if (!canCustomize) return
+                  setShowCategoryManager(true)
+                }}
+                disabled={!canCustomize}
+                title={canCustomize ? undefined : `Disponibil în planul ${requiredTierLabel('customCategories')}`}
                 className="btn-glass"
                 style={{
                   padding: '6px 10px',
                   fontSize: '11px',
                   borderRadius: '10px',
-                  gap: '6px'
+                  gap: '6px',
+                  opacity: canCustomize ? 1 : 0.55,
+                  cursor: canCustomize ? 'pointer' : 'not-allowed',
                 }}
               >
                 <Settings size={12} />
                 {t('manage')}
+                {!canCustomize && <span style={{ marginLeft: 2 }}>🔒</span>}
               </button>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>

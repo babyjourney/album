@@ -1,5 +1,6 @@
 import { supabase } from '../../../lib/supabaseClient'
 import { requireEditor } from '../../../lib/authMiddleware'
+import { requireFeature } from '../../../lib/requireFeature'
 
 async function handler(req, res) {
   if (req.method !== 'PUT') {
@@ -71,4 +72,4 @@ async function handler(req, res) {
   }
 }
 
-export default requireEditor(handler)
+export default requireEditor(requireFeature('customCategories', handler))

@@ -3,10 +3,12 @@ import { useRouter } from 'next/router'
 import { supabase } from '../../lib/supabaseClient'
 import imageCompression from 'browser-image-compression'
 import { isAdminAuthenticated, clearAdminSession, adminFetch, parseAdminResponse } from '../../lib/adminAuth'
+import { TIER_ORDER, TIERS } from '../../lib/tiers'
 
 export default function AdminSetup() {
   const router = useRouter()
   const [familyName, setFamilyName] = useState('')
+  const [tier, setTier] = useState('starter')
   const [profilePicture, setProfilePicture] = useState(null)
   const [profilePreview, setProfilePreview] = useState('')
   const [loading, setLoading] = useState(false)
@@ -104,6 +106,7 @@ export default function AdminSetup() {
         method: 'POST',
         body: JSON.stringify({
           name: familyName.trim(),
+          package: tier,
         })
       })
       const parsed = await parseAdminResponse(createResponse)
@@ -249,6 +252,25 @@ export default function AdminSetup() {
                 />
                 <p className="text-tertiary" style={{ marginTop: '6px' }}>
                   Acesta va fi afișat ca numele albumului familiei
+                </p>
+              </div>
+
+              <div>
+                <label htmlFor="tier" className="text-eyebrow" style={{ display: 'block', marginBottom: '8px' }}>
+                  Plan
+                </label>
+                <select
+                  id="tier"
+                  value={tier}
+                  onChange={(e) => setTier(e.target.value)}
+                  className="input-glass"
+                >
+                  {TIER_ORDER.map((key) => (
+                    <option key={key} value={key}>{TIERS[key].label}</option>
+                  ))}
+                </select>
+                <p className="text-tertiary" style={{ marginTop: '6px' }}>
+                  {TIERS[tier]?.blurb}
                 </p>
               </div>
 

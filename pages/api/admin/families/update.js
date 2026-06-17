@@ -19,6 +19,7 @@
 
 import { supabase } from '../../../../lib/supabaseClient'
 import { requireAdmin } from '../../../../lib/authMiddleware'
+import { isValidPackage, normalizeTier } from '../../../../lib/tiers'
 
 const PHONE_REGEX = /^(0)?[67][0-9]{7}$/
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -74,10 +75,10 @@ async function handler(req, res) {
   }
 
   if (pkg !== undefined) {
-    if (pkg !== 'free' && pkg !== 'premium') {
+    if (!isValidPackage(pkg)) {
       return res.status(400).json({ error: 'Pachet invalid' })
     }
-    patch.package = pkg
+    patch.package = normalizeTier(pkg)
   }
 
   if (requireOtpLogin !== undefined) {

@@ -66,8 +66,8 @@ async function handler(req, res) {
       .select('package')
       .eq('id', familyId)
       .single()
-    const tier = famQuality?.package || 'free'
-    const quality = tier === 'premium' ? 'hd' : 'sd'
+    const tier = famQuality?.package
+    const quality = getPackageLimits(tier).imageQuality
 
     // Prepare the insert object with base fields
     const insertData = {

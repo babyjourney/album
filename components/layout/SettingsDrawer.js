@@ -1,10 +1,44 @@
+import { useState } from 'react'
+import { useRouter } from 'next/router'
 import SideSheet from './SideSheet'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useTheme } from '../../contexts/ThemeContext'
+import { getSession, authenticatedFetch } from '../../lib/pinAuth'
 
 export default function SettingsDrawer({ isOpen, onClose, onProfilePicture, onSignOut, columns, onColumnsChange }) {
   const { language, changeLanguage, t } = useLanguage()
   const { currentTheme, changeTheme, themes } = useTheme()
+  const router = useRouter()
+  const [exporting, setExporting] = useState(false)
+
+  // User-facing Data Export (baseline — included in every plan). Downloads a
+  // JSON archive of the family's posts + metadata.
+  const exportData = async () => {
+    setExporting(true)
+    try {
+      const session = getSession()
+      const res = await authenticatedFetch(`/api/photos/list?familyId=${session.familyId}&sort=oldest`)
+      const data = await res.json()
+      const archive = {
+        exportedAt: new Date().toISOString(),
+        family: { id: session.familyId, name: session.familyName },
+        posts: (data.photos || []),
+      }
+      const blob = new Blob([JSON.stringify(archive, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `babyjourney-export-${new Date().toISOString().slice(0, 10)}.json`
+      document.body.appendChild(a); a.click(); a.remove()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      console.error('export failed', e)
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const goTo = (path) => { onClose && onClose(); router.push(path) }
 
   return (
     <SideSheet isOpen={isOpen} onClose={onClose} width={420}>
@@ -147,6 +181,18 @@ export default function SettingsDrawer({ isOpen, onClose, onProfilePicture, onSi
           </Section>
         )}
 
+        <Section label={t('tools') || 'Instrumente'}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <DrawerLink icon="🗓️" label="Vedere calendar" onClick={() => goTo('/calendar')} />
+            <DrawerLink icon="📅" label="În această zi" onClick={() => goTo('/on-this-day')} />
+            <DrawerLink
+              icon="⬇️"
+              label={exporting ? 'Se exportă…' : 'Exportă datele (JSON)'}
+              onClick={exporting ? undefined : exportData}
+            />
+          </div>
+        </Section>
+
         {onProfilePicture && (
           <Section label="Profile">
             <button
@@ -210,6 +256,19 @@ export default function SettingsDrawer({ isOpen, onClose, onProfilePicture, onSi
         </div>
       )}
     </SideSheet>
+  )
+}
+
+function DrawerLink({ icon, label, onClick }) {
+  return (
+    <button onClick={onClick} className="btn-glass" style={{ width: '100%', justifyContent: 'space-between' }}>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+        <span style={{ fontSize: 16 }}>{icon}</span>{label}
+      </span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="9 18 15 12 9 6"/>
+      </svg>
+    </button>
   )
 }
 
