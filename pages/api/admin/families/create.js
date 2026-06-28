@@ -30,6 +30,19 @@ import { normalizeTier } from '../../../../lib/tiers'
 const PHONE_REGEX = /^(0)?[67][0-9]{7}$/
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
+// A "fetch failed" / network error means the server couldn't reach Supabase at
+// all (paused project, DNS, VPN/proxy/firewall) — NOT a missing key or RLS.
+function isNetworkError(err) {
+  const m = String(err?.message || err || '').toLowerCase()
+  return m.includes('fetch failed') || m.includes('econnrefused') ||
+         m.includes('enotfound') || m.includes('getaddrinfo') ||
+         m.includes('network') || m.includes('timed out') || m.includes('etimedout')
+}
+const NETWORK_HINT =
+  'Serverul nu poate contacta Supabase. Verifică: (1) proiectul Supabase nu e ' +
+  'pus pe pauză (Dashboard → Restore), (2) repornește serverul după modificări ' +
+  'în .env.local, (3) rețea/VPN/firewall care blochează conexiunile Node.'
+
 // Numeric PIN generator. Falls back to Math.random if crypto.randomInt is
 // somehow unavailable (older Node runtimes) — still uniform enough for an
 // account PIN, and we re-check uniqueness against the DB anyway.
@@ -137,10 +150,13 @@ async function handler(req, res) {
       const { data: existing, error: phoneErr } = await supabase
         .from('families').select('id').eq('phone_number', cleanPhone).limit(1)
       if (phoneErr) {
-        return res.status(500).json({
-          error: `Eroare DB la verificare telefon: ${phoneErr.message}`,
-          code: phoneErr.code || null,
-          hint: 'Probabil SUPABASE_SERVICE_ROLE_KEY lipsește din .env.local.',
+        const network = isNetworkError(phoneErr)
+        return res.status(network ? 503 : 500).json({
+          error: network
+            ? `Nu se poate conecta la Supabase (${phoneErr.message}).`
+            : `Eroare DB la verificare telefon: ${phoneErr.message}`,
+          code: phoneErr.code || (network ? 'SUPABASE_UNREACHABLE' : null),
+          hint: network ? NETWORK_HINT : 'Probabil SUPABASE_SERVICE_ROLE_KEY lipsește din .env.local.',
         })
       }
       if (existing && existing.length > 0) {
@@ -258,8 +274,13 @@ async function handler(req, res) {
     return res.status(200).json({ ok: true, family: data })
   } catch (err) {
     console.error('admin/families/create unhandled error:', err)
-    return res.status(500).json({
-      error: err?.message || 'Eroare internă neașteptată',
+    const network = isNetworkError(err)
+    return res.status(network ? 503 : 500).json({
+      error: network
+        ? `Nu se poate conecta la Supabase (${err?.message}).`
+        : (err?.message || 'Eroare internă neașteptată'),
+      code: network ? 'SUPABASE_UNREACHABLE' : undefined,
+      hint: network ? NETWORK_HINT : undefined,
       where: 'create-family-handler',
     })
   }
