@@ -38,20 +38,42 @@ async function updateSkillProgress(req, res) {
   }
 
   try {
-    const { data, error } = await supabase
+    // Manual upsert keyed on (family_id, skill_id). Avoid .upsert({ onConflict })
+    // because skills_progress has no UNIQUE(family_id, skill_id) constraint in
+    // the deployed schema — Postgres would raise "no unique or exclusion
+    // constraint matching the ON CONFLICT specification".
+    const payload = {
+      family_id: familyId,
+      skill_id: skillId,
+      skill_name: skillName,
+      skill_category: skillCategory,
+      progress: progress,
+      notes: notes,
+      last_updated: new Date().toISOString(),
+    }
+
+    const { data: existing, error: selErr } = await supabase
       .from('skills_progress')
-      .upsert({
-        family_id: familyId,
-        skill_id: skillId,
-        skill_name: skillName,
-        skill_category: skillCategory,
-        progress: progress,
-        notes: notes,
-        last_updated: new Date().toISOString()
-      }, {
-        onConflict: 'family_id,skill_id'
-      })
-      .select()
+      .select('id')
+      .eq('family_id', familyId)
+      .eq('skill_id', skillId)
+      .limit(1)
+      .maybeSingle()
+    if (selErr) throw selErr
+
+    let data, error
+    if (existing) {
+      ;({ data, error } = await supabase
+        .from('skills_progress')
+        .update(payload)
+        .eq('id', existing.id)
+        .select())
+    } else {
+      ;({ data, error } = await supabase
+        .from('skills_progress')
+        .insert(payload)
+        .select())
+    }
 
     if (error) {
       throw error

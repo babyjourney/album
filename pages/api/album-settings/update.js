@@ -14,17 +14,38 @@ async function handler(req, res) {
   }
 
   try {
-    const { data, error } = await supabase
+    // Manual upsert. We can't use .upsert({ onConflict: 'family_id' }) because
+    // album_settings.family_id has only a plain index, not a UNIQUE constraint
+    // (see schema.sql) — Postgres then raises "no unique or exclusion constraint
+    // matching the ON CONFLICT specification". Select-then-update/insert works
+    // regardless of the deployed schema and avoids a migration.
+    const { data: existing, error: selErr } = await supabase
       .from('album_settings')
-      .upsert({
-        family_id: familyId,
-        is_multi_child: isMultiChild,
-        updated_at: new Date().toISOString()
-      }, {
-        onConflict: 'family_id'
-      })
-      .select()
-      .single()
+      .select('id')
+      .eq('family_id', familyId)
+      .limit(1)
+      .maybeSingle()
+    if (selErr) throw selErr
+
+    let data, error
+    if (existing) {
+      ;({ data, error } = await supabase
+        .from('album_settings')
+        .update({ is_multi_child: isMultiChild, updated_at: new Date().toISOString() })
+        .eq('id', existing.id)
+        .select()
+        .single())
+    } else {
+      ;({ data, error } = await supabase
+        .from('album_settings')
+        .insert({
+          family_id: familyId,
+          is_multi_child: isMultiChild,
+          updated_at: new Date().toISOString(),
+        })
+        .select()
+        .single())
+    }
 
     if (error) {
       throw error
