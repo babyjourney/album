@@ -63,7 +63,10 @@ async function handler(req, res) {
         insertData.hashtags = hashtagArray
       }
       if (customDate) {
-        insertData.custom_date = customDate
+        // (Item 7) Override created_at so the post is dated as chosen — the app
+        // sorts/filters by created_at, not a separate custom_date column.
+        const d = new Date(customDate)
+        if (!isNaN(d.getTime())) insertData.created_at = d.toISOString()
       }
     } catch (schemaError) {
       console.log('Some optional columns may not exist yet:', schemaError.message)

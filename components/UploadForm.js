@@ -10,7 +10,7 @@ import { getCategories } from '../lib/categoriesData'
 import { getPackageLimits, getImageCompressionOptions, getVideoLimits } from '../lib/packages'
 import { UPLOAD_ACCEPT, isAcceptedUploadFile } from '../lib/fileTypes'
 
-export default function UploadForm({ familyId, onUploadSuccess, onClose, refreshTrigger }) {
+export default function UploadForm({ familyId, onUploadSuccess, onClose, refreshTrigger, selectedChildId = null }) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [category, setCategory] = useState('memories')
@@ -40,6 +40,10 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
   // `files`; entries are `null` for images. Sent to the server so it can
   // re-validate even if the client lied.
   const [videoDurations, setVideoDurations] = useState([])
+  // (Item 2) existing family hashtags for autocomplete suggestions.
+  const [existingHashtags, setExistingHashtags] = useState([])
+  // (Item 14) index of the file currently being dragged for reorder.
+  const [dragReorderIndex, setDragReorderIndex] = useState(null)
   const { showSuccess, showError } = useToast()
   const { t } = useLanguage()
   const modalRef = useRef(null)
@@ -138,17 +142,50 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
     loadCategories()
   }, [refreshTrigger])
 
+  const addHashtag = (raw) => {
+    const tag = String(raw).trim().toLowerCase().replace(/^#/, '')
+    if (tag && !hashtags.includes(tag)) setHashtags((h) => [...h, tag])
+    setCurrentHashtagInput('')
+  }
+
   const handleHashtagKeyDown = (e) => {
-    if (e.key === ' ' && currentHashtagInput.trim()) {
+    if ((e.key === ' ' || e.key === 'Enter') && currentHashtagInput.trim()) {
       e.preventDefault()
-      const newTag = currentHashtagInput.trim().toLowerCase()
-      if (!hashtags.includes(newTag)) {
-        setHashtags([...hashtags, newTag])
-      }
-      setCurrentHashtagInput('')
+      addHashtag(currentHashtagInput)
     } else if (e.key === 'Backspace' && !currentHashtagInput && hashtags.length > 0) {
       setHashtags(hashtags.slice(0, -1))
     }
+  }
+
+  // (Item 2) hashtag suggestions filtered by current input, excluding ones
+  // already chosen. Show up to 8.
+  const hashtagSuggestions = existingHashtags
+    .filter((h) => !hashtags.includes(h))
+    .filter((h) => !currentHashtagInput.trim() || h.includes(currentHashtagInput.trim().toLowerCase()))
+    .slice(0, 8)
+
+  // (Item 14) reorder selected files via drag; keep videoDurations and the
+  // cover selection aligned with the moved item.
+  const moveFile = (from, to) => {
+    if (from === to || from == null || to == null) return
+    setFiles((prev) => {
+      const next = [...prev]
+      const [m] = next.splice(from, 1)
+      next.splice(to, 0, m)
+      return next
+    })
+    setVideoDurations((prev) => {
+      const next = [...prev]
+      const [m] = next.splice(from, 1)
+      next.splice(to, 0, m)
+      return next
+    })
+    setCoverIndex((ci) => {
+      if (ci === from) return to
+      if (from < ci && to >= ci) return ci - 1
+      if (from > ci && to <= ci) return ci + 1
+      return ci
+    })
   }
 
   // Refresh the family's package from the server on mount so changes made
@@ -186,6 +223,11 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
 
             if (childrenResponse.ok) {
               setChildren(childrenResult.children)
+              // (Item 6) Pre-select the child currently filtered in the feed so
+              // new content lands on the right child by default. User can change it.
+              if (selectedChildId && (childrenResult.children || []).some(c => c.id === selectedChildId)) {
+                setSelectedChildren([selectedChildId])
+              }
             }
           }
         }
@@ -197,6 +239,17 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
     if (familyId) {
       fetchChildrenData()
     }
+  }, [familyId, selectedChildId])
+
+  // (Item 2) Load existing hashtags once for autocomplete suggestions.
+  useEffect(() => {
+    if (!familyId) return
+    let cancelled = false
+    authenticatedFetch(`/api/hashtags/list?familyId=${familyId}`)
+      .then((r) => r.json())
+      .then((d) => { if (!cancelled && d?.success) setExistingHashtags(d.hashtags || []) })
+      .catch(() => {})
+    return () => { cancelled = true }
   }, [familyId])
 
   const handleDragOver = (e) => {
@@ -366,13 +419,17 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    if (!title.trim()) {
-      setError(t('title'))
+    // (Item 11) A post needs a title or a description; media is optional (a
+    // post with only title+description is a text post).
+    if (!title.trim() && !description.trim()) {
+      setError('Adaugă un titlu sau o descriere')
       return
     }
 
-    if (files.length === 0) {
-      setError(t('uploadPhotos'))
+    // (Item 3a) In multi-child albums, force choosing at least one child so the
+    // post is navigable per child (not only under "all kids").
+    if (albumSettings?.is_multi_child && selectedChildren.length === 0) {
+      setError('Selectează cel puțin un copil pentru această postare')
       return
     }
 
@@ -433,19 +490,9 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
         throw new Error(result.error || t('error'))
       }
 
-      if (albumSettings?.is_multi_child && selectedChildren.length > 0) {
-        const childResponse = await authenticatedFetch('/api/child-posts/create', {
-          method: 'POST',
-          body: JSON.stringify({
-            photoId: result.post.id,
-            childIds: selectedChildren
-          })
-        })
-
-        if (!childResponse.ok) {
-          console.warn('Child association failed, but photo was uploaded successfully')
-        }
-      }
+      // Child associations are linked server-side by /api/posts/create-multi
+      // (from selectedChildren) — no separate child-posts/create call, which
+      // would create duplicate child_posts rows.
 
       const successMessage = t('success')
 
@@ -682,7 +729,13 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                     gap: isMobile ? '8px' : '10px'
                   }}>
                     {files.map((file, index) => (
-                      <div key={index} style={{
+                      <div key={index}
+                        draggable
+                        onDragStart={(e) => { setDragReorderIndex(index); e.dataTransfer.effectAllowed = 'move' }}
+                        onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move' }}
+                        onDrop={(e) => { e.preventDefault(); moveFile(dragReorderIndex, index); setDragReorderIndex(null) }}
+                        onDragEnd={() => setDragReorderIndex(null)}
+                        style={{
                         position: 'relative',
                         aspectRatio: '1',
                         borderRadius: '14px',
@@ -692,7 +745,8 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                           ? '2px solid var(--accent-iris)'
                           : '1px solid var(--glass-hairline)',
                         transition,
-                        cursor: 'pointer',
+                        cursor: 'grab',
+                        opacity: dragReorderIndex === index ? 0.5 : 1,
                         boxShadow: index === coverIndex
                           ? '0 8px 24px -6px rgba(124, 58, 237, 0.45), inset 0 1px 0 0 rgba(255,255,255,0.20)'
                           : 'inset 0 1px 0 0 var(--glass-hairline-strong)'
@@ -1047,6 +1101,23 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                     }}
                   />
                 </div>
+
+                {/* (Item 2) hashtag suggestions from previously-used tags */}
+                {hashtags.length < 10 && hashtagSuggestions.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
+                    {hashtagSuggestions.map((h) => (
+                      <button
+                        key={h}
+                        type="button"
+                        onClick={() => addHashtag(h)}
+                        className="category-pill"
+                        style={{ padding: '4px 10px', fontSize: '12px' }}
+                      >
+                        #{h}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Private content toggle */}
@@ -1294,7 +1365,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
 
           <button
             onClick={handleSubmit}
-            disabled={loading || !title.trim() || files.length === 0}
+            disabled={loading || (!title.trim() && !description.trim()) || (albumSettings?.is_multi_child && selectedChildren.length === 0)}
             className="btn-iris sheen"
             style={{
               padding: isMobile ? '13px 22px' : '13px 26px',

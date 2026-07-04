@@ -85,13 +85,17 @@ async function handler(req, res) {
 
         let storageUsed = 0
         let postsLast30Days = 0
+        let photoFilesCount = 0
         if (photosData && photosData.length > 0) {
           photosData.forEach(photo => {
             if (photo.file_urls && Array.isArray(photo.file_urls)) {
               storageUsed += photo.file_urls.length * 2 * 1024 * 1024
+              photoFilesCount += photo.file_urls.length
             } else if (photo.file_url) {
               storageUsed += 2 * 1024 * 1024
+              photoFilesCount += 1
             }
+            // (text posts have neither file_url nor file_urls → not counted)
             const createdAt = new Date(photo.created_at)
             if (createdAt >= thirtyDaysAgo) postsLast30Days += 1
           })
@@ -102,7 +106,9 @@ async function handler(req, res) {
         let daysSinceLastPost = null
         if (lastPostDate) {
           const lastPost = new Date(lastPostDate)
-          daysSinceLastPost = Math.ceil((now - lastPost) / (1000 * 60 * 60 * 24))
+          // Clamp to >= 0 so a post with a future custom date never reads as
+          // "old" (negative age would otherwise misclassify activity).
+          daysSinceLastPost = Math.max(0, Math.ceil((now - lastPost) / (1000 * 60 * 60 * 24)))
         }
 
         const accountAgeDays = family.created_at
@@ -119,6 +125,7 @@ async function handler(req, res) {
           ...family,
           children_count: childrenCount || 0,
           photos_count: photosCount || 0,
+          photo_files_count: photoFilesCount,
           storage_used: storageUsed,
           last_post_date: lastPostDate,
           days_since_last_post: daysSinceLastPost,
@@ -145,7 +152,12 @@ async function handler(req, res) {
     }))
 
     const estimatedStoragePerPhoto = 2 * 1024 * 1024
-    const estimatedStorageUsed = (totalPhotos || 0) * estimatedStoragePerPhoto
+    // 5b: sum the correctly-computed per-family storage (accounts for
+    // multi-photo posts) instead of totalPhotos * 2MB, which ignored them.
+    const estimatedStorageUsed = familiesWithStats.reduce((s, f) => s + (f.storage_used || 0), 0)
+    // 5d: real photo count = sum of actual media files across all posts
+    // (multi-photo posts count each file; text posts count zero).
+    const totalPhotoFiles = familiesWithStats.reduce((s, f) => s + (f.photo_files_count || 0), 0)
 
     // ─── growth analytics ─────────────────────────────────────────────────
     // New families per day for the last 30 days. We compute this client-side
@@ -281,7 +293,8 @@ async function handler(req, res) {
     res.status(200).json({
       totalFamilies: totalFamilies || 0,
       totalChildren: totalChildren || 0,
-      totalPhotos: totalPhotos || 0,
+      totalPhotos: totalPhotoFiles,
+      totalPosts: totalPhotos || 0,
       storageUsed: estimatedStorageUsed,
       familiesList: familiesWithStats,
       recentActivity: formattedActivity,

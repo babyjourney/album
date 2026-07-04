@@ -18,6 +18,12 @@ export default function AdminDashboard() {
     birthDate: '',
     profilePictureUrl: ''
   })
+  // (1b) add-child photo upload (replaces the URL field)
+  const [addChildFile, setAddChildFile] = useState(null)
+  const [addChildPreview, setAddChildPreview] = useState('')
+  // (1a/1b) inline edit of an existing child (name / birth date / photo)
+  const [editingChildId, setEditingChildId] = useState(null)
+  const [editChild, setEditChild] = useState({ name: '', birthDate: '', file: null, preview: '' })
   const [uploading, setUploading] = useState(false)
 
   // Family setup states
@@ -25,6 +31,7 @@ export default function AdminDashboard() {
   const [familyName, setFamilyName] = useState('')
   const [parentName, setParentName] = useState('')
   const [childName, setChildName] = useState('')
+  const [childBirthDate, setChildBirthDate] = useState('') // (1a) first child's DOB
   const [phoneNumber, setPhoneNumber] = useState('')
   // Email is optional but recommended — enables email-channel OTP for
   // forgot-PIN / 2FA login (see lib/notifications.js).
@@ -170,7 +177,7 @@ export default function AdminDashboard() {
           familyId: selectedFamilyId,
           name: newChild.name,
           birthDate: newChild.birthDate || null,
-          profilePictureUrl: newChild.profilePictureUrl || null,
+          profilePictureUrl: null,
           displayOrder: children.length
         })
       })
@@ -178,8 +185,24 @@ export default function AdminDashboard() {
       const result = await response.json()
 
       if (response.ok) {
-        setChildren([...children, result.child])
+        let created = result.child
+        // (1b) Upload the chosen photo (if any) now that we have the child id,
+        // then persist its URL.
+        if (addChildFile && created?.id) {
+          try {
+            const url = await uploadChildPhoto(selectedFamilyId, created.id, addChildFile)
+            const upd = await adminFetch('/api/children/update', {
+              method: 'POST',
+              body: JSON.stringify({ id: created.id, profilePictureUrl: url }),
+            })
+            const updJson = await upd.json()
+            if (upd.ok) created = updJson.child
+          } catch (e) { console.warn('Child photo upload failed:', e) }
+        }
+        setChildren([...children, created])
         setNewChild({ name: '', birthDate: '', profilePictureUrl: '' })
+        setAddChildFile(null)
+        setAddChildPreview('')
         setShowAddChild(false)
         // Refresh title after adding child
         fetchFamilyData(selectedFamilyId)
@@ -220,6 +243,53 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Error removing child:', error)
       alert('Eroare la eliminarea copilului')
+    }
+  }
+
+  // Compress an image file and return a File; used for child photos.
+  const compressImage = async (file) => {
+    const options = { maxSizeMB: 1, maxWidthOrHeight: 500, useWebWorker: true }
+    try { return await imageCompression(file, options) } catch { return file }
+  }
+
+  // Upload a child photo to the 'photos' bucket and return its public URL.
+  const uploadChildPhoto = async (familyId, childId, file) => {
+    const compressed = await compressImage(file)
+    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
+    const fileName = `${familyId}/child_${childId}.${ext}`
+    const { error } = await supabase.storage
+      .from('photos').upload(fileName, compressed, { cacheControl: '3600', upsert: true })
+    if (error) throw error
+    const { data: { publicUrl } } = supabase.storage.from('photos').getPublicUrl(fileName)
+    return publicUrl
+  }
+
+  // (1a/1b) Save edits to an existing child (name, birth date, and/or photo).
+  const handleSaveChildEdit = async (child) => {
+    try {
+      setUploading(true)
+      let photoUrl = child.profile_picture_url || null
+      if (editChild.file) {
+        photoUrl = await uploadChildPhoto(selectedFamilyId, child.id, editChild.file)
+      }
+      const response = await adminFetch('/api/children/update', {
+        method: 'POST',
+        body: JSON.stringify({
+          id: child.id,
+          name: editChild.name.trim() || child.name,
+          birthDate: editChild.birthDate || null,
+          profilePictureUrl: photoUrl,
+        }),
+      })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error || 'Actualizare eșuată')
+      setChildren(children.map((c) => (c.id === child.id ? result.child : c)))
+      setEditingChildId(null)
+      setEditChild({ name: '', birthDate: '', file: null, preview: '' })
+    } catch (error) {
+      alert('Eroare la actualizarea copilului: ' + error.message)
+    } finally {
+      setUploading(false)
     }
   }
 
@@ -405,7 +475,7 @@ export default function AdminDashboard() {
           body: JSON.stringify({
             familyId: data.id,
             name: childName.trim(),
-            birthDate: null,
+            birthDate: childBirthDate || null,
             profilePictureUrl: null,
             displayOrder: 0
           })
@@ -434,6 +504,7 @@ export default function AdminDashboard() {
       setFamilyName('')
       setParentName('')
       setChildName('')
+      setChildBirthDate('')
       setPhoneNumber('')
       setEmail('')
       setTier('starter')
@@ -524,23 +595,36 @@ export default function AdminDashboard() {
                 </p>
               </div>
             </div>
-            <button
-              onClick={handleLogout}
-              className="btn-glass"
-              style={{
-                background: 'linear-gradient(135deg, #f87171, #dc2626)',
-                color: '#fff',
-                border: '1px solid rgba(255,255,255,0.18)',
-                boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.30), 0 8px 24px -8px rgba(220,38,38,0.55)'
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                <polyline points="16,17 21,12 16,7"/>
-                <line x1="21" x2="9" y1="12" y2="12"/>
-              </svg>
-              Logout
-            </button>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              {/* (1c) back to the admin overview without logging out */}
+              <button
+                onClick={() => router.push('/admin/dashboard')}
+                className="btn-glass"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="19" y1="12" x2="5" y2="12"/>
+                  <polyline points="12 19 5 12 12 5"/>
+                </svg>
+                Înapoi
+              </button>
+              <button
+                onClick={handleLogout}
+                className="btn-glass"
+                style={{
+                  background: 'linear-gradient(135deg, #f87171, #dc2626)',
+                  color: '#fff',
+                  border: '1px solid rgba(255,255,255,0.18)',
+                  boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.30), 0 8px 24px -8px rgba(220,38,38,0.55)'
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                  <polyline points="16,17 21,12 16,7"/>
+                  <line x1="21" x2="9" y1="12" y2="12"/>
+                </svg>
+                Logout
+              </button>
+            </div>
           </div>
         </div>
 
@@ -631,6 +715,19 @@ export default function AdminDashboard() {
                   className="input-glass"
                   placeholder="Introduceți numele copilului (de ex., 'Andrei')"
                   required
+                />
+              </div>
+
+              {/* (1a) birth date for the FIRST child — was previously omitted */}
+              <div>
+                <label className="text-eyebrow" style={{ display: 'block', marginBottom: '8px' }}>
+                  Data Nașterii Copilului (Opțional)
+                </label>
+                <input
+                  type="date"
+                  value={childBirthDate}
+                  onChange={(e) => setChildBirthDate(e.target.value)}
+                  className="input-glass"
                 />
               </div>
 
@@ -1032,6 +1129,31 @@ export default function AdminDashboard() {
                       </svg>
                     </button>
 
+                    {/* (1a/1b) edit button — set birth date / photo / name */}
+                    <button
+                      onClick={() => {
+                        setEditingChildId(child.id)
+                        setEditChild({
+                          name: child.name || '',
+                          birthDate: child.birth_date ? String(child.birth_date).slice(0, 10) : '',
+                          file: null, preview: '',
+                        })
+                      }}
+                      style={{
+                        position: 'absolute', top: '12px', left: '12px',
+                        width: '30px', height: '30px', borderRadius: '50%',
+                        border: '1px solid var(--glass-hairline-strong)',
+                        background: 'var(--glass-2)', color: 'var(--ink-1)',
+                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}
+                      title={`Editează ${child.name}`}
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="m18.5 2.5 2 2L13 12l-4 1 1-4 7.5-7.5z"/>
+                      </svg>
+                    </button>
+
                     <div style={{
                       width: '84px',
                       height: '84px',
@@ -1055,10 +1177,51 @@ export default function AdminDashboard() {
                     <h3 className="text-body" style={{ fontWeight: 600, marginBottom: '6px' }}>
                       {child.name}
                     </h3>
-                    {child.birth_date && (
+                    {child.birth_date && editingChildId !== child.id && (
                       <p className="text-subtle nums">
                         {new Date(child.birth_date).toLocaleDateString(language === 'ru' ? 'ru-RU' : 'ro-RO')}
                       </p>
+                    )}
+
+                    {/* (1a/1b) inline edit form */}
+                    {editingChildId === child.id && (
+                      <div style={{ marginTop: '12px', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <input
+                          type="text"
+                          value={editChild.name}
+                          onChange={(e) => setEditChild({ ...editChild, name: e.target.value })}
+                          className="input-glass"
+                          placeholder="Nume"
+                          style={{ fontSize: '13px' }}
+                        />
+                        <input
+                          type="date"
+                          value={editChild.birthDate}
+                          onChange={(e) => setEditChild({ ...editChild, birthDate: e.target.value })}
+                          className="input-glass"
+                          style={{ fontSize: '13px' }}
+                        />
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const f = e.target.files?.[0]
+                            if (!f) return
+                            setEditChild({ ...editChild, file: f, preview: URL.createObjectURL(f) })
+                          }}
+                          style={{ fontSize: '12px' }}
+                        />
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button onClick={() => handleSaveChildEdit(child)} disabled={uploading}
+                            className="btn-iris sheen" style={{ flex: 1, padding: '8px', fontSize: '13px' }}>
+                            {uploading ? '...' : 'Salvează'}
+                          </button>
+                          <button onClick={() => { setEditingChildId(null) }}
+                            className="btn-glass" style={{ flex: 1, padding: '8px', fontSize: '13px' }}>
+                            Anulează
+                          </button>
+                        </div>
+                      </div>
                     )}
                   </div>
                 ))}
@@ -1116,17 +1279,28 @@ export default function AdminDashboard() {
                     />
                   </div>
 
+                  {/* (1b) upload a photo instead of pasting a URL */}
                   <div style={{ marginBottom: '12px' }}>
                     <label className="text-eyebrow" style={{ display: 'block', marginBottom: '8px' }}>
-                      URL poză profil
+                      Poză profil (Opțional)
                     </label>
-                    <input
-                      type="url"
-                      value={newChild.profilePictureUrl}
-                      onChange={(e) => setNewChild({ ...newChild, profilePictureUrl: e.target.value })}
-                      className="input-glass"
-                      placeholder="https://..."
-                    />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      {addChildPreview && (
+                        <img src={addChildPreview} alt="preview"
+                          style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--glass-hairline-strong)' }} />
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0]
+                          if (!f) return
+                          setAddChildFile(f)
+                          setAddChildPreview(URL.createObjectURL(f))
+                        }}
+                        className="input-glass"
+                      />
+                    </div>
                   </div>
 
                   <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
@@ -1135,6 +1309,8 @@ export default function AdminDashboard() {
                       onClick={() => {
                         setShowAddChild(false)
                         setNewChild({ name: '', birthDate: '', profilePictureUrl: '' })
+                        setAddChildFile(null)
+                        setAddChildPreview('')
                       }}
                       className="btn-glass"
                     >

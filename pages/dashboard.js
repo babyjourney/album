@@ -10,6 +10,7 @@ import SettingsDrawer from '../components/layout/SettingsDrawer'
 import FilterDrawer from '../components/layout/FilterDrawer'
 import SideSheet from '../components/layout/SideSheet'
 import BentoMasonry from '../components/layout/BentoMasonry'
+import TimelineNav from '../components/layout/TimelineNav'
 
 import PostModal from '../components/PostModal'
 import UploadForm from '../components/UploadForm'
@@ -26,9 +27,10 @@ export default function Dashboard() {
   const [filters, setFilters] = useState({ date: '', category: 'all', hashtag: '', sort: 'newest' })
   const [selectedChildId, setSelectedChildId] = useState(null)
   const [postCount, setPostCount] = useState(0)
+  const [feedPosts, setFeedPosts] = useState([])
   const [albumTitle, setAlbumTitle] = useState('Family Album')
   const [familyProfilePicture, setFamilyProfilePicture] = useState('')
-  const [feedColumns, setFeedColumns] = useState(2)
+  const [feedColumns, setFeedColumns] = useState(3)
 
   // Drawers
   const [showSettings, setShowSettings] = useState(false)
@@ -179,21 +181,8 @@ export default function Dashboard() {
 
   const railChildren = isMultiChild ? children : []
   const actionItems = []
-  if (hasEditorAccess) {
-    actionItems.push({
-      tone: 'aqua',
-      label: 'New text post',
-      onClick: () => setShowTextPost(true),
-      icon: (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-          <polyline points="14 2 14 8 20 8"/>
-          <line x1="9"  y1="13" x2="15" y2="13"/>
-          <line x1="9"  y1="17" x2="15" y2="17"/>
-        </svg>
-      ),
-    })
-  }
+  // (Item 11) The standalone "New text post" action was removed — a text post is
+  // now just the Upload form submitted with only a title + description (no media).
   const handleOpenSlideshow = async () => {
     if (!session?.familyId || slideshowLoading) return
     setSlideshowLoading(true)
@@ -300,7 +289,7 @@ export default function Dashboard() {
           <p className="text-eyebrow" style={{ color: 'var(--accent-iris)', marginBottom: 10 }}>
             Family memories
           </p>
-          <h1 className="text-display" style={{ fontSize: 'clamp(36px, 6vw, 64px)', marginBottom: 8 }}>
+          <h1 className="text-display" style={{ fontSize: 'clamp(22px, 3.4vw, 34px)', marginBottom: 8 }}>
             {albumTitle}
           </h1>
           <p className="text-body" style={{ color: 'var(--ink-2)', fontSize: 16 }}>
@@ -322,12 +311,16 @@ export default function Dashboard() {
           refreshTrigger={refreshTrigger}
           onPostClick={handlePostClick}
           onPostCountUpdate={setPostCount}
+          onPostsLoaded={setFeedPosts}
           onHashtagClick={handleHashtagClick}
           filters={filters}
           selectedChildId={selectedChildId}
           columns={feedColumns}
         />
       </main>
+
+      {/* Right-side timeline navigation (desktop only) */}
+      <TimelineNav posts={feedPosts} />
 
       {/* Drawers */}
       <SettingsDrawer
@@ -390,6 +383,7 @@ export default function Dashboard() {
               onUploadSuccess={handleUploadSuccess}
               onClose={() => setShowUpload(false)}
               refreshTrigger={refreshTrigger}
+              selectedChildId={isMultiChild ? selectedChildId : null}
             />
           </div>
         </div>

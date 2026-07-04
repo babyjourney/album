@@ -163,6 +163,17 @@ export default async function handler(req, res) {
     // Success! Clear any rate limiting for this client
     rateLimiter.recordSuccessfulAttempt(clientId)
 
+    // 5a: stamp last_accessed on EVERY successful login (both 4-digit viewer
+    // and 8-digit editor PINs). Best-effort — never block login if it fails.
+    try {
+      await supabase
+        .from('families')
+        .update({ last_accessed: new Date().toISOString() })
+        .eq('id', family.id)
+    } catch (accessErr) {
+      console.error('last_accessed update failed:', accessErr)
+    }
+
     // Issue a signed session token. Client stores it opaquely and sends it
     // as a Bearer token; the signature prevents tampering with familyId/role.
     const token = issueFamilyToken({

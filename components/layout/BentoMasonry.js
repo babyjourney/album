@@ -80,7 +80,7 @@ const BENTO_PATTERN_2 = [
   { c: 'span 1', r: 'span 1' },
 ]
 
-export default function BentoMasonry({ familyId, searchQuery, refreshTrigger, onPostClick, onPostCountUpdate, onHashtagClick, filters, selectedChildId, columns = 2 }) {
+export default function BentoMasonry({ familyId, searchQuery, refreshTrigger, onPostClick, onPostCountUpdate, onPostsLoaded, onHashtagClick, filters, selectedChildId, columns = 2 }) {
   const safeColumns = columns === 3 ? 3 : 2
   const BENTO_PATTERN = safeColumns === 3 ? BENTO_PATTERN_3 : BENTO_PATTERN_2
   const [posts, setPosts] = useState([])
@@ -120,6 +120,7 @@ export default function BentoMasonry({ familyId, searchQuery, refreshTrigger, on
       const data = result.photos || []
       setPosts(data)
       onPostCountUpdate && onPostCountUpdate(data.length)
+      onPostsLoaded && onPostsLoaded(data)
     } catch (e) {
       console.error('Error fetching posts:', e)
       const msg = 'Încărcarea postărilor a eșuat'
@@ -148,6 +149,7 @@ export default function BentoMasonry({ familyId, searchQuery, refreshTrigger, on
     return (
       <article
         key={post.id}
+        id={`post-${post.id}`}
         onClick={() => onPostClick(post, posts, index)}
         style={{
           gridColumn: slot.c,
@@ -377,11 +379,22 @@ function BentoStyles() {
       }
       .bento-masonry.bento-cols-2 {
         grid-template-columns: repeat(2, 1fr);
-        grid-auto-rows: 240px;
+        grid-auto-rows: auto;
       }
       .bento-masonry.bento-cols-3 {
         grid-template-columns: repeat(3, 1fr);
-        grid-auto-rows: 210px;
+        grid-auto-rows: auto;
+      }
+      /* Desktop (item 4): a clean uniform 1:1 grid, 3 (or 2) per row. We drop
+         the bento row/column spans here so aspect-ratio can't fight a 2x1/1x2
+         span (which caused overflow). Mobile rules below (<=900px / <=540px)
+         keep the original hero + 2-per-row look untouched. */
+      @media (min-width: 901px) {
+        .bento-masonry > article {
+          grid-column: span 1 !important;
+          grid-row: span 1 !important;
+          aspect-ratio: 1 / 1;
+        }
       }
       @media (max-width: 900px) {
         .bento-masonry.bento-cols-2,

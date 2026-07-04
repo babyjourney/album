@@ -6,7 +6,7 @@ async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const { postId, title, description, hashtags, file_urls, customDate, coverIndex, isPrivate, category } = req.body
+  const { postId, title, description, hashtags, file_urls, customDate, coverIndex, isPrivate, category, childIds } = req.body
 
   if (!postId) {
     return res.status(400).json({ error: 'Post ID is required' })
@@ -32,11 +32,23 @@ async function handler(req, res) {
       })
     }
 
+    // Normalize hashtags to the same format create-multi stores: a bare array
+    // without the leading '#', lowercased (the client may send '#tag' strings
+    // or a space-joined string). Prevents mixed formats across create vs edit.
+    const normalizeHashtags = (h) => {
+      if (h == null) return null
+      const list = Array.isArray(h) ? h : String(h).split(/\s+/)
+      const clean = list
+        .map((t) => String(t).replace(/^#/, '').trim().toLowerCase())
+        .filter((t) => t.length > 0)
+      return clean
+    }
+
     // Prepare update data
     const updateData = {
       title: title || null,
       description: description || null,
-      hashtags: hashtags || null,
+      hashtags: normalizeHashtags(hashtags),
       updated_at: new Date().toISOString()
     }
 
@@ -194,9 +206,31 @@ async function handler(req, res) {
       return res.status(404).json({ error: 'Post not found' })
     }
 
+    // (Item 3b) Rewrite child associations when childIds is provided. Delete the
+    // existing links for this post, then insert the new set (only children that
+    // belong to this family — prevents cross-family association).
+    if (Array.isArray(childIds)) {
+      try {
+        await supabase.from('child_posts').delete().eq('photo_id', postId)
+        if (childIds.length > 0) {
+          const { data: ownChildren } = await supabase
+            .from('children').select('id').eq('family_id', req.auth.familyId).in('id', childIds)
+          const safeIds = (ownChildren || []).map((c) => c.id)
+          if (safeIds.length > 0) {
+            await supabase.from('child_posts').insert(
+              safeIds.map((child_id) => ({ photo_id: postId, child_id, created_at: new Date().toISOString() }))
+            )
+          }
+        }
+      } catch (childErr) {
+        console.error('Error updating child associations:', childErr)
+        // Non-fatal: the post itself updated successfully.
+      }
+    }
+
     console.log('Post updated successfully:', data[0])
-    res.status(200).json({ 
-      success: true, 
+    res.status(200).json({
+      success: true,
       message: 'Post updated successfully',
       post: data[0]
     })

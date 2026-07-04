@@ -327,6 +327,11 @@ export default function PostModal({
   const [editCoverIndex, setEditCoverIndex] = useState(0)
   const [editPhotoOrder, setEditPhotoOrder] = useState([])
   const [editIsPrivate, setEditIsPrivate] = useState(false)
+  // (Item 3b) child association editing
+  const [editChildIds, setEditChildIds] = useState([])
+  const [familyChildren, setFamilyChildren] = useState([])
+  const [isMultiChildAlbum, setIsMultiChildAlbum] = useState(false)
+  const [editDragIndex, setEditDragIndex] = useState(null)
   const [categories, setCategories] = useState([])
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
   const [editLoading, setEditLoading] = useState(false)
@@ -384,7 +389,71 @@ export default function PostModal({
   }, [])
 
   // Edit functionality
+  // (Item 3b) load the album's children + this post's current associations so
+  // the edit form can show a child selector.
+  const loadEditChildren = async () => {
+    try {
+      const famId = currentPost.family_id
+      if (!famId) return
+      const sres = await authenticatedFetch(`/api/album-settings/get?familyId=${famId}`)
+      const sdata = await sres.json()
+      const multi = !!sdata?.settings?.is_multi_child
+      setIsMultiChildAlbum(multi)
+      if (multi) {
+        const [cres, pres] = await Promise.all([
+          authenticatedFetch(`/api/children/list?familyId=${famId}`),
+          authenticatedFetch(`/api/child-posts/list?photoId=${currentPost.id}`),
+        ])
+        const cdata = await cres.json()
+        const pdata = await pres.json()
+        setFamilyChildren(cdata?.children || [])
+        setEditChildIds(pdata?.childIds || [])
+      }
+    } catch (e) { console.error('loadEditChildren failed', e) }
+  }
+
+  // (Item 12edit) remove one photo from a multi-photo post while editing.
+  const removeEditPhoto = (index) => {
+    setEditPhotoOrder((prev) => {
+      const next = prev.filter((_, i) => i !== index)
+      const maxIdx = Math.max(0, next.length - 1)
+      setEditCoverIndex((ci) => {
+        let n = ci
+        if (index === ci) n = 0
+        else if (index < ci) n = ci - 1
+        // never point past the end of the shortened array
+        return Math.min(Math.max(0, n), maxIdx)
+      })
+      return next
+    })
+  }
+
+  // (Item 3b) child selector shared by the mobile + desktop edit forms.
+  const renderEditChildSelector = () => {
+    if (!isMultiChildAlbum || familyChildren.length === 0) return null
+    const toggle = (id) => setEditChildIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])
+    return (
+      <div style={{ marginBottom: '16px' }}>
+        <label className="text-eyebrow" style={{ display: 'block', marginBottom: '8px' }}>Copii</label>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          {familyChildren.map((c) => {
+            const on = editChildIds.includes(c.id)
+            return (
+              <button key={c.id} type="button" onClick={() => toggle(c.id)}
+                className={on ? 'category-pill category-pill--selected' : 'category-pill'}
+                style={{ padding: '6px 12px', fontSize: '13px' }}>
+                {c.name}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
+
   const handleEdit = () => {
+    loadEditChildren()
     setEditTitle(currentPost.title || '')
     setEditDescription(getCleanDescription(currentPost) || '')
     
@@ -455,6 +524,11 @@ export default function PostModal({
         isPrivate: editIsPrivate
       }
 
+      // (Item 3b) persist child association changes for multi-child albums.
+      if (isMultiChildAlbum) {
+        updateData.childIds = editChildIds
+      }
+
       // CRITICAL: Use reordered photo URLs if available
       // Check if this is ANY kind of multi-photo post
       const multiUrls = editPhotoOrder.length > 0 ? editPhotoOrder : getMultiPhotoUrls(currentPost)
@@ -482,12 +556,12 @@ export default function PostModal({
       if (response.ok) {
         // Use the response from the server to ensure we have the latest data
         const serverPost = result.post
-        const updatedPost = { 
-          ...currentPost, 
-          ...serverPost, // Use server response as base
+        const updatedPost = {
+          ...currentPost,
+          ...serverPost, // Use server response as base (already normalized)
           title: editTitle,
           description: editDescription,
-          hashtags: editHashtags.map(tag => `#${tag}`), // Keep as array to match database format
+          hashtags: editHashtags, // bare tags — matches the server-normalized format
         }
         setCurrentPost(updatedPost)
         setShowEditModal(false)
@@ -1477,18 +1551,34 @@ export default function PostModal({
                                   ✓
                                 </div>
                               )}
+                              {/* (Item 12edit) delete this photo */}
+                              <div
+                                role="button"
+                                onClick={(e) => { e.stopPropagation(); e.preventDefault(); removeEditPhoto(index) }}
+                                title="Șterge poza"
+                                style={{
+                                  position: 'absolute', top: '2px', left: '2px',
+                                  width: '18px', height: '18px', borderRadius: '50%',
+                                  background: 'rgba(220,38,38,0.92)', color: '#fff',
+                                  fontSize: '12px', lineHeight: 1, display: 'flex',
+                                  alignItems: 'center', justifyContent: 'center',
+                                  cursor: 'pointer', zIndex: 2,
+                                }}
+                              >×</div>
                             </button>
                           )
                         })}
                       </div>
                       <p className="text-subtle" style={{ marginTop: '6px', fontSize: '12px' }}>
-                        Selectează care imagine/video să fie afișat ca thumbnail în grid.
+                        Apasă pe imagine pentru cover · × pentru a șterge o poză.
                       </p>
                     </div>
                   )
                 }
                 return null
               })()}
+
+              {renderEditChildSelector()}
 
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
                 <button
@@ -1624,6 +1714,23 @@ export default function PostModal({
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
               <path d="m18.5 2.5 2 2L13 12l-4 1 1-4 7.5-7.5z"/>
+            </svg>
+          </button>
+        )}
+
+        {/* (Item 9) delete post — was only reachable on mobile before */}
+        {!readOnly && (
+          <button
+            onClick={handleDelete}
+            className="btn-icon"
+            style={{ width: '40px', height: '40px', color: 'var(--accent-red, #dc2626)' }}
+            title={t('delete') || 'Șterge'}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              <line x1="10" y1="11" x2="10" y2="17"/>
+              <line x1="14" y1="11" x2="14" y2="17"/>
             </svg>
           </button>
         )}
@@ -2144,6 +2251,21 @@ export default function PostModal({
               {t('edit')} postarea
             </h3>
 
+            {/* (Item 13) title field — was missing on desktop */}
+            <div style={{ marginBottom: '16px' }}>
+              <label className="text-eyebrow" style={{ display: 'block', marginBottom: '8px' }}>
+                {t('title')}
+              </label>
+              <input
+                type="text"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                className="input-glass"
+                style={{ width: '100%', fontFamily: 'inherit' }}
+                placeholder={t('title')}
+              />
+            </div>
+
             <div style={{ marginBottom: '16px' }}>
               <label className="text-eyebrow" style={{ display: 'block', marginBottom: '8px' }}>
                 {t('description')}
@@ -2327,7 +2449,9 @@ export default function PostModal({
             )}
 
             {(() => {
-              const multiUrls = getMultiPhotoUrls(currentPost)
+              // Use the edited order so drag-reorder / per-photo delete reflect
+              // in the desktop grid (matches the mobile edit form).
+              const multiUrls = editPhotoOrder.length > 0 ? editPhotoOrder : getMultiPhotoUrls(currentPost)
               if (multiUrls && multiUrls.length > 1) {
                 return (
                   <div style={{ marginBottom: '20px' }}>
@@ -2432,6 +2556,20 @@ export default function PostModal({
                                 ✓
                               </div>
                             )}
+                            {/* (Item 12edit) delete this photo */}
+                            <div
+                              role="button"
+                              onClick={(e) => { e.stopPropagation(); e.preventDefault(); removeEditPhoto(index) }}
+                              title="Șterge poza"
+                              style={{
+                                position: 'absolute', top: '4px', left: '4px',
+                                width: '20px', height: '20px', borderRadius: '50%',
+                                background: 'rgba(220,38,38,0.92)', color: '#fff',
+                                fontSize: '13px', lineHeight: 1, display: 'flex',
+                                alignItems: 'center', justifyContent: 'center',
+                                cursor: 'pointer', zIndex: 2,
+                              }}
+                            >×</div>
                           </div>
                         )
                       })}
@@ -2441,13 +2579,15 @@ export default function PostModal({
                       fontSize: '12px',
                       lineHeight: '1.4'
                     }}>
-                      Selectează care imagine/video să fie afișat ca thumbnail în grid. Trage și lasă pentru a rearanja ordinea pozelor.
+                      Click = cover · trage pentru reordine · × pentru a șterge o poză.
                     </p>
                   </div>
                 )
               }
               return null
             })()}
+
+            {renderEditChildSelector()}
 
             <div style={{
               display: 'flex',

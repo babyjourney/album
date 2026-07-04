@@ -8,13 +8,17 @@ async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const { title, description, category, hashtags, selectedChildren, imageUrls, customDate, coverIndex, isPrivate, videoDurations } = req.body
+  const { title, description, category, hashtags, selectedChildren, imageUrls: rawImageUrls, customDate, coverIndex, isPrivate, videoDurations } = req.body
 
   // Use authenticated family ID
   const familyId = req.auth.familyId
 
-  if (!imageUrls || !Array.isArray(imageUrls) || imageUrls.length === 0) {
-    return res.status(400).json({ error: 'At least one image URL is required' })
+  const imageUrls = Array.isArray(rawImageUrls) ? rawImageUrls : []
+  // (Item 11) A post with no media is a TEXT post — allowed as long as it has a
+  // title or a description. Only reject when there's truly nothing to save.
+  const isTextPost = imageUrls.length === 0
+  if (isTextPost && !(title && title.trim()) && !(description && description.trim())) {
+    return res.status(400).json({ error: 'Adaugă cel puțin un fișier sau un titlu/descriere' })
   }
 
   // Input validation
@@ -30,9 +34,9 @@ async function handler(req, res) {
     return res.status(400).json({ error: 'Maximum 10 fișiere per postare' })
   }
 
-  // Determine the overall type of the post (video > audio > document > image).
+  // Determine the overall type of the post (text | video > audio > document > image).
   const hasVideo = imageUrls.some(url => isVideoUrl(url))
-  const postFileType = detectPostType(imageUrls)
+  const postFileType = isTextPost ? 'text' : detectPostType(imageUrls)
 
   // Enforce the family's package video-duration limit on any reported
   // video file. We only block when the client gave us a concrete duration
@@ -94,8 +98,8 @@ async function handler(req, res) {
     const basePostData = {
       family_id: familyId,
       title: title?.trim() || '',
-      file_url: imageUrls[0], // Primary file for backward compatibility
-      file_type: postFileType, // Set correct type based on content
+      file_url: imageUrls[0] || null, // Primary file (null for text posts)
+      file_type: postFileType, // 'text' for no-media posts
       is_private: isPrivate === true,
       quality
     }
@@ -113,10 +117,14 @@ async function handler(req, res) {
     if (hashtagArray && hashtagArray.length > 0) {
       basePostData.hashtags = hashtagArray
     }
-    // Remove custom_date field as it doesn't exist in the schema
-    // if (customDate) {
-    //   basePostData.custom_date = customDate
-    // }
+    // (Item 7) Honor the user-chosen post date by overriding created_at — the
+    // whole app sorts/filters/displays by created_at (feed, calendar, age
+    // timelines, "on this day"). Previously customDate was dropped entirely, so
+    // posts always got today's date on first save.
+    if (customDate) {
+      const d = new Date(customDate)
+      if (!isNaN(d.getTime())) basePostData.created_at = d.toISOString()
+    }
 
     // Validate cover index - only use it if explicitly provided and valid
     let validCoverIndex = 0
@@ -139,7 +147,7 @@ async function handler(req, res) {
         ...basePostData,
         description: description?.trim() || '',
         type: postFileType,
-        file_urls: imageUrls
+        file_urls: isTextPost ? null : imageUrls
       }
 
       // Only add cover_index if it's been provided and is valid
