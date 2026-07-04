@@ -10,6 +10,18 @@ import { getCategories } from '../lib/categoriesData'
 import { getPackageLimits, getImageCompressionOptions, getVideoLimits } from '../lib/packages'
 import { UPLOAD_ACCEPT, isAcceptedUploadFile } from '../lib/fileTypes'
 
+// Small round reorder button (‹ ›) used on file thumbnails — works on touch.
+const reorderBtnStyle = (disabled) => ({
+  width: 22, height: 22, borderRadius: '999px',
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  background: 'rgba(0,0,0,0.55)', color: '#fff',
+  border: '1px solid rgba(255,255,255,0.2)',
+  fontSize: 15, lineHeight: 1, fontWeight: 700,
+  cursor: disabled ? 'default' : 'pointer',
+  opacity: disabled ? 0.35 : 1,
+  backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
+})
+
 export default function UploadForm({ familyId, onUploadSuccess, onClose, refreshTrigger, selectedChildId = null }) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -840,6 +852,22 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                             <line x1="6" y1="6" x2="18" y2="18"/>
                           </svg>
                         </div>
+
+                        {/* (Item 14) touch-friendly reorder — works on mobile
+                            where HTML5 drag does not. */}
+                        {files.length > 1 && (
+                          <div style={{
+                            position: 'absolute', bottom: '4px', left: '4px', right: '4px',
+                            display: 'flex', justifyContent: 'space-between', gap: '4px',
+                          }}>
+                            <button type="button" disabled={index === 0}
+                              onClick={(e) => { e.stopPropagation(); moveFile(index, index - 1) }}
+                              style={reorderBtnStyle(index === 0)}>‹</button>
+                            <button type="button" disabled={index === files.length - 1}
+                              onClick={(e) => { e.stopPropagation(); moveFile(index, index + 1) }}
+                              style={reorderBtnStyle(index === files.length - 1)}>›</button>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

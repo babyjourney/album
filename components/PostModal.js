@@ -428,6 +428,32 @@ export default function PostModal({
     })
   }
 
+  // (Item 14) touch-friendly reorder for the edit grids (mobile has no drag).
+  const moveEditPhoto = (from, to) => {
+    setEditPhotoOrder((prev) => {
+      const base = prev.length > 0 ? prev : (getMultiPhotoUrls(currentPost) || [])
+      if (to < 0 || to >= base.length || from === to) return prev.length > 0 ? prev : base
+      const next = [...base]
+      const [m] = next.splice(from, 1)
+      next.splice(to, 0, m)
+      setEditCoverIndex((ci) => {
+        if (ci === from) return to
+        if (from < ci && to >= ci) return ci - 1
+        if (from > ci && to <= ci) return ci + 1
+        return ci
+      })
+      return next
+    })
+  }
+
+  const editReorderBtnStyle = (disabled) => ({
+    width: 22, height: 22, borderRadius: '999px',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    background: 'rgba(0,0,0,0.55)', color: '#fff',
+    border: '1px solid rgba(255,255,255,0.2)', fontSize: 15, lineHeight: 1,
+    fontWeight: 700, cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.35 : 1,
+  })
+
   // (Item 3b) child selector shared by the mobile + desktop edit forms.
   const renderEditChildSelector = () => {
     if (!isMultiChildAlbum || familyChildren.length === 0) return null
@@ -1565,12 +1591,19 @@ export default function PostModal({
                                   cursor: 'pointer', zIndex: 2,
                                 }}
                               >×</div>
+                              {/* (Item 14) touch reorder ‹ › */}
+                              {multiUrls.length > 1 && (
+                                <div style={{ position: 'absolute', bottom: '2px', left: '2px', right: '2px', display: 'flex', justifyContent: 'space-between', zIndex: 2 }}>
+                                  <div role="button" onClick={(e) => { e.stopPropagation(); e.preventDefault(); moveEditPhoto(index, index - 1) }} style={editReorderBtnStyle(index === 0)}>‹</div>
+                                  <div role="button" onClick={(e) => { e.stopPropagation(); e.preventDefault(); moveEditPhoto(index, index + 1) }} style={editReorderBtnStyle(index === multiUrls.length - 1)}>›</div>
+                                </div>
+                              )}
                             </button>
                           )
                         })}
                       </div>
                       <p className="text-subtle" style={{ marginTop: '6px', fontSize: '12px' }}>
-                        Apasă pe imagine pentru cover · × pentru a șterge o poză.
+                        Cover = apasă imaginea · × șterge · ‹ › schimbă ordinea.
                       </p>
                     </div>
                   )
@@ -2570,6 +2603,13 @@ export default function PostModal({
                                 cursor: 'pointer', zIndex: 2,
                               }}
                             >×</div>
+                            {/* (Item 14) reorder buttons (also work on touch) */}
+                            {multiUrls.length > 1 && (
+                              <div style={{ position: 'absolute', bottom: '4px', left: '4px', right: '4px', display: 'flex', justifyContent: 'space-between', zIndex: 2 }}>
+                                <div role="button" onClick={(e) => { e.stopPropagation(); e.preventDefault(); moveEditPhoto(index, index - 1) }} style={editReorderBtnStyle(index === 0)}>‹</div>
+                                <div role="button" onClick={(e) => { e.stopPropagation(); e.preventDefault(); moveEditPhoto(index, index + 1) }} style={editReorderBtnStyle(index === multiUrls.length - 1)}>›</div>
+                              </div>
+                            )}
                           </div>
                         )
                       })}

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import SideSheet from './SideSheet'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { getCategories } from '../../lib/categoriesData'
+import { authenticatedFetch } from '../../lib/pinAuth'
 
 export default function FilterDrawer({
   isOpen, onClose,
@@ -10,11 +11,24 @@ export default function FilterDrawer({
 }) {
   const { t } = useLanguage()
   const [categories, setCategories] = useState([])
+  const [existingHashtags, setExistingHashtags] = useState([])
 
   useEffect(() => {
     if (!isOpen) return
     getCategories().then(setCategories).catch(() => setCategories([]))
+    // (Item 2) existing family hashtags for search suggestions
+    authenticatedFetch('/api/hashtags/list')
+      .then((r) => r.json())
+      .then((d) => setExistingHashtags(d?.success ? (d.hashtags || []) : []))
+      .catch(() => setExistingHashtags([]))
   }, [isOpen])
+
+  const hashtagSuggestions = existingHashtags
+    .filter((h) => {
+      const q = (filters?.hashtag || '').trim().toLowerCase().replace(/^#/, '')
+      return !q || h.includes(q)
+    })
+    .slice(0, 12)
 
   const update = (patch) => onFiltersChange({ ...filters, ...patch })
 
@@ -111,6 +125,22 @@ export default function FilterDrawer({
             placeholder={t('hashtagPlaceholder') || 'hashtag'}
             className="input-glass"
           />
+          {/* (Item 2) suggestions from previously-used hashtags */}
+          {hashtagSuggestions.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
+              {hashtagSuggestions.map((h) => (
+                <button
+                  key={h}
+                  type="button"
+                  onClick={() => update({ hashtag: h })}
+                  className={`category-pill ${filters?.hashtag === h ? 'category-pill--selected' : ''}`}
+                  style={{ padding: '4px 10px', fontSize: 12 }}
+                >
+                  #{h}
+                </button>
+              ))}
+            </div>
+          )}
         </Section>
 
         {/* Sort */}
