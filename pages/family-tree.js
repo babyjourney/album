@@ -8,7 +8,22 @@ import { useTier } from '../hooks/useTier'
 import FloatingDock from '../components/layout/FloatingDock'
 import SettingsDrawer from '../components/layout/SettingsDrawer'
 
-const RELATIONS = ['Mamă', 'Tată', 'Bunic', 'Bunică', 'Frate', 'Soră', 'Unchi', 'Mătușă', 'Văr/Vară', 'Altul']
+// The `value` is what gets stored on the node row, so it stays the Romanian
+// canonical string that existing rows already carry — only the label shown to
+// the user is translated. relationLabelFor() falls back to the raw stored value
+// for anything not in this list.
+const RELATIONS = [
+  { value: 'Mamă', key: 'relationMother' },
+  { value: 'Tată', key: 'relationFather' },
+  { value: 'Bunic', key: 'relationGrandfather' },
+  { value: 'Bunică', key: 'relationGrandmother' },
+  { value: 'Frate', key: 'relationBrother' },
+  { value: 'Soră', key: 'relationSister' },
+  { value: 'Unchi', key: 'relationUncle' },
+  { value: 'Mătușă', key: 'relationAunt' },
+  { value: 'Văr/Vară', key: 'relationCousin' },
+  { value: 'Altul', key: 'relationOther' },
+]
 
 export default function FamilyTree() {
   const [session, setSession] = useState(null)
@@ -17,7 +32,7 @@ export default function FamilyTree() {
   const [selectedChildId, setSelectedChildId] = useState(null)
   const [nodes, setNodes] = useState([])
   const [nodesLoaded, setNodesLoaded] = useState(false)
-  const [form, setForm] = useState({ name: '', relation: RELATIONS[0], birthYear: '', notes: '' })
+  const [form, setForm] = useState({ name: '', relation: RELATIONS[0].value, birthYear: '', notes: '' })
   const [adding, setAdding] = useState(false)
   const router = useRouter()
   const { t } = useLanguage()
@@ -27,6 +42,11 @@ export default function FamilyTree() {
   const canEdit = isEditor()
   const cap = limits.familyTreeMaxNodes
   const atCap = Number.isFinite(cap) && nodes.length >= cap
+
+  const relationLabelFor = (value) => {
+    const known = RELATIONS.find((r) => r.value === value)
+    return known ? t(known.key) : value
+  }
 
   useEffect(() => {
     if (!isAuthenticated()) { router.push('/login'); return }
@@ -45,7 +65,7 @@ export default function FamilyTree() {
   useEffect(() => { if (session?.familyId) loadNodes(session.familyId) }, [session])
 
   const add = async () => {
-    if (!form.name.trim()) { showError('Adaugă un nume'); return }
+    if (!form.name.trim()) { showError(t('familyTreeNameRequired')); return }
     setAdding(true)
     try {
       const res = await authenticatedFetch('/api/family-tree/nodes', {
@@ -57,9 +77,9 @@ export default function FamilyTree() {
         }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Eroare')
-      setForm({ name: '', relation: RELATIONS[0], birthYear: '', notes: '' })
-      showSuccess('Membru adăugat')
+      if (!res.ok) throw new Error(data.error || t('error'))
+      setForm({ name: '', relation: RELATIONS[0].value, birthYear: '', notes: '' })
+      showSuccess(t('familyTreeMemberAdded'))
       loadNodes(session.familyId)
     } catch (e) { showError(e.message) } finally { setAdding(false) }
   }
@@ -67,7 +87,7 @@ export default function FamilyTree() {
   const remove = async (id) => {
     try {
       const res = await authenticatedFetch(`/api/family-tree/nodes?id=${id}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error('Eroare')
+      if (!res.ok) throw new Error(t('error'))
       setNodes((n) => n.filter((x) => x.id !== id))
     } catch (e) { showError(e.message) }
   }
@@ -101,15 +121,15 @@ export default function FamilyTree() {
       }}>
         <header style={{ marginBottom: 24 }}>
           <p className="text-eyebrow" style={{ color: 'var(--accent-iris)', marginBottom: 10 }}>
-            {t('familyTree') || 'Arbore genealogic'}
+            {t('familyTreeTitle')}
           </p>
           <h1 className="text-display" style={{ fontSize: 'clamp(32px, 5vw, 52px)', marginBottom: 8 }}>
-            Arbore genealogic
+            {t('familyTreeTitle')}
           </h1>
           <p className="text-subtle" style={{ fontSize: 14, margin: 0 }}>
             {Number.isFinite(cap)
-              ? `Arbore de bază — ${nodes.length}/${cap} persoane. Treci la planul ${requiredTierLabel('extendedFamilyTree')} pentru arbore extins (nelimitat).`
-              : `Arbore extins — ${nodes.length} persoane (nelimitat).`}
+              ? t('familyTreeBasicCount', { count: nodes.length, cap, tier: requiredTierLabel('extendedFamilyTree') })
+              : t('familyTreeExtendedCount', { count: nodes.length })}
           </p>
         </header>
 
@@ -117,27 +137,26 @@ export default function FamilyTree() {
           <div className="card-glass" style={{ padding: 20, marginBottom: 20 }}>
             {atCap ? (
               <div className="glass-soft" style={{ padding: 16, textAlign: 'center', borderRadius: 12 }}>
-                🔒 Ai atins limita de {cap} persoane a arborelui de bază. Treci la planul{' '}
-                {requiredTierLabel('extendedFamilyTree')} pentru membri nelimitați.
+                {t('familyTreeCapReached', { cap, tier: requiredTierLabel('extendedFamilyTree') })}
               </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, alignItems: 'end' }}>
                 <div>
-                  <label className="text-eyebrow" style={{ display: 'block', marginBottom: 6 }}>Nume</label>
+                  <label className="text-eyebrow" style={{ display: 'block', marginBottom: 6 }}>{t('nameLabel')}</label>
                   <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="input-glass" style={{ width: '100%' }} />
                 </div>
                 <div>
-                  <label className="text-eyebrow" style={{ display: 'block', marginBottom: 6 }}>Relație</label>
+                  <label className="text-eyebrow" style={{ display: 'block', marginBottom: 6 }}>{t('relationLabel')}</label>
                   <select value={form.relation} onChange={(e) => setForm({ ...form, relation: e.target.value })} className="input-glass" style={{ width: '100%' }}>
-                    {RELATIONS.map((r) => <option key={r} value={r}>{r}</option>)}
+                    {RELATIONS.map((r) => <option key={r.value} value={r.value}>{t(r.key)}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="text-eyebrow" style={{ display: 'block', marginBottom: 6 }}>An naștere</label>
+                  <label className="text-eyebrow" style={{ display: 'block', marginBottom: 6 }}>{t('birthYearLabel')}</label>
                   <input type="number" value={form.birthYear} onChange={(e) => setForm({ ...form, birthYear: e.target.value })} className="input-glass" style={{ width: '100%' }} />
                 </div>
                 <button onClick={add} disabled={adding} className="btn-iris sheen" style={{ padding: '10px 16px', height: 42 }}>
-                  {adding ? '…' : '+ Adaugă'}
+                  {adding ? '…' : t('addPlus')}
                 </button>
               </div>
             )}
@@ -145,10 +164,10 @@ export default function FamilyTree() {
         )}
 
         {!nodesLoaded ? (
-          <div className="text-subtle" style={{ padding: 24, textAlign: 'center' }}>Se încarcă…</div>
+          <div className="text-subtle" style={{ padding: 24, textAlign: 'center' }}>{t('loading')}</div>
         ) : nodes.length === 0 ? (
           <div className="card-glass" style={{ padding: 40, textAlign: 'center' }}>
-            <div className="text-subtle">Niciun membru adăugat încă.</div>
+            <div className="text-subtle">{t('noFamilyMembersYet')}</div>
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 14 }}>
@@ -163,11 +182,11 @@ export default function FamilyTree() {
                 </div>
                 <div style={{ fontWeight: 600, color: 'var(--ink-1)' }}>{n.name}</div>
                 <div className="text-subtle" style={{ fontSize: 12 }}>
-                  {n.relation || '—'}{n.birth_year ? ` · ${n.birth_year}` : ''}
+                  {n.relation ? relationLabelFor(n.relation) : '—'}{n.birth_year ? ` · ${n.birth_year}` : ''}
                 </div>
                 {n.notes && <p className="text-subtle" style={{ fontSize: 12, marginTop: 8 }}>{n.notes}</p>}
                 {canEdit && (
-                  <button onClick={() => remove(n.id)} className="btn-icon" title="Șterge"
+                  <button onClick={() => remove(n.id)} className="btn-icon" title={t('delete')}
                     style={{ position: 'absolute', top: 10, right: 10, width: 28, height: 28 }}>✕</button>
                 )}
               </div>

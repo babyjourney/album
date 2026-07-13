@@ -1,5 +1,6 @@
 import { supabase } from '../../../lib/supabaseClient'
 import { requireEditor } from '../../../lib/authMiddleware'
+import { DEFAULT_CATEGORIES } from '../../../lib/defaultCategories'
 
 async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -50,16 +51,6 @@ async function handler(req, res) {
     }
 
     // Default categories that every family should have
-    const DEFAULT_CATEGORIES = [
-      { value: 'memories', label: 'Amintiri', emoji: '💭' },
-      { value: 'milestones', label: 'Etape importante', emoji: '🎯' },
-      { value: 'everyday', label: 'Zilnic', emoji: '☀️' },
-      { value: 'special', label: 'Special', emoji: '✨' },
-      { value: 'family', label: 'Familie', emoji: '👨‍👩‍👧‍👦' },
-      { value: 'play', label: 'Joacă', emoji: '🎮' },
-      { value: 'learning', label: 'Învățare', emoji: '📚' }
-    ]
-
     // Get all families
     const { data: families, error: familiesError } = await supabase
       .from('families')

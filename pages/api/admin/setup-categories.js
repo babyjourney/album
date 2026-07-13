@@ -1,5 +1,6 @@
 import { supabase } from '../../../lib/supabaseClient'
 import { requireAdmin } from '../../../lib/authMiddleware'
+import { DEFAULT_CATEGORIES } from '../../../lib/defaultCategories'
 
 async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -93,16 +94,7 @@ ALTER TABLE family_categories ENABLE ROW LEVEL SECURITY;
       })
     }
 
-    const defaultCategories = [
-      { value: 'memories', label: 'Amintiri', emoji: '💭' },
-      { value: 'milestones', label: 'Etape importante', emoji: '🎯' },
-      { value: 'everyday', label: 'Zilnic', emoji: '☀️' },
-      { value: 'special', label: 'Special', emoji: '✨' },
-      { value: 'family', label: 'Familie', emoji: '👨‍👩‍👧‍👦' },
-      { value: 'play', label: 'Joacă', emoji: '🎮' },
-      { value: 'learning', label: 'Învățare', emoji: '📚' }
-    ]
-
+    const defaultCategories = DEFAULT_CATEGORIES
     let setupCount = 0
     for (const family of allFamilies) {
       // Check if family already has categories

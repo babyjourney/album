@@ -70,19 +70,19 @@ export default function AdminSetup() {
     if (!profilePicture) return null
 
     const fileExt = profilePicture.name.split('.').pop()
-    const fileName = `${familyId}/profile.${fileExt}`
+    // Bucket is `album_uploads` (the only one that exists — `photos` is the
+    // table name). Timestamped path keeps this a plain INSERT, since the
+    // browser's anon key has no UPDATE grant on storage.objects.
+    const fileName = `${familyId}/profile_${Date.now()}.${fileExt}`
 
-    const { data, error } = await supabase.storage
-      .from('photos')
-      .upload(fileName, profilePicture, {
-        cacheControl: '3600',
-        upsert: true
-      })
+    const { error } = await supabase.storage
+      .from('album_uploads')
+      .upload(fileName, profilePicture, { cacheControl: '3600' })
 
     if (error) throw error
 
     const { data: { publicUrl } } = supabase.storage
-      .from('photos')
+      .from('album_uploads')
       .getPublicUrl(fileName)
 
     return publicUrl

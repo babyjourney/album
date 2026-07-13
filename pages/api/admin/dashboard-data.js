@@ -39,6 +39,54 @@ function classifyActivity({ daysSinceLastPost, photosCount, accountAgeDays }) {
   return { emoji: '💀', code: 'dead', rank: 0 }
 }
 
+// Which column represents "when was this actually posted".
+//
+// `created_at` is the MEMORY date — /api/posts/create-multi overwrites it with
+// the date the user picked, so a 2019 photo uploaded last week has
+// created_at = 2019. Reading it here made active families show as 💀 dead with
+// "0 posts in 30 days". `uploaded_at` is stamped on insert and never rewritten.
+//
+// Probed once per request so the dashboard keeps working on a deployment where
+// sql/sergiu_batch2.sql hasn't been run yet (it just reverts to the old,
+// wrong-but-not-broken behaviour instead of 500ing).
+async function resolveActivityColumn() {
+  const { error } = await supabase.from('photos').select('uploaded_at').limit(1)
+  return error ? 'created_at' : 'uploaded_at'
+}
+
+// (Item 7) Real per-file byte sizes, recorded at upload. Historical rows don't
+// have them, so those still fall back to the old flat estimate.
+async function hasFileSizes() {
+  const { error } = await supabase.from('photos').select('file_sizes').limit(1)
+  return !error
+}
+
+const ESTIMATED_BYTES_PER_FILE = 2 * 1024 * 1024
+
+// Bytes a post occupies. Measured when we have the sizes; estimated when we
+// don't. NEVER a flat 2MB for a 12MB video — that's what made the admin storage
+// figure fiction.
+const bytesOfPost = (photo) => {
+  const sizes = Array.isArray(photo.file_sizes)
+    ? photo.file_sizes
+    : (typeof photo.file_sizes === 'string'
+        ? (() => { try { const p = JSON.parse(photo.file_sizes); return Array.isArray(p) ? p : null } catch { return null } })()
+        : null)
+
+  const fileCount = Array.isArray(photo.file_urls)
+    ? photo.file_urls.length
+    : (photo.file_url ? 1 : 0)
+
+  if (!fileCount) return 0   // text post
+
+  let total = 0
+  for (let i = 0; i < fileCount; i++) {
+    const n = sizes ? Number(sizes[i]) : NaN
+    total += Number.isFinite(n) && n > 0 ? n : ESTIMATED_BYTES_PER_FILE
+  }
+  return total
+}
+
 async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' })
@@ -49,6 +97,13 @@ async function handler(req, res) {
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
     const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+
+    const ACTIVITY_COL = await resolveActivityColumn()
+    // Prefix for the select list — empty when the column isn't there yet.
+    const SIZES_COL = (await hasFileSizes()) ? 'file_sizes, ' : ''
+    // Fall back to created_at per-row too: rows inserted before the migration
+    // are backfilled, but a row written by an older deploy could still be null.
+    const postedAt = (row) => row[ACTIVITY_COL] || row.created_at
 
     // ─── totals ───────────────────────────────────────────────────────────
     const { count: totalFamilies } = await supabase
@@ -79,29 +134,27 @@ async function handler(req, res) {
 
         const { data: photosData, count: photosCount } = await supabase
           .from('photos')
-          .select('created_at, file_url, file_urls', { count: 'exact' })
+          .select(SIZES_COL + `created_at, ${ACTIVITY_COL}, file_url, file_urls`, { count: 'exact' })
           .eq('family_id', family.id)
-          .order('created_at', { ascending: false })
+          .order(ACTIVITY_COL, { ascending: false })
 
         let storageUsed = 0
         let postsLast30Days = 0
         let photoFilesCount = 0
         if (photosData && photosData.length > 0) {
           photosData.forEach(photo => {
+            storageUsed += bytesOfPost(photo)
             if (photo.file_urls && Array.isArray(photo.file_urls)) {
-              storageUsed += photo.file_urls.length * 2 * 1024 * 1024
               photoFilesCount += photo.file_urls.length
             } else if (photo.file_url) {
-              storageUsed += 2 * 1024 * 1024
               photoFilesCount += 1
             }
             // (text posts have neither file_url nor file_urls → not counted)
-            const createdAt = new Date(photo.created_at)
-            if (createdAt >= thirtyDaysAgo) postsLast30Days += 1
+            if (new Date(postedAt(photo)) >= thirtyDaysAgo) postsLast30Days += 1
           })
         }
 
-        const lastPostDate = photosData && photosData.length > 0 ? photosData[0].created_at : null
+        const lastPostDate = photosData && photosData.length > 0 ? postedAt(photosData[0]) : null
 
         let daysSinceLastPost = null
         if (lastPostDate) {
@@ -141,14 +194,14 @@ async function handler(req, res) {
     // ─── recent activity feed ─────────────────────────────────────────────
     const { data: recentActivity } = await supabase
       .from('photos')
-      .select('id, title, description, created_at, family_id, families!inner(name)')
-      .order('created_at', { ascending: false })
+      .select(`id, title, description, created_at, ${ACTIVITY_COL}, family_id, families!inner(name)`)
+      .order(ACTIVITY_COL, { ascending: false })
       .limit(10)
 
     const formattedActivity = (recentActivity || []).map(photo => ({
       description: `Fotografie nouă: ${photo.title || photo.description?.substring(0, 50) + '...' || 'Fără titlu'}`,
       family_name: photo.families?.name || 'Familie necunoscută',
-      timestamp: photo.created_at,
+      timestamp: postedAt(photo),
     }))
 
     const estimatedStoragePerPhoto = 2 * 1024 * 1024
@@ -211,13 +264,13 @@ async function handler(req, res) {
     // older photos to seed the baseline.
     const { data: recentPhotosForGrowth } = await supabase
       .from('photos')
-      .select('created_at, file_url, file_urls')
-      .gte('created_at', thirtyDaysAgo.toISOString())
+      .select(SIZES_COL + `created_at, ${ACTIVITY_COL}, file_url, file_urls`)
+      .gte(ACTIVITY_COL, thirtyDaysAgo.toISOString())
 
     const { count: olderPhotosCount } = await supabase
       .from('photos')
       .select('*', { count: 'exact', head: true })
-      .lt('created_at', thirtyDaysAgo.toISOString())
+      .lt(ACTIVITY_COL, thirtyDaysAgo.toISOString())
 
     const photoBytesAt = new Map()
     for (let i = 29; i >= 0; i--) {
@@ -233,12 +286,9 @@ async function handler(req, res) {
     // convert to a running total.
     const dayBytesDelta = new Map()
     ;(recentPhotosForGrowth || []).forEach(p => {
-      const day = new Date(p.created_at).toISOString().slice(0, 10)
+      const day = new Date(postedAt(p)).toISOString().slice(0, 10)
       if (!dayBytesDelta.has(day)) dayBytesDelta.set(day, 0)
-      const bytes = Array.isArray(p.file_urls)
-        ? p.file_urls.length * estimatedStoragePerPhoto
-        : (p.file_url ? estimatedStoragePerPhoto : 0)
-      dayBytesDelta.set(day, dayBytesDelta.get(day) + bytes)
+      dayBytesDelta.set(day, dayBytesDelta.get(day) + bytesOfPost(p))
     })
 
     const storageGrowth = []

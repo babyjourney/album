@@ -4,6 +4,7 @@ import { getCategories, addCategory, updateCategory, deleteCategory, resetToDefa
 import { useToast } from '../contexts/ToastContext'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useOnClickOutside } from '../hooks/useOnClickOutside'
+import { ESSENTIAL_CATEGORIES } from '../lib/defaultCategories'
 
 export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate }) {
   const [categories, setCategories] = useState([])
@@ -29,7 +30,7 @@ export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate })
       setCategories(cats)
     } catch (error) {
       console.error('Error loading categories:', error)
-      showError('Eroare la încărcarea categoriilor')
+      showError(t('categoriesLoadError'))
     }
   }
 
@@ -63,7 +64,7 @@ export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate })
     } catch (error) {
       console.error('Add category error:', error)
       if (error.message.includes('migration')) {
-        showError('Sistemul de categorii necesită migrare. Contactează administratorul.')
+        showError(t('categoriesMigrationNeeded'))
       } else {
         showError(t('error'))
       }
@@ -72,7 +73,7 @@ export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate })
 
   const handleUpdateCategory = async (categoryValue) => {
     if (!editingCategory.label.trim()) {
-      showError('Numele categoriei nu poate fi gol')
+      showError(t('categoryNameEmpty'))
       return
     }
 
@@ -83,7 +84,7 @@ export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate })
       onCategoriesUpdate?.(updatedCategories)
       showSuccess(t('success'))
     } catch (error) {
-      showError('Eroare la actualizarea categoriei')
+      showError(t('categoryUpdateError'))
     }
   }
 
@@ -106,9 +107,9 @@ export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate })
         const defaultCategories = await resetToDefaults()
         setCategories(defaultCategories)
         onCategoriesUpdate?.(defaultCategories)
-        showSuccess('Categoriile au fost resetate la valorile implicite!')
+        showSuccess(t('categoriesResetSuccess'))
       } catch (error) {
-        showError('Eroare la resetarea categoriilor')
+        showError(t('categoriesResetError'))
       }
     }
   }
@@ -145,7 +146,7 @@ export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate })
             onClick={onClose}
             className="btn-icon"
             style={{ position: 'absolute', top: 14, right: 14 }}
-            aria-label="Închide"
+            aria-label={t('close')}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18" />
@@ -199,7 +200,7 @@ export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate })
               <div style={{ display: 'flex', gap: '10px' }}>
                 <input
                   type="text"
-                  placeholder="emoji (ex: 🎨)"
+                  placeholder={t('emojiPlaceholder')}
                   value={newCategory.emoji}
                   onChange={(e) => setNewCategory(prev => ({ ...prev, emoji: e.target.value }))}
                   className="input-glass"
@@ -210,7 +211,7 @@ export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate })
                 />
                 <input
                   type="text"
-                  placeholder="Numele categoriei"
+                  placeholder={t('categoryNamePlaceholder')}
                   value={newCategory.label}
                   onChange={(e) => setNewCategory(prev => ({ ...prev, label: e.target.value, value: e.target.value.toLowerCase().replace(/\s+/g, '-') }))}
                   className="input-glass"
@@ -348,11 +349,11 @@ export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate })
                       onClick={() => setEditingCategory({ ...category })}
                       className="btn-icon"
                       style={{ width: 34, height: 34 }}
-                      aria-label="Edit"
+                      aria-label={t('edit')}
                     >
                       <Edit2 size={14} />
                     </button>
-                    {!['memories', 'family'].includes(category.value) && (
+                    {!ESSENTIAL_CATEGORIES.includes(category.value) && (
                       <button
                         onClick={() => handleDeleteCategory(category.value)}
                         className="btn-icon"
@@ -361,7 +362,7 @@ export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate })
                           height: 34,
                           color: 'var(--accent-red)'
                         }}
-                        aria-label="Delete"
+                        aria-label={t('delete')}
                       >
                         <Trash2 size={14} />
                       </button>

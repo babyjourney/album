@@ -8,12 +8,30 @@ async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const { title, description, category, hashtags, selectedChildren, imageUrls: rawImageUrls, customDate, coverIndex, isPrivate, videoDurations } = req.body
+  const { title, description, category, hashtags, selectedChildren, imageUrls: rawImageUrls, posterUrls: rawPosterUrls, fileSizes: rawFileSizes, customDate, coverIndex, isPrivate, videoDurations } = req.body
 
   // Use authenticated family ID
   const familyId = req.auth.familyId
 
   const imageUrls = Array.isArray(rawImageUrls) ? rawImageUrls : []
+
+  // (Item 2) Poster frames for videos, index-aligned with imageUrls. Normalized
+  // to exactly the same length so posterUrls[i] always describes imageUrls[i],
+  // and only kept for entries that really are videos.
+  const posterUrls = imageUrls.map((url, i) => {
+    const poster = Array.isArray(rawPosterUrls) ? rawPosterUrls[i] : null
+    if (!poster || typeof poster !== 'string') return null
+    return isVideoUrl(url) ? poster : null
+  })
+  const hasAnyPoster = posterUrls.some(Boolean)
+
+  // (Item 7) Byte size of each stored file, index-aligned with imageUrls, so the
+  // admin storage total is measured rather than guessed.
+  const fileSizes = imageUrls.map((_, i) => {
+    const n = Array.isArray(rawFileSizes) ? Number(rawFileSizes[i]) : NaN
+    return Number.isFinite(n) && n >= 0 ? n : null
+  })
+  const hasAnySize = fileSizes.some((n) => n !== null)
   // (Item 11) A post with no media is a TEXT post — allowed as long as it has a
   // title or a description. Only reject when there's truly nothing to save.
   const isTextPost = imageUrls.length === 0
@@ -154,12 +172,32 @@ async function handler(req, res) {
       if (coverIndex !== undefined && coverIndex !== null) {
         newSchemaData.cover_index = validCoverIndex
       }
-      
-      const { data: post, error: postError } = await supabase
+
+      if (hasAnyPoster) {
+        newSchemaData.poster_urls = posterUrls
+      }
+      if (hasAnySize) {
+        newSchemaData.file_sizes = fileSizes
+      }
+
+      // poster_urls is the newest column (sql/sergiu_batch2.sql). If a deploy
+      // hasn't run that migration, retry once without it — losing the poster is
+      // fine, losing file_urls (which the generic fallback below would do) is not.
+      let { data: post, error: postError } = await supabase
         .from('photos')
         .insert(newSchemaData)
         .select()
         .single()
+
+      if (postError && /poster_urls|file_sizes/i.test(postError.message || '')) {
+        console.warn('poster_urls/file_sizes column missing — retrying without them. Run sql/sergiu_batch2.sql.')
+        const { poster_urls: _p, file_sizes: _s, ...withoutNewCols } = newSchemaData
+        ;({ data: post, error: postError } = await supabase
+          .from('photos')
+          .insert(withoutNewCols)
+          .select()
+          .single())
+      }
 
       if (postError) {
         // If error mentions column, throw to trigger fallback

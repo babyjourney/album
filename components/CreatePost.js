@@ -4,10 +4,11 @@ import { useLanguage } from '../contexts/LanguageContext'
 import DatePicker from './DatePicker'
 import { getCategories } from '../lib/categoriesData'
 import { authenticatedFetch } from '../lib/pinAuth'
+import { DEFAULT_CATEGORY_VALUE } from '../lib/defaultCategories'
 
 export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVideoClick }) {
   const [postText, setPostText] = useState('')
-  const [category, setCategory] = useState('memories')
+  const [category, setCategory] = useState(DEFAULT_CATEGORY_VALUE)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [hashtags, setHashtags] = useState([])
@@ -80,7 +81,7 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
 
       // Reset form
       setPostText('')
-      setCategory('memories')
+      setCategory(DEFAULT_CATEGORY_VALUE)
       setHashtags([])
       setCurrentHashtagInput('')
 
@@ -311,7 +312,7 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
                 }}
               >
                 <span style={{ fontSize: '16px' }}>🎥</span>
-                <span style={{ fontSize: '14px', fontWeight: 500 }}>Video</span>
+                <span style={{ fontSize: '14px', fontWeight: 500 }}>{t('videoLabel')}</span>
               </button>
             </div>
           )}

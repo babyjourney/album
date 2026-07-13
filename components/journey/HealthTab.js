@@ -2,14 +2,15 @@
 import { useState, useEffect } from 'react'
 import { authenticatedFetch, isEditor } from '../../lib/pinAuth'
 import { useToast } from '../../contexts/ToastContext'
+import { useLanguage } from '../../contexts/LanguageContext'
 import FilteredPosts from './FilteredPosts'
 
 const FIELDS = [
-  { key: 'height_cm', label: 'Înălțime (cm)', type: 'number' },
-  { key: 'weight_kg', label: 'Greutate (kg)', type: 'number' },
-  { key: 'blood_type', label: 'Grupă sanguină', type: 'text' },
-  { key: 'allergies', label: 'Alergii', type: 'text' },
-  { key: 'pediatrician', label: 'Pediatru', type: 'text' },
+  { key: 'height_cm', labelKey: 'heightCmLabel', type: 'number' },
+  { key: 'weight_kg', labelKey: 'weightKgLabel', type: 'number' },
+  { key: 'blood_type', labelKey: 'bloodTypeLabel', type: 'text' },
+  { key: 'allergies', labelKey: 'allergiesLabel', type: 'text' },
+  { key: 'pediatrician', labelKey: 'pediatricianLabel', type: 'text' },
 ]
 
 export default function HealthTab({ familyId, childId }) {
@@ -17,6 +18,7 @@ export default function HealthTab({ familyId, childId }) {
   const [loaded, setLoaded] = useState(false)
   const [saving, setSaving] = useState(false)
   const { showSuccess, showError } = useToast()
+  const { t } = useLanguage()
   const canEdit = isEditor()
 
   useEffect(() => {
@@ -45,21 +47,21 @@ export default function HealthTab({ familyId, childId }) {
       const res = await authenticatedFetch('/api/journey/health', {
         method: 'POST', body: JSON.stringify(payload),
       })
-      if (!res.ok) throw new Error((await res.json()).error || 'Eroare')
-      showSuccess('Date medicale salvate')
+      if (!res.ok) throw new Error((await res.json()).error || t('error'))
+      showSuccess(t('healthSaved'))
     } catch (e) { showError(e.message) } finally { setSaving(false) }
   }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       <section className="card-glass" style={{ padding: 20 }}>
-        <h3 className="text-section-title" style={{ marginTop: 0, fontSize: 18 }}>Panou Medical</h3>
-        {!loaded ? <div className="text-subtle">Se încarcă…</div> : (
+        <h3 className="text-section-title" style={{ marginTop: 0, fontSize: 18 }}>{t('healthTitle')}</h3>
+        {!loaded ? <div className="text-subtle">{t('loading')}</div> : (
           <>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14 }}>
               {FIELDS.map((f) => (
                 <div key={f.key}>
-                  <label className="text-eyebrow" style={{ display: 'block', marginBottom: 6 }}>{f.label}</label>
+                  <label className="text-eyebrow" style={{ display: 'block', marginBottom: 6 }}>{t(f.labelKey)}</label>
                   <input
                     type={f.type}
                     step={f.type === 'number' ? 'any' : undefined}
@@ -73,7 +75,7 @@ export default function HealthTab({ familyId, childId }) {
               ))}
             </div>
             <div style={{ marginTop: 14 }}>
-              <label className="text-eyebrow" style={{ display: 'block', marginBottom: 6 }}>Note</label>
+              <label className="text-eyebrow" style={{ display: 'block', marginBottom: 6 }}>{t('notesLabel')}</label>
               <textarea
                 value={rec.notes ?? ''}
                 onChange={(e) => setField('notes', e.target.value)}
@@ -85,7 +87,7 @@ export default function HealthTab({ familyId, childId }) {
             </div>
             {canEdit && (
               <button onClick={save} disabled={saving} className="btn-iris sheen" style={{ marginTop: 14, padding: '10px 18px' }}>
-                {saving ? 'Se salvează…' : 'Salvează'}
+                {saving ? t('saving') : t('save')}
               </button>
             )}
           </>
@@ -93,15 +95,15 @@ export default function HealthTab({ familyId, childId }) {
       </section>
 
       <section className="card-glass" style={{ padding: 20 }}>
-        <h3 className="text-section-title" style={{ marginTop: 0, fontSize: 16 }}>Postări medicale</h3>
+        <h3 className="text-section-title" style={{ marginTop: 0, fontSize: 16 }}>{t('healthPostsTitle')}</h3>
         <p className="text-subtle" style={{ fontSize: 12, marginTop: 0 }}>
-          Postări din categoria Sănătate sau etichetate #health #medicine #medical.
+          {t('healthPostsHint')}
         </p>
         <FilteredPosts
           familyId={familyId}
           childId={childId}
           params={{ categoryAny: 'health,sanatate', hashtagsAny: 'health,sanatate,medicine,medicina,medical,doctor,vaccine,vaccin' }}
-          emptyText="Nicio postare medicală etichetată încă."
+          emptyText={t('noHealthPostsYet')}
         />
       </section>
     </div>

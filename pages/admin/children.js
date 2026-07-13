@@ -188,6 +188,7 @@ export default function AdminDashboard() {
         let created = result.child
         // (1b) Upload the chosen photo (if any) now that we have the child id,
         // then persist its URL.
+        let photoError = null
         if (addChildFile && created?.id) {
           try {
             const url = await uploadChildPhoto(selectedFamilyId, created.id, addChildFile)
@@ -197,7 +198,11 @@ export default function AdminDashboard() {
             })
             const updJson = await upd.json()
             if (upd.ok) created = updJson.child
-          } catch (e) { console.warn('Child photo upload failed:', e) }
+            else photoError = updJson.error || 'Salvarea pozei a eșuat'
+          } catch (e) {
+            console.warn('Child photo upload failed:', e)
+            photoError = e.message
+          }
         }
         setChildren([...children, created])
         setNewChild({ name: '', birthDate: '', profilePictureUrl: '' })
@@ -206,7 +211,11 @@ export default function AdminDashboard() {
         setShowAddChild(false)
         // Refresh title after adding child
         fetchFamilyData(selectedFamilyId)
-        alert('Copilul a fost adăugat cu succes!')
+        // Don't claim unqualified success when the photo silently failed — that
+        // reads as "the upload works" and is how the original bug hid.
+        alert(photoError
+          ? `Copilul a fost adăugat, dar poza nu s-a încărcat: ${photoError}`
+          : 'Copilul a fost adăugat cu succes!')
       } else {
         alert('Eroare la adăugarea copilului: ' + result.error)
       }
@@ -252,15 +261,24 @@ export default function AdminDashboard() {
     try { return await imageCompression(file, options) } catch { return file }
   }
 
-  // Upload a child photo to the 'photos' bucket and return its public URL.
+  // Upload a child photo and return its public URL.
+  //
+  // The bucket is `album_uploads` — the only bucket that exists. This used to
+  // say `photos`, which is the TABLE name, not a bucket, so every child photo
+  // upload failed with "Bucket not found".
+  //
+  // The path carries a timestamp instead of being a fixed `child_<id>.<ext>`.
+  // A stable path would need upsert -> UPDATE on storage.objects, and the
+  // browser holds only the anon key, which has INSERT but no UPDATE grant.
+  // A fresh path per upload is a plain INSERT and always works.
   const uploadChildPhoto = async (familyId, childId, file) => {
     const compressed = await compressImage(file)
     const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
-    const fileName = `${familyId}/child_${childId}.${ext}`
+    const fileName = `${familyId}/child_${childId}_${Date.now()}.${ext}`
     const { error } = await supabase.storage
-      .from('photos').upload(fileName, compressed, { cacheControl: '3600', upsert: true })
+      .from('album_uploads').upload(fileName, compressed, { cacheControl: '3600' })
     if (error) throw error
-    const { data: { publicUrl } } = supabase.storage.from('photos').getPublicUrl(fileName)
+    const { data: { publicUrl } } = supabase.storage.from('album_uploads').getPublicUrl(fileName)
     return publicUrl
   }
 
@@ -335,19 +353,18 @@ export default function AdminDashboard() {
     if (!profilePicture) return null
 
     const fileExt = profilePicture.name.split('.').pop()
-    const fileName = `${familyId}/profile.${fileExt}`
+    // See uploadChildPhoto: bucket is `album_uploads`, and the path is
+    // timestamped so this stays a plain INSERT (no upsert/UPDATE grant needed).
+    const fileName = `${familyId}/profile_${Date.now()}.${fileExt}`
 
     const { error } = await supabase.storage
-      .from('photos')
-      .upload(fileName, profilePicture, {
-        cacheControl: '3600',
-        upsert: true
-      })
+      .from('album_uploads')
+      .upload(fileName, profilePicture, { cacheControl: '3600' })
 
     if (error) throw error
 
     const { data: { publicUrl } } = supabase.storage
-      .from('photos')
+      .from('album_uploads')
       .getPublicUrl(fileName)
 
     return publicUrl
@@ -1055,8 +1072,13 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* Children Management - Only show if multi-child is enabled */}
-        {albumSettings?.is_multi_child && (
+        {/* Children Management.
+            This used to be hidden unless multi-child mode was on — which meant a
+            single-child family had NO way to set their child's photo, name or
+            birth date anywhere in the app (item 1a). Every family has at least
+            one child record, so it's always relevant. The multi-child toggle
+            above still controls whether the FEED offers per-child filtering. */}
+        {selectedFamilyId && (
           <div className="card-glass" style={{ padding: '24px' }}>
             <div style={{
               display: 'flex',

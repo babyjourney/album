@@ -1,6 +1,7 @@
 import { supabase } from '../../../lib/supabaseClient'
 import { requireEditor } from '../../../lib/authMiddleware'
 import { requireFeature } from '../../../lib/requireFeature'
+import { ESSENTIAL_CATEGORIES } from '../../../lib/defaultCategories'
 
 async function handler(req, res) {
   if (req.method !== 'DELETE') {
@@ -15,8 +16,7 @@ async function handler(req, res) {
   }
 
   // Prevent deleting essential categories
-  const essentialCategories = ['memories', 'family']
-  if (essentialCategories.includes(value)) {
+  if (ESSENTIAL_CATEGORIES.includes(value)) {
     return res.status(400).json({ error: 'Cannot delete essential categories' })
   }
 

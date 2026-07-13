@@ -3,17 +3,23 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/router'
 import { getSession, isAuthenticated, clearSession, authenticatedFetch } from '../lib/pinAuth'
+import { useLanguage } from '../contexts/LanguageContext'
 import FloatingDock from '../components/layout/FloatingDock'
 import SettingsDrawer from '../components/layout/SettingsDrawer'
 import FilteredPosts from '../components/journey/FilteredPosts'
 
-const DOW = ['Lu', 'Ma', 'Mi', 'Jo', 'Vi', 'Sâ', 'Du']
-const MONTHS = ['Ianuarie', 'Februarie', 'Martie', 'Aprilie', 'Mai', 'Iunie', 'Iulie', 'August', 'Septembrie', 'Octombrie', 'Noiembrie', 'Decembrie']
+const DOW_KEYS = ['dowMon', 'dowTue', 'dowWed', 'dowThu', 'dowFri', 'dowSat', 'dowSun']
+const MONTH_KEYS = [
+  'monthLongJan', 'monthLongFeb', 'monthLongMar', 'monthLongApr',
+  'monthLongMay', 'monthLongJun', 'monthLongJul', 'monthLongAug',
+  'monthLongSep', 'monthLongOct', 'monthLongNov', 'monthLongDec',
+]
 
 const key = (y, m, d) => `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
 
 export default function CalendarView() {
   const router = useRouter()
+  const { t } = useLanguage()
   const [session, setSession] = useState(null)
   const [showSettings, setShowSettings] = useState(false)
   const [counts, setCounts] = useState({})
@@ -77,18 +83,18 @@ export default function CalendarView() {
 
       <div className="main-container" style={{ paddingTop: 'max(96px, calc(env(safe-area-inset-top) + 80px))', paddingBottom: 'max(120px, env(safe-area-inset-bottom))' }}>
         <div style={{ padding: '28px 0 16px' }}>
-          <p className="text-eyebrow" style={{ color: 'var(--accent-iris)', marginBottom: 10 }}>🗓️ Calendar</p>
-          <h1 className="text-display" style={{ marginBottom: 6 }}>Vedere calendar</h1>
+          <p className="text-eyebrow" style={{ color: 'var(--accent-iris)', marginBottom: 10 }}>{t('calendarEyebrow')}</p>
+          <h1 className="text-display" style={{ marginBottom: 6 }}>{t('calendarViewTitle')}</h1>
         </div>
 
         <section className="card-glass" style={{ padding: 20, maxWidth: 520 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
             <button onClick={() => move(-1)} className="btn-icon" style={{ width: 36, height: 36 }}>‹</button>
-            <strong style={{ fontSize: 16 }}>{MONTHS[cursor.m]} {cursor.y}</strong>
+            <strong style={{ fontSize: 16 }}>{t(MONTH_KEYS[cursor.m])} {cursor.y}</strong>
             <button onClick={() => move(1)} className="btn-icon" style={{ width: 36, height: 36 }}>›</button>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6 }}>
-            {DOW.map((d) => <div key={d} className="text-subtle" style={{ textAlign: 'center', fontSize: 11, fontWeight: 600 }}>{d}</div>)}
+            {DOW_KEYS.map((k) => <div key={k} className="text-subtle" style={{ textAlign: 'center', fontSize: 11, fontWeight: 600 }}>{t(k)}</div>)}
             {grid.map((d, i) => {
               if (!d) return <div key={i} />
               const k = key(cursor.y, cursor.m, d)
@@ -115,7 +121,7 @@ export default function CalendarView() {
 
         {selected && (
           <section className="card-glass" style={{ padding: 20, marginTop: 16 }}>
-            <h3 className="text-section-title" style={{ marginTop: 0, fontSize: 16 }}>Postări din {selected}</h3>
+            <h3 className="text-section-title" style={{ marginTop: 0, fontSize: 16 }}>{t('calendarPostsFromDay', { date: selected })}</h3>
             <FilteredPosts familyId={session.familyId} params={{ dateStart: dayStart, dateEnd: dayEnd, sort: 'oldest' }} />
           </section>
         )}

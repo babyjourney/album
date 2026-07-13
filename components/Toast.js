@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useLanguage } from '../contexts/LanguageContext'
 
 const TOAST_TYPES = {
   success: {
@@ -50,6 +51,7 @@ const TOAST_TYPES = {
 }
 
 export default function Toast({ toast, onRemove }) {
+  const { t } = useLanguage()
   const [isVisible, setIsVisible] = useState(false)
   const [isLeaving, setIsLeaving] = useState(false)
 
@@ -141,7 +143,7 @@ export default function Toast({ toast, onRemove }) {
       </div>
       <button
         onClick={handleClose}
-        aria-label="Close"
+        aria-label={t('close')}
         style={{
           flexShrink: 0,
           width: 24,

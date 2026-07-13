@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import LazyImage from './LazyImage'
+import { useLanguage } from '../contexts/LanguageContext'
 
 // Helper function to detect video files
 const isVideoUrl = (url) => {
@@ -9,21 +10,50 @@ const isVideoUrl = (url) => {
   return videoExtensions.some(ext => lowercaseUrl.includes(ext))
 }
 
-// Component to display media (image or video) as a thumbnail
+// Is the canvas (near-)uniformly black? A canvas with no decoded frame is
+// transparent, and transparent flattens to BLACK once encoded as JPEG — which
+// is exactly why "successful" thumbnails were coming out black.
+const isBlankCanvas = (canvas) => {
+  try {
+    const ctx = canvas.getContext('2d')
+    const { width, height } = canvas
+    if (!width || !height) return true
+    let sampled = 0
+    let lit = 0
+    const step = Math.max(1, Math.floor(Math.min(width, height) / 12))
+    for (let y = 0; y < height; y += step) {
+      for (let x = 0; x < width; x += step) {
+        const [r, g, b] = ctx.getImageData(x, y, 1, 1).data
+        sampled += 1
+        if (r + g + b > 24) lit += 1
+      }
+    }
+    return sampled === 0 || lit / sampled < 0.02
+  } catch {
+    return true // tainted canvas — treat as unusable
+  }
+}
+
+// Component to display media (image or video) as a thumbnail.
+//
+// `poster` is the frame captured at upload time (photos.poster_urls). When it's
+// present we just render it — no video is downloaded or decoded at all. The
+// runtime capture below is only a fallback for videos uploaded before posters
+// existed.
 export default function MediaThumbnail({
   src,
   alt,
+  poster,
   className,
   style,
   onError,
   showPlayIcon = true,
   ...props
 }) {
+  const { t } = useLanguage()
   const [thumbnailSrc, setThumbnailSrc] = useState(null)
   const [isVideo, setIsVideo] = useState(false)
   const [thumbnailLoaded, setThumbnailLoaded] = useState(false)
-  const videoRef = useRef(null)
-  const canvasRef = useRef(null)
 
   useEffect(() => {
     if (!src) return
@@ -31,65 +61,112 @@ export default function MediaThumbnail({
     const isVid = isVideoUrl(src)
     setIsVideo(isVid)
 
-    if (isVid) {
-      // Generate video thumbnail
-      generateVideoThumbnail(src)
-    } else {
-      // It's an image, use it directly
+    if (!isVid) {
       setThumbnailSrc(src)
       setThumbnailLoaded(true)
+      return
     }
-  }, [src])
 
-  const generateVideoThumbnail = async (videoUrl) => {
+    // Fast path: a poster was stored at upload time.
+    if (poster) {
+      setThumbnailSrc(poster)
+      setThumbnailLoaded(true)
+      return
+    }
+
+    // Clear the previous media's thumbnail before decoding the new one.
+    // Without this, a component instance reused with a different `src` (a
+    // carousel, or a list keyed by index) keeps showing the OLD picture for as
+    // long as the capture takes — up to 15s — and an image→video swap renders
+    // the old photo with a ▶ badge stamped on it.
+    setThumbnailSrc(null)
+    setThumbnailLoaded(false)
+
+    let cancelled = false
+    generateVideoThumbnail(src, () => cancelled)
+    return () => { cancelled = true }
+  }, [src, poster])
+
+  // Legacy fallback: decode a frame in the browser.
+  //
+  // The old version drew on `seeked`, which fires before the frame is actually
+  // painted, so it captured an empty (=> black) canvas and then reported
+  // success. Now we wait for a real frame via requestVideoFrameCallback, and we
+  // verify the result isn't blank — retrying at a later timestamp if it is,
+  // since the first second of a clip is very often black.
+  const generateVideoThumbnail = async (videoUrl, isCancelled) => {
+    const video = document.createElement('video')
+    video.crossOrigin = 'anonymous'
+    video.muted = true
+    video.playsInline = true
+    video.preload = 'auto'
+
+    const cleanup = () => {
+      try { video.pause() } catch {}
+      video.removeAttribute('src')
+      try { video.load() } catch {}
+    }
+
+    const waitFor = (event, timeoutMs) =>
+      new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error(`timeout: ${event}`)), timeoutMs)
+        video.addEventListener(event, () => { clearTimeout(timer); resolve() }, { once: true })
+        video.addEventListener('error', () => { clearTimeout(timer); reject(new Error('video error')) }, { once: true })
+      })
+
     try {
-      const video = document.createElement('video')
-      video.crossOrigin = 'anonymous'
-      video.muted = true
-      video.playsInline = true
+      video.src = videoUrl
+      video.load()
+      await waitFor('loadeddata', 15000)
+      if (isCancelled()) return cleanup()
 
       const canvas = document.createElement('canvas')
+      canvas.width = video.videoWidth || 480
+      canvas.height = video.videoHeight || 360
       const ctx = canvas.getContext('2d')
 
-      video.onloadedmetadata = () => {
-        // Set canvas size to video dimensions
-        canvas.width = video.videoWidth || 480
-        canvas.height = video.videoHeight || 360
-      }
+      const duration = Number.isFinite(video.duration) ? video.duration : 0
+      const timestamps = [Math.min(1, duration * 0.1), duration * 0.25, duration * 0.5, 0]
+        .filter((t) => Number.isFinite(t) && t >= 0)
 
-      video.onseeked = () => {
+      for (const t of timestamps) {
+        if (isCancelled()) return cleanup()
         try {
-          // Draw the video frame to canvas
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+          video.currentTime = Math.min(t, Math.max(0, duration - 0.05))
+          await waitFor('seeked', 8000)
 
-          // Convert canvas to data URL
-          const thumbnailDataUrl = canvas.toDataURL('image/jpeg', 0.8)
-          setThumbnailSrc(thumbnailDataUrl)
-          setThumbnailLoaded(true)
-        } catch (error) {
-          console.error('Error generating video thumbnail:', error)
-          // Fallback: use a placeholder or video icon
-          setThumbnailLoaded(false)
+          // Wait for a frame to actually exist before reading pixels.
+          await new Promise((resolve) => {
+            if (typeof video.requestVideoFrameCallback === 'function') {
+              video.requestVideoFrameCallback(() => resolve())
+              setTimeout(resolve, 400)
+            } else {
+              requestAnimationFrame(() => requestAnimationFrame(resolve))
+            }
+          })
+
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+          if (!isBlankCanvas(canvas)) break
+        } catch {
+          /* try the next timestamp */
         }
       }
 
-      video.onerror = () => {
-        console.error('Error loading video for thumbnail generation')
+      if (isCancelled()) return cleanup()
+
+      if (isBlankCanvas(canvas)) {
+        // Never publish a black tile — show the 🎥 card instead.
         setThumbnailLoaded(false)
+        return cleanup()
       }
 
-      // Load the video and seek to 1 second (or 10% of duration)
-      video.src = videoUrl
-      video.load()
-
-      video.onloadeddata = () => {
-        const seekTime = Math.min(1, video.duration * 0.1) // 1 second or 10% of duration
-        video.currentTime = seekTime
-      }
-
+      setThumbnailSrc(canvas.toDataURL('image/jpeg', 0.8))
+      setThumbnailLoaded(true)
     } catch (error) {
-      console.error('Error in video thumbnail generation:', error)
-      setThumbnailLoaded(false)
+      console.warn('Video thumbnail generation failed:', error)
+      if (!isCancelled()) setThumbnailLoaded(false)
+    } finally {
+      cleanup()
     }
   }
 
@@ -132,7 +209,7 @@ export default function MediaThumbnail({
       >
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🎥</div>
-          <div style={{ fontSize: '0.875rem', fontWeight: '500' }}>Video</div>
+          <div style={{ fontSize: '0.875rem', fontWeight: '500' }}>{t('videoLabel')}</div>
         </div>
         {showPlayIcon && (
           <div style={playOrbStyle}>

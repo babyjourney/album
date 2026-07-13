@@ -2,10 +2,16 @@
 // index from the loaded posts and scrolls the feed to the first post of the
 // chosen period (BentoMasonry gives each card id="post-<id>").
 import { useEffect, useMemo, useState } from 'react'
+import { useLanguage } from '../../contexts/LanguageContext'
 
-const MONTHS_RO = ['Ian', 'Feb', 'Mar', 'Apr', 'Mai', 'Iun', 'Iul', 'Aug', 'Sep', 'Oct', 'Noi', 'Dec']
+const MONTH_KEYS = [
+  'monthShortJan', 'monthShortFeb', 'monthShortMar', 'monthShortApr',
+  'monthShortMay', 'monthShortJun', 'monthShortJul', 'monthShortAug',
+  'monthShortSep', 'monthShortOct', 'monthShortNov', 'monthShortDec',
+]
 
 export default function TimelineNav({ posts = [] }) {
+  const { t } = useLanguage()
   const [isDesktop, setIsDesktop] = useState(false)
   const [openYear, setOpenYear] = useState(null)
 
@@ -48,7 +54,7 @@ export default function TimelineNav({ posts = [] }) {
 
   return (
     <nav
-      aria-label="Cronologie"
+      aria-label={t('timelineAriaLabel')}
       style={{
         position: 'fixed',
         top: '50%',
@@ -97,7 +103,7 @@ export default function TimelineNav({ posts = [] }) {
                     onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--glass-1)'; e.currentTarget.style.color = 'var(--ink-1)' }}
                     onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--ink-2)' }}
                   >
-                    {MONTHS_RO[m.month]}
+                    {t(MONTH_KEYS[m.month])}
                   </button>
                 ))}
               </div>

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useToast } from '../contexts/ToastContext'
 import { useLanguage } from '../contexts/LanguageContext'
 import { getCategories } from '../lib/categoriesData'
+import { DEFAULT_CATEGORY_VALUE, DEFAULT_CATEGORIES } from '../lib/defaultCategories'
 
 export default function HeaderIsland({
   childName = 'Child',
@@ -17,7 +18,7 @@ export default function HeaderIsland({
   onSearchChange,
 }) {
   const [postText, setPostText] = useState('')
-  const [category, setCategory] = useState('memories')
+  const [category, setCategory] = useState(DEFAULT_CATEGORY_VALUE)
   const [hashtags, setHashtags] = useState('')
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(false)
@@ -27,15 +28,7 @@ export default function HeaderIsland({
   useEffect(() => {
     getCategories()
       .then(setCategories)
-      .catch(() => setCategories([
-        { value: 'memories',   label: 'Amintiri' },
-        { value: 'milestones', label: 'Etape importante' },
-        { value: 'everyday',   label: 'Zilnic' },
-        { value: 'special',    label: 'Special' },
-        { value: 'family',     label: 'Familie' },
-        { value: 'play',       label: 'Joacă' },
-        { value: 'learning',   label: 'Învățare' },
-      ]))
+      .catch(() => setCategories(DEFAULT_CATEGORIES))
   }, [])
 
   const handlePostSubmit = async () => {
@@ -43,10 +36,10 @@ export default function HeaderIsland({
     setLoading(true)
     try {
       await onCreatePost({ text: postText.trim(), category, hashtags: hashtags.trim() })
-      setPostText(''); setHashtags(''); setCategory('memories')
-      showSuccess('Postat cu succes!')
+      setPostText(''); setHashtags(''); setCategory(DEFAULT_CATEGORY_VALUE)
+      showSuccess(t('postedSuccessfully'))
     } catch {
-      showError('Postarea a eșuat')
+      showError(t('postFailed'))
     } finally {
       setLoading(false)
     }
@@ -60,10 +53,10 @@ export default function HeaderIsland({
       <div style={{ padding: '24px 0 16px' }}>
         <h1 className="text-page-title">{albumTitle}</h1>
         <p className="text-subtle" style={{ marginTop: 4 }}>
-          <span className="nums">{postCount}</span> {postCount === 1 ? 'amintire' : 'amintiri'}
+          <span className="nums">{postCount}</span> {postCount === 1 ? t('memorySingular') : t('memoryPlural')}
           <span style={{ margin: '0 8px', opacity: 0.4 }}>·</span>
           <span style={{ background: 'linear-gradient(90deg, #7c3aed, #06b6d4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', fontWeight: 600 }}>
-            Crește în fiecare zi
+            {t('growingEveryDay')}
           </span>
         </p>
       </div>
@@ -74,7 +67,7 @@ export default function HeaderIsland({
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <button
               onClick={() => onProfilePictureClick && onProfilePictureClick()}
-              title={`Vezi poza de profil a lui ${childName}`}
+              title={t('viewProfilePictureOf', { name: childName })}
               style={{
                 position: 'relative',
                 background: 'none', border: 'none', padding: 0, cursor: 'pointer',
@@ -121,8 +114,8 @@ export default function HeaderIsland({
                 type="button"
                 onClick={onPhotoUpload}
                 className="btn-icon"
-                title="Încarcă fotografie"
-                aria-label="Upload photo"
+                title={t('uploadPhotoTooltip')}
+                aria-label={t('uploadPhotoTooltip')}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <rect width="18" height="18" x="3" y="3" rx="3" ry="3"/>
@@ -134,8 +127,8 @@ export default function HeaderIsland({
                 type="button"
                 onClick={onVideoUpload}
                 className="btn-icon"
-                title="Încarcă video"
-                aria-label="Upload video"
+                title={t('uploadVideoTooltip')}
+                aria-label={t('uploadVideoTooltip')}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="m22 8-6 4 6 4V8Z"/>
@@ -153,7 +146,7 @@ export default function HeaderIsland({
             }}>
               <div style={{ marginBottom: 14 }}>
                 <label className="text-eyebrow" style={{ display: 'block', marginBottom: 8 }}>
-                  Categorie
+                  {t('category')}
                 </label>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {categories.map((cat) => (
@@ -171,13 +164,13 @@ export default function HeaderIsland({
 
               <div style={{ marginBottom: 16 }}>
                 <label className="text-eyebrow" style={{ display: 'block', marginBottom: 8 }}>
-                  Etichete
+                  {t('tags')}
                 </label>
                 <input
                   type="text"
                   value={hashtags}
                   onChange={(e) => setHashtags(e.target.value)}
-                  placeholder="#familie #dragoste #creștere #amintiri"
+                  placeholder={t('hashtagsExamplePlaceholder')}
                   className="input-glass"
                   disabled={loading}
                 />
@@ -192,14 +185,14 @@ export default function HeaderIsland({
                   {loading ? (
                     <>
                       <div style={{ width: 14, height: 14, border: '2px solid white', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-                      Se postează…
+                      {t('posting')}
                     </>
                   ) : (
                     <>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="m3 3 3 9-3 9 19-9Z"/>
                       </svg>
-                      Postează
+                      {t('postButton')}
                     </>
                   )}
                 </button>
@@ -223,7 +216,7 @@ export default function HeaderIsland({
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Caută în amintiri..."
+            placeholder={t('searchMemories')}
             className="input-glass"
             style={{ paddingLeft: 46, borderRadius: 18 }}
             autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck="false"
@@ -237,9 +230,9 @@ export default function HeaderIsland({
       {!hasEditorAccess && !onSearchChange && (
         <div className="card-glass" style={{ marginBottom: 32, padding: 28, textAlign: 'center' }}>
           <div style={{ fontSize: 36, marginBottom: 12 }}>👶</div>
-          <h3 className="text-section-title" style={{ marginBottom: 8 }}>Bun venit în {albumTitle}!</h3>
+          <h3 className="text-section-title" style={{ marginBottom: 8 }}>{t('welcomeToAlbum', { album: albumTitle })}</h3>
           <p style={{ fontSize: 14.5, color: 'var(--ink-2)', lineHeight: 1.55 }}>
-            Vizionați amintiri prețioase. Pentru a adăuga fotografii noi și a crea postări, folosiți PIN-ul de editor când vă conectați.
+            {t('viewerWelcomeText')}
           </p>
         </div>
       )}

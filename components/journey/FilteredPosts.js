@@ -6,15 +6,18 @@
 import { useState, useEffect } from 'react'
 import { authenticatedFetch } from '../../lib/pinAuth'
 import { detectFileTypeFromUrl } from '../../lib/fileTypes'
+import { getCoverPoster } from '../../lib/posters'
+import { useLanguage } from '../../contexts/LanguageContext'
 import MediaThumbnail from '../MediaThumbnail'
 import MediaTypeCard from '../MediaTypeCard'
 import PostModal from '../PostModal'
 
-export default function FilteredPosts({ familyId, childId, params = {}, emptyText = 'Nicio postare aici încă.' }) {
+export default function FilteredPosts({ familyId, childId, params = {}, emptyText }) {
   const [posts, setPosts] = useState([])
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState(null)
   const [index, setIndex] = useState(0)
+  const { t } = useLanguage()
 
   useEffect(() => {
     let cancelled = false
@@ -42,10 +45,10 @@ export default function FilteredPosts({ familyId, childId, params = {}, emptyTex
   }, [familyId, childId, JSON.stringify(params)])
 
   if (loading) {
-    return <div className="text-subtle" style={{ padding: 20, textAlign: 'center' }}>Se încarcă…</div>
+    return <div className="text-subtle" style={{ padding: 20, textAlign: 'center' }}>{t('loading')}</div>
   }
   if (!posts.length) {
-    return <div className="text-subtle" style={{ padding: 20, textAlign: 'center' }}>{emptyText}</div>
+    return <div className="text-subtle" style={{ padding: 20, textAlign: 'center' }}>{emptyText || t('noPostsHereYet')}</div>
   }
 
   return (
@@ -77,14 +80,16 @@ export default function FilteredPosts({ familyId, childId, params = {}, emptyTex
                   background: 'linear-gradient(135deg, #a78bfa, #7c3aed)',
                   color: '#fff', fontSize: 12, display: 'flex', alignItems: 'center',
                   justifyContent: 'center', textAlign: 'center', overflow: 'hidden',
+                  whiteSpace: 'pre-wrap',   // (item 4) keep the author's line breaks
                 }}>
-                  {(post.description || post.title || 'Text').slice(0, 80)}
+                  {(post.description || post.title || t('textPost')).slice(0, 80)}
                 </div>
               ) : (isAudio || isDoc) ? (
                 <MediaTypeCard kind={isAudio ? 'audio' : 'document'} url={cover} title={post.title} />
               ) : (
                 <MediaThumbnail
                   src={cover}
+                  poster={getCoverPoster(post)}
                   alt={post.title || 'Post'}
                   showPlayIcon={kind === 'video'}
                   style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}

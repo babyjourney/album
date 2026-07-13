@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { getSession, isAuthenticated, isEditor, authenticatedFetch, clearSession } from '../lib/pinAuth'
 import { useChildren } from '../lib/useChildren'
+import { useLanguage } from '../contexts/LanguageContext'
 
 import FloatingDock from '../components/layout/FloatingDock'
 import VerticalRail from '../components/layout/VerticalRail'
@@ -52,6 +53,7 @@ export default function Dashboard() {
   const [slideshowLoading, setSlideshowLoading] = useState(false)
 
   const router = useRouter()
+  const { t } = useLanguage()
   const { children, isMultiChild } = useChildren(session?.familyId)
 
   useEffect(() => { checkAuth() }, [])
@@ -140,7 +142,11 @@ export default function Dashboard() {
   const handleSearchChange = (q) => {
     setSearchQuery(q)
     if (q.trim()) {
-      setFilters({ date: '', category: 'all', hashtag: '', sort: 'newest' })
+      // Searching clears the narrowing filters so results aren't hidden by a
+      // stale category/date — but it keeps the chosen sort, which is a display
+      // preference, not a filter. Resetting it made A-Z look broken again the
+      // moment you typed anything.
+      setFilters((prev) => ({ date: '', category: 'all', hashtag: '', sort: prev.sort || 'newest' }))
       setSelectedChildId(null)
     }
   }
@@ -169,7 +175,7 @@ export default function Dashboard() {
           boxShadow: '0 8px 24px -6px rgba(124,58,237,0.30)',
         }} />
         <div className="text-eyebrow" style={{ color: 'var(--ink-3)' }}>
-          Se încarcă albumul…
+          {t('loadingAlbum')}
         </div>
       </div>
     )
@@ -195,11 +201,8 @@ export default function Dashboard() {
         if (filters.category && filters.category !== 'all') params.append('category', filters.category)
         if (filters.hashtag?.trim()) params.append('hashtag', filters.hashtag.trim())
         if (filters.date) {
-          const d = new Date(filters.date)
-          const start = new Date(d); start.setDate(start.getDate() - 5)
-          const end   = new Date(d); end.setDate(end.getDate() + 5)
-          params.append('dateStart', start.toISOString())
-          params.append('dateEnd',   end.toISOString())
+          params.append('dateAnchor', filters.date)
+          params.append('tzOffset', String(new Date().getTimezoneOffset()))
         }
         params.append('sort', filters.sort || 'newest')
       } else {
@@ -223,7 +226,7 @@ export default function Dashboard() {
   // Slideshow always available
   actionItems.push({
     tone: 'peach',
-    label: 'Slideshow',
+    label: t('slideshowAction'),
     onClick: handleOpenSlideshow,
     icon: slideshowLoading ? (
       <div style={{ width: 16, height: 16, border: '2px solid var(--glass-hairline-strong)', borderTopColor: 'var(--accent-peach)', borderRadius: '50%', animation: 'spin 0.9s linear infinite' }} />
@@ -238,7 +241,7 @@ export default function Dashboard() {
   if (hasEditorAccess) {
     actionItems.push({
       tone: 'iris',
-      label: 'Upload',
+      label: t('upload'),
       primary: true,
       onClick: () => setShowUpload(true),
       icon: (
@@ -287,20 +290,20 @@ export default function Dashboard() {
         {/* Hero greeting */}
         <header style={{ marginBottom: 32 }}>
           <p className="text-eyebrow" style={{ color: 'var(--accent-iris)', marginBottom: 10 }}>
-            Family memories
+            {t('dashboardEyebrow')}
           </p>
           <h1 className="text-display" style={{ fontSize: 'clamp(22px, 3.4vw, 34px)', marginBottom: 8 }}>
             {albumTitle}
           </h1>
           <p className="text-body" style={{ color: 'var(--ink-2)', fontSize: 16 }}>
-            <span className="nums">{postCount}</span> {postCount === 1 ? 'amintire' : 'amintiri'}
+            <span className="nums">{postCount}</span> {postCount === 1 ? t('memoryCountSingular') : t('memoryCountPlural')}
             <span style={{ margin: '0 8px', opacity: 0.4 }}>·</span>
             <span style={{
               background: 'linear-gradient(90deg, #7c3aed, #06b6d4)',
               WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
               backgroundClip: 'text', fontWeight: 600,
             }}>
-              Crește în fiecare zi
+              {t('growingEveryDay')}
             </span>
           </p>
         </header>
@@ -367,7 +370,7 @@ export default function Dashboard() {
             <button
               onClick={() => setShowUpload(false)}
               className="btn-icon"
-              aria-label="Close"
+              aria-label={t('close')}
               style={{
                 position: 'absolute', top: 14, right: 14, zIndex: 10001,
                 width: 40, height: 40,
@@ -400,7 +403,7 @@ export default function Dashboard() {
             <button
               onClick={() => setShowTextPost(false)}
               className="btn-icon"
-              aria-label="Close"
+              aria-label={t('close')}
               style={{ position: 'absolute', top: 14, right: 14, zIndex: 10, width: 40, height: 40 }}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -451,13 +454,13 @@ export default function Dashboard() {
                 <line x1="21" y1="12" x2="9" y2="12"/>
               </svg>
             </div>
-            <h3 className="text-section-title" style={{ fontSize: 18, marginBottom: 6 }}>Ieși din album?</h3>
+            <h3 className="text-section-title" style={{ fontSize: 18, marginBottom: 6 }}>{t('signOutDialogTitle')}</h3>
             <p style={{ fontSize: 13.5, color: 'var(--ink-2)', lineHeight: 1.55, marginBottom: 20 }}>
-              Va trebui să te autentifici din nou cu PIN-ul.
+              {t('signOutDialogBody')}
             </p>
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={() => setShowSignOutConfirm(false)} className="btn-glass" style={{ flex: 1 }}>
-                Rămân
+                {t('signOutStay')}
               </button>
               <button
                 onClick={confirmSignOut}
@@ -471,7 +474,7 @@ export default function Dashboard() {
                   boxShadow: '0 8px 20px -6px rgba(220,38,38,0.45), inset 0 1px 0 0 rgba(255,255,255,0.30)',
                 }}
               >
-                Ieși
+                {t('signOutLeave')}
               </button>
             </div>
           </div>

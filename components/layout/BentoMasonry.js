@@ -5,6 +5,8 @@ import { authenticatedFetch } from '../../lib/pinAuth'
 import MediaThumbnail from '../MediaThumbnail'
 import MediaTypeCard from '../MediaTypeCard'
 import { detectFileTypeFromUrl } from '../../lib/fileTypes'
+import { getCoverPoster } from '../../lib/posters'
+import { categoryLabel } from '../../lib/defaultCategories'
 
 // Multi-photo helpers (same logic as InstagramFeed but isolated here)
 const getMultiPhotoUrls = (post) => {
@@ -53,11 +55,6 @@ const getCoverUrl = (post) => {
   return post.file_url
 }
 
-const CATEGORY_LABELS = {
-  memories: 'Amintiri', milestones: 'Etape importante', everyday: 'Zilnic',
-  special: 'Special', family: 'Familie', play: 'Joacă', learning: 'Învățare',
-}
-
 // Bento sizing patterns — one entry per card position, repeating.
 // Pattern is selected based on column count.
 const BENTO_PATTERN_3 = [
@@ -87,7 +84,7 @@ export default function BentoMasonry({ familyId, searchQuery, refreshTrigger, on
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const { showError } = useToast()
-  const { language } = useLanguage()
+  const { language, t } = useLanguage()
 
   useEffect(() => {
     if (!familyId) return
@@ -103,12 +100,13 @@ export default function BentoMasonry({ familyId, searchQuery, refreshTrigger, on
       if (filters) {
         if (filters.category && filters.category !== 'all') params.append('category', filters.category)
         if (filters.hashtag?.trim()) params.append('hashtag', filters.hashtag.trim())
+        // The API anchors on this date: 3 posts before, the whole day, 3 after.
+        // tzOffset lets the server work out which UTC instants make up *your*
+        // calendar day — otherwise a post made just after midnight lands on the
+        // previous day server-side.
         if (filters.date) {
-          const d = new Date(filters.date)
-          const start = new Date(d); start.setDate(start.getDate() - 5)
-          const end   = new Date(d); end.setDate(end.getDate() + 5)
-          params.append('dateStart', start.toISOString())
-          params.append('dateEnd',   end.toISOString())
+          params.append('dateAnchor', filters.date)
+          params.append('tzOffset', String(new Date().getTimezoneOffset()))
         }
         if (filters.sort) params.append('sort', filters.sort)
       }
@@ -116,14 +114,14 @@ export default function BentoMasonry({ familyId, searchQuery, refreshTrigger, on
 
       const response = await authenticatedFetch(`/api/photos/list?${params.toString()}`)
       const result = await response.json()
-      if (!response.ok) throw new Error(result.error || 'Încărcarea postărilor a eșuat')
+      if (!response.ok) throw new Error(result.error || t('postsLoadFailed'))
       const data = result.photos || []
       setPosts(data)
       onPostCountUpdate && onPostCountUpdate(data.length)
       onPostsLoaded && onPostsLoaded(data)
     } catch (e) {
       console.error('Error fetching posts:', e)
-      const msg = 'Încărcarea postărilor a eșuat'
+      const msg = t('postsLoadFailed')
       setError(msg); showError(msg)
     } finally {
       setLoading(false)
@@ -131,7 +129,7 @@ export default function BentoMasonry({ familyId, searchQuery, refreshTrigger, on
   }
 
   const formatDate = (s) => new Date(s).toLocaleDateString(
-    language === 'ru' ? 'ru-RU' : 'ro-RO',
+    language === 'ru' ? 'ru-RU' : language === 'en' ? 'en-US' : 'ro-RO',
     { month: 'short', day: 'numeric', year: 'numeric' }
   )
 
@@ -177,27 +175,34 @@ export default function BentoMasonry({ familyId, searchQuery, refreshTrigger, on
       >
         {/* Media area */}
         {isTextPost ? (
-          <div style={{
+          <div className="bento-text-card" style={{
             position: 'absolute', inset: 0,
             background: 'linear-gradient(135deg, #a78bfa 0%, #7c3aed 50%, #5b21b6 100%)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: 28, textAlign: 'center', overflow: 'hidden',
+            textAlign: 'center', overflow: 'hidden',
           }}>
             <div aria-hidden style={{
               position: 'absolute', top: '-30%', left: '-20%', width: '160%', height: '160%',
               background: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.18) 0%, transparent 50%)',
               pointerEvents: 'none',
             }} />
-            <p style={{
+            {/* Font size and clamp are set in CSS so they can shrink with the
+                card. A fixed 18px in a 140px-tall phone tile rendered ~3 lines
+                and clipped the rest at both ends (item 15).
+                whiteSpace: pre-wrap keeps the author's line breaks (item 4). */}
+            <p className="bento-text-body" style={{
               position: 'relative', zIndex: 1,
-              color: '#fff', fontSize: 18, fontWeight: 500,
-              lineHeight: 1.4,
+              color: '#fff', fontWeight: 500,
               textShadow: '0 1px 6px rgba(0,0,0,0.20)',
               maxWidth: 320,
               fontFamily: '"Inter Tight", Inter, system-ui, sans-serif',
               letterSpacing: '-0.01em',
+              whiteSpace: 'pre-wrap',
+              overflow: 'hidden',
+              display: '-webkit-box',
+              WebkitBoxOrient: 'vertical',
             }}>
-              {desc || 'Postare text'}
+              {desc || t('textPostFallback')}
             </p>
           </div>
         ) : (isAudio || isDocument) ? (
@@ -205,6 +210,7 @@ export default function BentoMasonry({ familyId, searchQuery, refreshTrigger, on
         ) : (
           <MediaThumbnail
             src={cover}
+            poster={getCoverPoster(post)}
             alt={post.title || 'Post'}
             showPlayIcon={isVideo}
             style={{
@@ -230,14 +236,14 @@ export default function BentoMasonry({ familyId, searchQuery, refreshTrigger, on
                 border: '1px solid rgba(255,255,255,0.20)',
                 letterSpacing: '0.02em',
               }}>
-                {CATEGORY_LABELS[post.category] || (post.category[0].toUpperCase() + post.category.slice(1))}
+                {categoryLabel(post.category)}
               </span>
             )}
             {post.is_private && (
               <span
                 className="glass-pill"
-                title="Conținut privat — vizibil doar pentru editori"
-                aria-label="Conținut privat"
+                title={t('privateContentTooltip')}
+                aria-label={t('privateContentAria')}
                 style={{
                   padding: '4px 8px', fontSize: 11, fontWeight: 700, color: '#fff',
                   background: 'rgba(124, 58, 237, 0.55)',
@@ -251,7 +257,7 @@ export default function BentoMasonry({ familyId, searchQuery, refreshTrigger, on
                   <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                   <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                 </svg>
-                Privat
+                {t('privateBadge')}
               </span>
             )}
           </div>
@@ -342,17 +348,17 @@ export default function BentoMasonry({ familyId, searchQuery, refreshTrigger, on
         {searchQuery ? (
           <>
             <div style={{ fontSize: 48, marginBottom: 16 }}>🔍</div>
-            <h3 className="text-section-title" style={{ marginBottom: 8 }}>Nu s-au găsit rezultate</h3>
+            <h3 className="text-section-title" style={{ marginBottom: 8 }}>{t('noResultsFound')}</h3>
             <p className="text-body" style={{ color: 'var(--ink-2)' }}>
-              Nicio postare nu se potrivește cu căutarea pentru &ldquo;{searchQuery}&rdquo;.
+              {t('noResultsForQuery', { query: searchQuery })}
             </p>
           </>
         ) : (
           <>
             <div style={{ fontSize: 48, marginBottom: 16 }}>📸</div>
-            <h3 className="text-section-title" style={{ marginBottom: 8 }}>Împărtășiți prima amintire</h3>
+            <h3 className="text-section-title" style={{ marginBottom: 8 }}>{t('shareFirstMemory')}</h3>
             <p className="text-body" style={{ color: 'var(--ink-2)' }}>
-              Apăsați butonul de upload din dreapta-jos pentru a începe.
+              {t('shareFirstMemoryHint')}
             </p>
           </>
         )}
@@ -376,6 +382,37 @@ function BentoStyles() {
     <style jsx global>{`
       .bento-masonry {
         grid-auto-flow: dense;
+      }
+
+      /* Text-post cards (item 15). The tile shrinks a lot on phones, so the
+         type has to shrink with it and clamp instead of overflowing. */
+      .bento-masonry .bento-text-card { padding: 28px; }
+      .bento-masonry .bento-text-body {
+        font-size: 18px;
+        line-height: 1.4;
+        -webkit-line-clamp: 7;
+      }
+      @media (max-width: 900px) {
+        .bento-masonry .bento-text-card { padding: 16px; }
+        .bento-masonry .bento-text-body {
+          font-size: 14px;
+          line-height: 1.4;
+          -webkit-line-clamp: 6;
+        }
+      }
+      @media (max-width: 540px) {
+        .bento-masonry .bento-text-card { padding: 10px; }
+        .bento-masonry .bento-text-body {
+          font-size: 11.5px;
+          line-height: 1.35;
+          -webkit-line-clamp: 6;
+        }
+        /* The 7n+1 tile is the 2x2 hero — it has room for more. */
+        .bento-masonry > article:nth-child(7n+1) .bento-text-card { padding: 20px; }
+        .bento-masonry > article:nth-child(7n+1) .bento-text-body {
+          font-size: 15px;
+          -webkit-line-clamp: 9;
+        }
       }
       .bento-masonry.bento-cols-2 {
         grid-template-columns: repeat(2, 1fr);

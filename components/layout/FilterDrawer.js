@@ -49,7 +49,7 @@ export default function FilterDrawer({
         borderBottom: '1px solid var(--glass-hairline)',
         flexShrink: 0,
       }}>
-        <h2 className="text-section-title" style={{ fontSize: 22 }}>{t('filtersAndSearch') || 'Filters'}</h2>
+        <h2 className="text-section-title" style={{ fontSize: 22 }}>{t('filtersAndSearch')}</h2>
         <button onClick={onClose} className="btn-icon" aria-label="Close" style={{ width: 36, height: 36 }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <line x1="18" y1="6" x2="6" y2="18"/>
@@ -61,7 +61,7 @@ export default function FilterDrawer({
       <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
         {/* Search */}
         {onSearchChange && (
-          <Section label={t('search') || 'Search'}>
+          <Section label={t('search')}>
             <div style={{ position: 'relative' }}>
               <svg
                 width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
@@ -74,7 +74,7 @@ export default function FilterDrawer({
                 type="text"
                 value={searchQuery || ''}
                 onChange={(e) => onSearchChange(e.target.value)}
-                placeholder={t('searchPlaceholder') || 'Search...'}
+                placeholder={t('searchPlaceholder')}
                 className="input-glass"
                 style={{ paddingLeft: 40, borderRadius: 18 }}
                 autoComplete="off"
@@ -83,25 +83,15 @@ export default function FilterDrawer({
           </Section>
         )}
 
-        {/* Date */}
-        <Section label={t('date') || 'Date'}>
-          <input
-            type="date"
-            value={filters?.date || ''}
-            onChange={(e) => update({ date: e.target.value })}
-            className="input-glass"
-          />
-        </Section>
-
         {/* Category */}
-        <Section label={t('categories') || 'Categories'}>
+        <Section label={t('categories')}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             <button
               type="button"
               onClick={() => update({ category: 'all' })}
               className={`category-pill ${filters?.category === 'all' || !filters?.category ? 'category-pill--selected' : ''}`}
             >
-              {t('all') || 'All'}
+              {t('all')}
             </button>
             {categories.map((cat) => (
               <button
@@ -117,12 +107,12 @@ export default function FilterDrawer({
         </Section>
 
         {/* Hashtag */}
-        <Section label={t('hashtag') || 'Hashtag'}>
+        <Section label={t('hashtag')}>
           <input
             type="text"
             value={filters?.hashtag || ''}
             onChange={(e) => update({ hashtag: e.target.value })}
-            placeholder={t('hashtagPlaceholder') || 'hashtag'}
+            placeholder={t('hashtagPlaceholder')}
             className="input-glass"
           />
           {/* (Item 2) suggestions from previously-used hashtags */}
@@ -143,14 +133,48 @@ export default function FilterDrawer({
           )}
         </Section>
 
+        {/* Date — second-to-last, immediately above Sort.
+            Picking a date no longer filters to a ±5-day window; it anchors the
+            feed: the 3 posts before that day, everything posted on it, and the
+            3 posts after — however far apart those actually are. */}
+        <Section label={t('date')}>
+          <input
+            type="date"
+            value={filters?.date || ''}
+            onChange={(e) => update({ date: e.target.value })}
+            className="input-glass"
+          />
+          {filters?.date ? (
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              gap: 8, marginTop: 8,
+            }}>
+              <span className="text-subtle" style={{ fontSize: 11.5, lineHeight: 1.35 }}>
+                {t('dateAnchorHint')}
+              </span>
+              <button
+                type="button"
+                onClick={() => update({ date: '' })}
+                className="category-pill"
+                style={{ padding: '4px 10px', fontSize: 12, flexShrink: 0 }}
+              >
+                {t('clear')}
+              </button>
+            </div>
+          ) : null}
+        </Section>
+
         {/* Sort */}
-        <Section label={t('sorting') || 'Sort'}>
+        <Section label={t('sorting')}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
             {[
-              { value: 'newest', label: t('newest') || 'Newest' },
-              { value: 'oldest', label: t('oldest') || 'Oldest' },
-              { value: 'titleAZ', label: t('titleAZ') || 'A-Z' },
-              { value: 'titleZA', label: t('titleZA') || 'Z-A' },
+              { value: 'newest', label: t('newest') },
+              { value: 'oldest', label: t('oldest') },
+              // These MUST match the keys /api/photos/list switches on. They
+              // used to be titleAZ/titleZA, which matched nothing, so both
+              // pills silently fell through to "newest".
+              { value: 'title_asc', label: t('titleAZ') },
+              { value: 'title_desc', label: t('titleZA') },
             ].map((opt) => (
               <button
                 key={opt.value}
@@ -173,10 +197,10 @@ export default function FilterDrawer({
         flexShrink: 0,
       }}>
         <button onClick={reset} className="btn-glass" style={{ flex: 1 }} disabled={!hasActiveFilters}>
-          {t('clearAllFilters') || 'Clear'}
+          {t('clearAllFilters')}
         </button>
         <button onClick={onClose} className="btn-iris sheen" style={{ flex: 1 }}>
-          {t('done') || 'Done'}
+          {t('done')}
         </button>
       </div>
     </SideSheet>

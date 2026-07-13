@@ -76,31 +76,34 @@ async function handler(req, res) {
     // Try with file_urls first, fallback to just type and description if column doesn't exist
     let currentPostData = null
     let fetchError = null
-    
-    try {
+
+    // Progressively drop the newest columns until the select works, so this
+    // keeps functioning on a schema that predates poster_urls / file_urls.
+    // NOTE: supabase-js returns {data, error} — a missing column does NOT throw,
+    // so this has to be driven off `error`, not a try/catch.
+    for (const cols of [
+      'type, file_urls, poster_urls, description',
+      'type, file_urls, description',
+      'type, description',
+    ]) {
       const { data, error } = await supabase
         .from('photos')
-        .select('type, file_urls, description')
+        .select(cols)
         .eq('id', postId)
         .single()
-      currentPostData = data
-      fetchError = error
-    } catch (error) {
-      // If file_urls column doesn't exist, try without it
-      if (error.message && error.message.includes('file_urls')) {
-        console.log('file_urls column does not exist, using fallback query')
-        const { data, error: fallbackError } = await supabase
-          .from('photos')
-          .select('type, description')
-          .eq('id', postId)
-          .single()
+
+      if (!error) {
         currentPostData = data
-        fetchError = fallbackError
-      } else {
-        fetchError = error
+        fetchError = null
+        break
       }
+
+      fetchError = error
+      const missingColumn = error.code === '42703' || /column|does not exist/i.test(error.message || '')
+      if (!missingColumn) break
+      console.log(`update: retrying post fetch without one of [${cols}]`)
     }
-    
+
     if (fetchError) {
       console.error('Error fetching current post:', fetchError)
     }
@@ -110,12 +113,32 @@ async function handler(req, res) {
     // CRITICAL: Preserve file_urls for multi-photo posts
     // First try to use new format, but fallback to old format if file_urls column doesn't exist
     if (file_urls !== undefined) {
-      try {
-        // Try to update with file_urls column
-        updateData.file_urls = file_urls
-        console.log('Adding file_urls to update:', file_urls)
-      } catch (error) {
-        console.log('file_urls column not available, using old format in description')
+      updateData.file_urls = file_urls
+      console.log('Adding file_urls to update:', file_urls)
+
+      // (Item 2) poster_urls is INDEX-ALIGNED with file_urls. The edit UI can
+      // reorder photos and delete individual ones, so if we rewrite file_urls
+      // and leave poster_urls alone, the pairing shifts: a video ends up showing
+      // another clip's frame, or loses its poster entirely.
+      //
+      // Rebuild it by matching on URL — which survives any reordering — using the
+      // OLD pairing as the source of truth.
+      const asArray = (v) => {
+        if (Array.isArray(v)) return v
+        if (typeof v === 'string') { try { const p = JSON.parse(v); return Array.isArray(p) ? p : null } catch { return null } }
+        return null
+      }
+      const oldUrls = asArray(currentPostData?.file_urls)
+      const oldPosters = asArray(currentPostData?.poster_urls)
+
+      if (oldPosters && oldPosters.length) {
+        const posterByUrl = new Map()
+        ;(oldUrls || []).forEach((url, i) => {
+          if (url && oldPosters[i]) posterByUrl.set(url, oldPosters[i])
+        })
+        const remapped = (Array.isArray(file_urls) ? file_urls : []).map((url) => posterByUrl.get(url) || null)
+        if (remapped.some(Boolean)) updateData.poster_urls = remapped
+        else updateData.poster_urls = null
       }
     } else if (currentPostData?.type === 'multi-photo' && currentPostData?.file_urls) {
       // Safety backup: If no file_urls provided but this is a multi-photo post, preserve existing
@@ -162,6 +185,21 @@ async function handler(req, res) {
       data = result.data
       error = result.error
       
+      // poster_urls is the newest column — if it's missing, drop just that and
+      // retry, rather than falling all the way back to the legacy format.
+      if (error && /poster_urls/i.test(error.message || '') && updateData.poster_urls !== undefined) {
+        console.warn('poster_urls column missing — retrying without it. Run sql/sergiu_batch2.sql.')
+        const { poster_urls: _drop, ...withoutPosters } = updateData
+        const retry = await supabase
+          .from('photos')
+          .update(withoutPosters)
+          .eq('id', postId)
+          .eq('family_id', req.auth.familyId)
+          .select()
+        data = retry.data
+        error = retry.error
+      }
+
       // If error indicates file_urls column doesn't exist, retry with old format
       if (error && error.message && error.message.includes('file_urls')) {
         console.log('file_urls column not found, retrying with old format')

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { isAdminAuthenticated, clearAdminSession, adminFetch } from '../../lib/adminAuth'
 import { TIER_ORDER, TIERS, getTierBadge, normalizeTier, TIER_FEATURE_SUMMARY } from '../../lib/tiers'
+import { exportFamilyArchive } from '../../lib/exportArchive'
 
 export default function AdminDashboard() {
   const router = useRouter()
@@ -25,6 +26,10 @@ export default function AdminDashboard() {
   // Per-family year selection for the year-scoped export dropdown.
   // Keyed by family id; defaults to the current year on first interaction.
   const [exportYearByFamily, setExportYearByFamily] = useState({})
+  // (Item 8) ZIP export is assembled in the browser and can take minutes, so we
+  // track which family is exporting and surface progress on its row.
+  const [exportingFamilyId, setExportingFamilyId] = useState(null)
+  const [exportProgress, setExportProgress] = useState(null) // { stage, done, total }
   // Collapsible "what each plan includes" reference panel.
   const [showTierGuide, setShowTierGuide] = useState(false)
 
@@ -93,53 +98,36 @@ export default function AdminDashboard() {
     }
   }
 
-  // Download a JSON response straight from the admin export endpoints,
-  // preserving the server-supplied filename when present.
-  const downloadJsonResponse = async (response, fallbackName) => {
-    const dispo = response.headers.get('content-disposition') || ''
-    const match = /filename="?([^";]+)"?/i.exec(dispo)
-    const filename = match ? match[1] : fallbackName
-    const json = await response.json()
-    const blob = new Blob([JSON.stringify(json, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = filename
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
-  }
-
-  const handleExportFamilyAll = async (family) => {
+  // (Item 8) Both admin exports now produce the same structured .zip the family
+  // gets from Settings — year folders of real media named
+  // [an.luna.zi][copii]_[titlu]_[nr].ext — instead of a JSON file of URLs.
+  // The archive is assembled in the browser using the admin token.
+  const runFamilyExport = async (family, year) => {
+    if (exportingFamilyId) return
+    setExportingFamilyId(family.id)
     try {
-      const response = await adminFetch(`/api/admin/export-family-all?familyId=${family.id}`)
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}))
-        alert('Eroare export: ' + (err.error || response.statusText))
-        return
-      }
-      await downloadJsonResponse(response, `${family.name || 'familie'}-export-complet.json`)
+      const result = await exportFamilyArchive({
+        familyId: family.id,
+        familyName: family.name,
+        year,
+        fetcher: adminFetch,
+        onProgress: (stage, done, total) => setExportProgress({ stage, done, total }),
+      })
+      console.log(`Export complete: ${result.files} files from ${result.posts} posts`)
     } catch (error) {
-      console.error('Export family all error:', error)
-      alert('Eroare la exportarea familiei')
+      console.error('Export error:', error)
+      alert('Eroare la export: ' + (error.message || 'necunoscută'))
+    } finally {
+      setExportingFamilyId(null)
+      setExportProgress(null)
     }
   }
 
-  const handleExportFamilyYear = async (family, year) => {
+  const handleExportFamilyAll = (family) => runFamilyExport(family, 'all')
+
+  const handleExportFamilyYear = (family, year) => {
     if (!year) return
-    try {
-      const response = await adminFetch(`/api/admin/export-family-year?familyId=${family.id}&year=${year}`)
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}))
-        alert('Eroare export: ' + (err.error || response.statusText))
-        return
-      }
-      await downloadJsonResponse(response, `${family.name || 'familie'}-${year}.json`)
-    } catch (error) {
-      console.error('Export family year error:', error)
-      alert('Eroare la exportarea anului')
-    }
+    runFamilyExport(family, year)
   }
 
   // The dropdown lets the admin pick any year between the family's account
@@ -1111,21 +1099,25 @@ export default function AdminDashboard() {
 
                           <button
                             onClick={() => handleExportFamilyAll(family)}
-                            title="Exportă tot conținutul familiei (poze, video, texte, metadate) — pentru migrare sau încheiere contract"
+                            disabled={exportingFamilyId === family.id}
+                            title="Descarcă tot albumul ca .zip — un folder pe an, cu pozele/video/text redenumite [an.luna.zi][copii]_[titlu]_[nr]"
                             style={{
                               padding: '6px 12px',
                               background: 'linear-gradient(135deg, #6366f1, #4338ca)',
                               color: 'white',
                               border: '1px solid rgba(255,255,255,0.18)',
                               borderRadius: '12px',
-                              cursor: 'pointer',
+                              cursor: exportingFamilyId === family.id ? 'default' : 'pointer',
+                              opacity: exportingFamilyId === family.id ? 0.6 : 1,
                               fontSize: '12px',
                               fontWeight: 600,
                               whiteSpace: 'nowrap',
                               boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.30), 0 6px 18px -6px rgba(67,56,202,0.50)',
                             }}
                           >
-                            ⬇ EXPORT all
+                            {exportingFamilyId === family.id && exportProgress
+                              ? `${exportProgress.done}/${exportProgress.total}…`
+                              : '⬇ ZIP tot'}
                           </button>
 
                           <div style={{ display: 'flex', gap: '4px' }}>
@@ -1142,7 +1134,8 @@ export default function AdminDashboard() {
                             </select>
                             <button
                               onClick={() => handleExportFamilyYear(family, exportYearByFamily[family.id] ?? new Date().getFullYear())}
-                              title="Exportă doar postările din anul selectat — pentru album cadou sau contra plată la sfârșit de an"
+                              disabled={exportingFamilyId === family.id}
+                              title="Descarcă doar anul selectat, ca .zip — pentru album cadou sau contra plată la sfârșit de an"
                               style={{
                                 flex: 1,
                                 padding: '6px 8px',
@@ -1150,14 +1143,15 @@ export default function AdminDashboard() {
                                 color: 'white',
                                 border: '1px solid rgba(255,255,255,0.18)',
                                 borderRadius: '12px',
-                                cursor: 'pointer',
+                                cursor: exportingFamilyId === family.id ? 'default' : 'pointer',
+                                opacity: exportingFamilyId === family.id ? 0.6 : 1,
                                 fontSize: '11.5px',
                                 fontWeight: 600,
                                 whiteSpace: 'nowrap',
                                 boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.30), 0 6px 18px -6px rgba(14,116,144,0.50)',
                               }}
                             >
-                              ⬇ EXPORT
+                              ⬇ ZIP an
                             </button>
                           </div>
                         </div>

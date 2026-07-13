@@ -44,13 +44,27 @@ async function handler(req, res) {
             .select('*', { count: 'exact', head: true })
             .eq('family_id', family.id)
 
-          // Get latest photo upload date
-          const { data: latestPhoto, error: latestPhotoError } = await supabase
+          // Get latest photo upload date.
+          // uploaded_at, NOT created_at: created_at is the memory date the user
+          // chose and may be backdated years. Falls back if the migration
+          // (sql/sergiu_batch2.sql) hasn't been run.
+          let { data: latestPhoto } = await supabase
             .from('photos')
-            .select('created_at')
+            .select('uploaded_at')
             .eq('family_id', family.id)
-            .order('created_at', { ascending: false })
+            .order('uploaded_at', { ascending: false })
             .limit(1)
+
+          if (!latestPhoto) {
+            ;({ data: latestPhoto } = await supabase
+              .from('photos')
+              .select('created_at')
+              .eq('family_id', family.id)
+              .order('created_at', { ascending: false })
+              .limit(1))
+          }
+
+          const lastUploadAt = latestPhoto?.[0]?.uploaded_at || latestPhoto?.[0]?.created_at
 
           // Format children names
           const childrenNames = children?.map(child => child.name).join(', ') || 'Fără copii'
@@ -94,7 +108,7 @@ async function handler(req, res) {
             'Numărul Copiilor': children?.length || 0,
             'Vârstele Copiilor': childrenAges,
             'Numărul Fotografiilor': photosCount || 0,
-            'Ultima Încărcare Fotografie': latestPhoto?.[0]?.created_at ? formatDate(latestPhoto[0].created_at) : 'Niciodată',
+            'Ultima Încărcare Fotografie': lastUploadAt ? formatDate(lastUploadAt) : 'Niciodată',
             'Data Creării Contului': formatDate(family.created_at),
             'Ultima Accesare Album': family.last_accessed ? formatDate(family.last_accessed) : 'Niciodată',
             'Zile De La Ultima Accesare': daysSinceLastAccess,

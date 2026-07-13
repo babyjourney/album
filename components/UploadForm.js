@@ -7,8 +7,11 @@ import { useOnClickOutside } from '../hooks/useOnClickOutside'
 import { useLanguage } from '../contexts/LanguageContext'
 import DatePicker from './DatePicker'
 import { getCategories } from '../lib/categoriesData'
-import { getPackageLimits, getImageCompressionOptions, getVideoLimits } from '../lib/packages'
+import { getPackageLimits, getImageCompressionOptions, getVideoLimits, getVideoEncodeOptions, STORAGE_MAX_UPLOAD_MB, STORAGE_MAX_UPLOAD_BYTES } from '../lib/packages'
+import { getTier } from '../lib/tiers'
 import { UPLOAD_ACCEPT, isAcceptedUploadFile } from '../lib/fileTypes'
+import { transcodeVideo, captureVideoPoster } from '../lib/videoCompress'
+import { DEFAULT_CATEGORY_VALUE } from '../lib/defaultCategories'
 
 // Small round reorder button (‹ ›) used on file thumbnails — works on touch.
 const reorderBtnStyle = (disabled) => ({
@@ -25,7 +28,7 @@ const reorderBtnStyle = (disabled) => ({
 export default function UploadForm({ familyId, onUploadSuccess, onClose, refreshTrigger, selectedChildId = null }) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [category, setCategory] = useState('memories')
+  const [category, setCategory] = useState(DEFAULT_CATEGORY_VALUE)
   const [files, setFiles] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -52,6 +55,13 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
   // `files`; entries are `null` for images. Sent to the server so it can
   // re-validate even if the client lied.
   const [videoDurations, setVideoDurations] = useState([])
+  // Poster frames for video files, index-aligned with `files` (null for
+  // non-videos). Captured at upload time so the feed never has to decode a
+  // video just to show a thumbnail — that's what produced black tiles.
+  const [posters, setPosters] = useState([])
+  // Live progress while a video is being re-encoded. Encoding runs in real time
+  // (a 60s clip takes ~60s), so without this the UI looks frozen.
+  const [videoProgress, setVideoProgress] = useState(null) // { name, pct } | null
   // (Item 2) existing family hashtags for autocomplete suggestions.
   const [existingHashtags, setExistingHashtags] = useState([])
   // (Item 14) index of the file currently being dragged for reorder.
@@ -192,6 +202,12 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
       next.splice(to, 0, m)
       return next
     })
+    setPosters((prev) => {
+      const next = [...prev]
+      const [m] = next.splice(from, 1)
+      next.splice(to, 0, m)
+      return next
+    })
     setCoverIndex((ci) => {
       if (ci === from) return to
       if (from < ci && to >= ci) return ci - 1
@@ -317,17 +333,27 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
 
     const processedFiles = [...files]
     const processedDurations = [...videoDurations]
-    // Pad durations array if a previous render left it shorter than files.
+    const processedPosters = [...posters]
+    // Pad the parallel arrays if a previous render left them shorter than files.
     while (processedDurations.length < processedFiles.length) {
       processedDurations.push(null)
+    }
+    while (processedPosters.length < processedFiles.length) {
+      processedPosters.push(null)
     }
     setLoading(true)
 
     const maxVideoSeconds = getPackageLimits(currentPackage).maxVideoSeconds
     const videoLimits = getVideoLimits(currentPackage)
     const maxVideoBytes = videoLimits.maxMB * 1024 * 1024
+    const videoEncodeOptions = getVideoEncodeOptions(currentPackage)
     let rejectedLongVideos = 0
     let rejectedLargeVideos = 0
+    // Videos that are still over the storage limit even AFTER re-encoding —
+    // i.e. the browser couldn't compress them. See the guard below.
+    let rejectedOversizeAfterCompression = 0
+    // Non-video files (audio, PDFs) that are simply too big for the bucket.
+    let rejectedOversizeFiles = 0
 
     for (const selectedFile of selectedFiles) {
       const fileExists = processedFiles.some(existingFile =>
@@ -388,34 +414,104 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
           const compressedFile = await imageCompression(selectedFile, options)
           processedFiles.push(compressedFile)
           processedDurations.push(null)
-        } else {
-          processedFiles.push(selectedFile)
+          processedPosters.push(null)
+        } else if (selectedFile.type.startsWith('video/')) {
+          // (Items 2, 3, 7) Grab a poster frame, then re-encode the clip down to
+          // the tier's resolution/bitrate. A 126MB phone video becomes ~12MB,
+          // which both fits the storage bucket and stops the storage bill from
+          // tracking the raw camera output.
+          setVideoProgress({ name: selectedFile.name, pct: 0 })
+
+          const poster = await captureVideoPoster(selectedFile)
+
+          const { file: encoded, transcoded } = await transcodeVideo(selectedFile, {
+            ...videoEncodeOptions,
+            onProgress: (p) =>
+              setVideoProgress({ name: selectedFile.name, pct: Math.round(p * 100) }),
+          })
+
+          if (!transcoded) {
+            // Browser couldn't re-encode (or the result was no smaller). The
+            // original still uploads — it just won't be shrunk.
+            console.info('[upload] video not transcoded, using original:', selectedFile.name)
+          }
+
+          setVideoProgress(null)
+
+          // The size that matters is the size AFTER re-encoding, not before.
+          // If the browser couldn't transcode (no MediaRecorder, an encode
+          // error, or the tab was backgrounded), `encoded` IS the original — so
+          // a 126MB clip would go straight to Supabase and come back with
+          // "The object exceeded the maximum allowed size", which is exactly the
+          // bug we're supposed to be fixing. Refuse here, with an explanation.
+          if (encoded.size > STORAGE_MAX_UPLOAD_BYTES) {
+            rejectedOversizeAfterCompression += 1
+            continue
+          }
+
+          processedFiles.push(encoded)
           processedDurations.push(videoDurationSec)
+          processedPosters.push(poster)
+        } else {
+          // Audio, documents — stored as-is, so nothing shrinks them. They hit
+          // the same bucket ceiling as an untranscodable video.
+          if (selectedFile.size > STORAGE_MAX_UPLOAD_BYTES) {
+            rejectedOversizeFiles += 1
+            continue
+          }
+          processedFiles.push(selectedFile)
+          processedDurations.push(null)
+          processedPosters.push(null)
         }
       } catch (error) {
         console.error('Processing failed for', selectedFile.name, error)
+        setVideoProgress(null)
         processedFiles.push(selectedFile)
         processedDurations.push(selectedFile.type.startsWith('video/') ? videoDurationSec : null)
+        processedPosters.push(null)
       }
     }
 
     if (rejectedLongVideos > 0) {
+      const packageName = getTier(currentPackage).label
       const msg = rejectedLongVideos === 1
-        ? `Un video a fost respins: durata maximă pentru pachetul ${currentPackage === 'premium' ? 'Premium' : 'Free'} este ${maxVideoSeconds} secunde. Treci la Premium pentru video-uri mai lungi.`
-        : `${rejectedLongVideos} video-uri au fost respinse: durata maximă pentru pachetul ${currentPackage === 'premium' ? 'Premium' : 'Free'} este ${maxVideoSeconds} secunde. Treci la Premium pentru video-uri mai lungi.`
+        ? t('videoRejectedDurationOne', { package: packageName, seconds: maxVideoSeconds })
+        : t('videoRejectedDurationMany', { count: rejectedLongVideos, package: packageName, seconds: maxVideoSeconds })
       setError(msg)
       showError(msg)
     }
     if (rejectedLargeVideos > 0) {
+      const packageName = `${getTier(currentPackage).label} (${videoLimits.label})`
       const msg = rejectedLargeVideos === 1
-        ? `Un video a fost respins: dimensiunea maximă pentru pachetul ${currentPackage === 'premium' ? 'Premium (HD)' : 'Free (SD)'} este ${videoLimits.maxMB}MB. Comprimă-l sau treci la Premium pentru video HD.`
-        : `${rejectedLargeVideos} video-uri au fost respinse: dimensiunea maximă pentru pachetul ${currentPackage === 'premium' ? 'Premium (HD)' : 'Free (SD)'} este ${videoLimits.maxMB}MB.`
+        ? t('videoRejectedSizeOne', { package: packageName, maxMB: videoLimits.maxMB })
+        : t('videoRejectedSizeMany', { count: rejectedLargeVideos, package: packageName, maxMB: videoLimits.maxMB })
+      setError(msg)
+      showError(msg)
+    }
+    // The browser couldn't re-encode the clip, and the original is over the
+    // storage ceiling. Say so plainly — otherwise Supabase returns the opaque
+    // "The object exceeded the maximum allowed size" that started all this.
+    if (rejectedOversizeAfterCompression > 0) {
+      const msg = t('videoCompressFailedTooLarge', {
+        count: rejectedOversizeAfterCompression,
+        maxMB: STORAGE_MAX_UPLOAD_MB,
+      })
+      setError(msg)
+      showError(msg)
+    }
+    if (rejectedOversizeFiles > 0) {
+      const msg = t('fileRejectedTooLargeForStorage', {
+        count: rejectedOversizeFiles,
+        maxMB: STORAGE_MAX_UPLOAD_MB,
+      })
       setError(msg)
       showError(msg)
     }
 
     setFiles(processedFiles)
     setVideoDurations(processedDurations)
+    setPosters(processedPosters)
+    setVideoProgress(null)
     setLoading(false)
 
     if (coverIndex >= processedFiles.length) {
@@ -434,14 +530,14 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
     // (Item 11) A post needs a title or a description; media is optional (a
     // post with only title+description is a text post).
     if (!title.trim() && !description.trim()) {
-      setError('Adaugă un titlu sau o descriere')
+      setError(t('titleOrDescriptionRequired'))
       return
     }
 
     // (Item 3a) In multi-child albums, force choosing at least one child so the
     // post is navigable per child (not only under "all kids").
     if (albumSettings?.is_multi_child && selectedChildren.length === 0) {
-      setError('Selectează cel puțin un copil pentru această postare')
+      setError(t('selectAtLeastOneChild'))
       return
     }
 
@@ -450,35 +546,61 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
 
     try {
       const imageUrls = []
+      // Index-aligned with imageUrls: the poster URL for each video, null for
+      // everything else. Lets the feed render a real thumbnail without
+      // downloading the video (item 2).
+      const posterUrls = []
 
-      for (const [index, fileToUpload] of files.entries()) {
+      const uploadToStorage = async (fileToUpload, index, suffix = '') => {
         const fileExt = fileToUpload.name.split('.').pop()
-        const fileName = `${Date.now()}-${index}-${Math.random().toString(36).substring(2)}.${fileExt}`
+        const fileName = `${Date.now()}-${index}${suffix}-${Math.random().toString(36).substring(2)}.${fileExt}`
         const filePath = `${familyId}/${fileName}`
 
         const { error: uploadError } = await supabase.storage
           .from('album_uploads')
           .upload(filePath, fileToUpload)
 
-        if (uploadError) {
-          throw uploadError
-        }
+        if (uploadError) throw uploadError
 
         const { data: publicUrlData } = supabase.storage
           .from('album_uploads')
           .getPublicUrl(filePath)
 
-        imageUrls.push(publicUrlData.publicUrl)
+        return publicUrlData.publicUrl
+      }
+
+      for (const [index, fileToUpload] of files.entries()) {
+        imageUrls.push(await uploadToStorage(fileToUpload, index))
+
+        const poster = posters[index]
+        if (poster) {
+          try {
+            posterUrls.push(await uploadToStorage(poster, index, '-poster'))
+          } catch (posterErr) {
+            // A missing poster degrades to the old runtime-capture path; it is
+            // never worth failing the whole post over.
+            console.warn('Poster upload failed:', posterErr)
+            posterUrls.push(null)
+          }
+        } else {
+          posterUrls.push(null)
+        }
       }
 
       // Mirror videoDurations to the upload's URL order. Align by index so
       // the server can re-validate against the family's package limit.
       const durationsForUpload = files.map((_, i) => videoDurations[i] ?? null)
 
+      // (Item 7) Real byte sizes of what we actually stored — AFTER compression.
+      // The admin storage figure used to be a hardcoded 2MB-per-file guess.
+      const fileSizes = files.map((f) => f.size)
+
       const requestData = {
         title: title.trim(),
         description: description.trim(),
         imageUrls,
+        posterUrls,
+        fileSizes,
         category: category,
         hashtags: hashtags.map(tag => `#${tag}`).join(' '),
         selectedChildren,
@@ -510,11 +632,12 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
 
       setTitle('')
       setDescription('')
-      setCategory('memories')
+      setCategory(DEFAULT_CATEGORY_VALUE)
       setHashtags([])
       setCurrentHashtagInput('')
       setFiles([])
       setVideoDurations([])
+      setPosters([])
       setCompressionInfo(null)
       setSelectedChildren([])
       setCoverIndex(0)
@@ -544,6 +667,11 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
   }
 
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768
+
+  // Quality badge. This used to test `currentPackage === 'premium'` — a tier
+  // that no longer exists (they're starter/family/legacy now), so Family and
+  // Legacy families were shown "SD" and told their limits were the "Free" ones.
+  const isHd = getPackageLimits(currentPackage).imageQuality === 'hd'
 
   const ease = 'cubic-bezier(0.22, 1, 0.36, 1)'
   const transition = `all 220ms ${ease}`
@@ -692,11 +820,11 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                     fontSize: '10.5px',
                     fontWeight: 700,
                     letterSpacing: '0.06em',
-                    color: currentPackage === 'premium' ? 'var(--accent-iris)' : 'var(--ink-2)',
-                    borderColor: currentPackage === 'premium' ? 'rgba(124,58,237,0.45)' : 'var(--glass-hairline)',
-                    background: currentPackage === 'premium' ? 'rgba(124,58,237,0.12)' : 'var(--glass-1)'
+                    color: isHd ? 'var(--accent-iris)' : 'var(--ink-2)',
+                    borderColor: isHd ? 'rgba(124,58,237,0.45)' : 'var(--glass-hairline)',
+                    background: isHd ? 'rgba(124,58,237,0.12)' : 'var(--glass-1)'
                   }}>
-                    {currentPackage === 'premium' ? '📷 HD · 🎬 HD video' : '📷 SD · 🎬 SD video'}
+                    {isHd ? '📷 HD · 🎬 HD video' : '📷 SD · 🎬 SD video'}
                   </span>
                 </div>
 
@@ -711,6 +839,41 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                   required
                 />
               </div>
+
+              {/* Video re-encode progress. Encoding is real-time, so a 1-minute
+                  clip takes ~1 minute — without this the form looks hung. */}
+              {videoProgress && (
+                <div className="glass-soft" style={{
+                  padding: isMobile ? '12px' : '14px',
+                  marginBottom: '10px',
+                }}>
+                  <div style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    gap: 10, marginBottom: 8,
+                  }}>
+                    <span className="text-body" style={{ fontSize: 13, fontWeight: 600 }}>
+                      {t('compressingVideo')}
+                    </span>
+                    <span className="nums" style={{ fontSize: 12, color: 'var(--accent-iris)', fontWeight: 700 }}>
+                      {videoProgress.pct}%
+                    </span>
+                  </div>
+                  <div style={{
+                    height: 6, borderRadius: 999, overflow: 'hidden',
+                    background: 'var(--glass-3)',
+                  }}>
+                    <div style={{
+                      width: `${videoProgress.pct}%`, height: '100%',
+                      background: 'linear-gradient(90deg, #8b5cf6, #6d28d9)',
+                      borderRadius: 999,
+                      transition: 'width 200ms linear',
+                    }} />
+                  </div>
+                  <p className="text-subtle" style={{ margin: '8px 0 0', fontSize: 11.5, lineHeight: 1.35 }}>
+                    {t('compressingVideoHint')}
+                  </p>
+                </div>
+              )}
 
               {files.length > 0 && (
                 <div className="glass-soft" style={{
@@ -775,6 +938,13 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                               objectFit: 'cover'
                             }}
                           />
+                        ) : posters[index] ? (
+                          // Real frame from the video, captured at selection time.
+                          <img
+                            src={URL.createObjectURL(posters[index])}
+                            alt="Preview"
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
                         ) : (
                           <div style={{
                             width: '100%',
@@ -817,8 +987,10 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                             e.stopPropagation()
                             const newFiles = files.filter((_, i) => i !== index)
                             const newDurations = videoDurations.filter((_, i) => i !== index)
+                            const newPosters = posters.filter((_, i) => i !== index)
                             setFiles(newFiles)
                             setVideoDurations(newDurations)
+                            setPosters(newPosters)
                             if (index === coverIndex && index === files.length - 1) {
                               setCoverIndex(Math.max(0, index - 1))
                             } else if (index < coverIndex) {
@@ -1184,10 +1356,10 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                       alignItems: 'center',
                       gap: '6px'
                     }}>
-                      Conținut privat <span aria-hidden="true">🔒</span>
+                      {t('privateContent')} <span aria-hidden="true">🔒</span>
                     </span>
                     <span className="text-subtle" style={{ fontSize: '11.5px', lineHeight: 1.35 }}>
-                      Vizibil doar pentru editori (părinți), nu și pentru vizualizatori.
+                      {t('privateContentHint')}
                     </span>
                   </div>
                 </label>
@@ -1379,7 +1551,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                   background: 'rgba(124, 58, 237, 0.12)',
                   border: '1px solid rgba(124, 58, 237, 0.30)'
                 }}>
-                  {files.length} file{files.length !== 1 ? 's' : ''}
+                  {files.length} {files.length !== 1 ? t('filePlural') : t('fileSingular')}
                 </span>
                 <span style={{ color: 'var(--ink-3)' }}>•</span>
               </>

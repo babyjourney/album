@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useLanguage } from '../contexts/LanguageContext'
 
 export default function ProfilePictureModal({
   isOpen,
@@ -6,6 +7,7 @@ export default function ProfilePictureModal({
   childName,
   childImage
 }) {
+  const { t } = useLanguage()
   const [imageLoaded, setImageLoaded] = useState(false)
 
   useEffect(() => {
@@ -58,7 +60,7 @@ export default function ProfilePictureModal({
           onClick={onClose}
           className="btn-icon"
           style={{ position: 'absolute', top: 14, right: 14 }}
-          aria-label="Închide"
+          aria-label={t('close')}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <line x1="18" y1="6" x2="6" y2="18" />
@@ -67,7 +69,7 @@ export default function ProfilePictureModal({
         </button>
 
         <h2 className="text-section-title" style={{ textAlign: 'center', margin: 0, color: 'var(--ink-1)' }}>
-          Poza de profil a lui {childName}
+          {t('profilePictureOf', { name: childName })}
         </h2>
 
         <div style={{
@@ -92,13 +94,13 @@ export default function ProfilePictureModal({
                 border: '1px solid var(--glass-hairline)'
               }}
             >
-              <span className="text-subtle">Se încarcă...</span>
+              <span className="text-subtle">{t('loading')}</span>
             </div>
           )}
 
           <img
             src={profileImage}
-            alt={`Poza de profil a lui ${childName}`}
+            alt={t('profilePictureOf', { name: childName })}
             style={{
               width: 'auto',
               height: 'auto',
@@ -118,7 +120,7 @@ export default function ProfilePictureModal({
         </div>
 
         <p className="text-subtle" style={{ textAlign: 'center', margin: 0 }}>
-          Apăsați ESC sau faceți clic în afară pentru a închide
+          {t('pressEscToClose')}
         </p>
       </div>
     </div>

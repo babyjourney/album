@@ -15,6 +15,11 @@ export default function Skills() {
   const [updatingSkill, setUpdatingSkill] = useState(null)
   const [showSettings, setShowSettings] = useState(false)
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false)
+  // (Item 10) Skills are per-child. With 3 kids you pick whose skills you're
+  // looking at; each child has their own progress on the same skill catalog.
+  const [children, setChildren] = useState([])
+  const [selectedChildId, setSelectedChildId] = useState(null)
+  const [childrenLoaded, setChildrenLoaded] = useState(false)
   const { showSuccess, showError } = useToast()
   const { t } = useLanguage()
   const router = useRouter()
@@ -23,11 +28,33 @@ export default function Skills() {
     checkAuth()
   }, [])
 
+  // Fetch children directly rather than via useChildren(), which returns an
+  // empty list for single-child albums. Skills need the child either way: the
+  // migration attaches existing progress to the family's first child, so a
+  // single-child family that queried with no childId would see zero progress.
   useEffect(() => {
-    if (session?.familyId) {
+    if (!session?.familyId) return
+    let cancelled = false
+    authenticatedFetch(`/api/children/list?familyId=${session.familyId}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (cancelled) return
+        const kids = d?.children || []
+        setChildren(kids)
+        if (kids.length > 0) setSelectedChildId((prev) => prev || kids[0].id)
+        setChildrenLoaded(true)
+      })
+      .catch(() => { if (!cancelled) setChildrenLoaded(true) })
+    return () => { cancelled = true }
+  }, [session?.familyId])
+
+  // Wait for the child list before the first fetch, so we don't fire an
+  // unscoped request and then immediately refire a scoped one.
+  useEffect(() => {
+    if (session?.familyId && childrenLoaded) {
       fetchSkillsProgress()
     }
-  }, [session])
+  }, [session, childrenLoaded, selectedChildId])
 
   const checkAuth = () => {
     if (!isAuthenticated()) {
@@ -40,12 +67,17 @@ export default function Skills() {
     setLoading(false)
   }
 
+  // Cache is keyed per child — otherwise switching children would show the
+  // previous child's cached progress.
+  const progressCacheKey = (familyId, childId) =>
+    `skillsProgress_${familyId}_${childId || 'family'}`
+
   const fetchSkillsProgress = async () => {
     try {
       const familyId = session.familyId
 
       // Check cache first
-      const cacheKey = `skillsProgress_${familyId}`
+      const cacheKey = progressCacheKey(familyId, selectedChildId)
       const cacheTimeKey = `${cacheKey}_time`
       const cached = sessionStorage.getItem(cacheKey)
       const cacheTime = sessionStorage.getItem(cacheTimeKey)
@@ -58,7 +90,9 @@ export default function Skills() {
         return
       }
 
-      const response = await authenticatedFetch(`/api/skills/progress?familyId=${familyId}`)
+      const params = new URLSearchParams({ familyId })
+      if (selectedChildId) params.append('childId', selectedChildId)
+      const response = await authenticatedFetch(`/api/skills/progress?${params.toString()}`)
       const result = await response.json()
 
       if (!response.ok) {
@@ -81,6 +115,14 @@ export default function Skills() {
     }
   }
 
+  const handleSelectChild = (childId) => {
+    if (childId === selectedChildId) return
+    setSelectedChildId(childId)
+    // Clear immediately so the previous child's numbers don't linger while the
+    // new child's progress loads.
+    setSkillsProgress({})
+  }
+
   const updateSkillProgress = async (skillId, skillName, skillCategory, progress, notes = '') => {
     if (!isEditor()) return
 
@@ -93,7 +135,8 @@ export default function Skills() {
           skillName,
           skillCategory,
           progress,
-          notes
+          notes,
+          childId: selectedChildId
         })
       })
 
@@ -111,7 +154,7 @@ export default function Skills() {
       setSkillsProgress(newProgressMap)
 
       // Update cache
-      const cacheKey = `skillsProgress_${session.familyId}`
+      const cacheKey = progressCacheKey(session.familyId, selectedChildId)
       const cacheTimeKey = `${cacheKey}_time`
       sessionStorage.setItem(cacheKey, JSON.stringify(newProgressMap))
       sessionStorage.setItem(cacheTimeKey, Date.now().toString())
@@ -383,12 +426,12 @@ export default function Skills() {
       {showSignOutConfirm && (
         <div className="modal-scrim" style={{ zIndex: 10000 }} onClick={() => setShowSignOutConfirm(false)}>
           <div className="modal-glass" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 380, padding: 28, textAlign: 'center' }}>
-            <h3 className="text-section-title" style={{ fontSize: 18, marginBottom: 6 }}>Ieși din album?</h3>
+            <h3 className="text-section-title" style={{ fontSize: 18, marginBottom: 6 }}>{t('signOutAlbumTitle')}</h3>
             <p style={{ fontSize: 13.5, color: 'var(--ink-2)', lineHeight: 1.55, marginBottom: 20 }}>
-              Va trebui să te autentifici din nou cu PIN-ul.
+              {t('signOutAlbumBody')}
             </p>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => setShowSignOutConfirm(false)} className="btn-glass" style={{ flex: 1 }}>Rămân</button>
+              <button onClick={() => setShowSignOutConfirm(false)} className="btn-glass" style={{ flex: 1 }}>{t('signOutStay')}</button>
               <button
                 onClick={() => { clearSession(); router.push('/login') }}
                 className="sheen"
@@ -400,7 +443,7 @@ export default function Skills() {
                   cursor: 'pointer',
                   boxShadow: '0 8px 20px -6px rgba(220,38,38,0.45), inset 0 1px 0 0 rgba(255,255,255,0.30)',
                 }}
-              >Ieși</button>
+              >{t('signOutLeave')}</button>
             </div>
           </div>
         </div>
@@ -433,6 +476,46 @@ export default function Skills() {
               ← {t('back')} {t('album')}
             </button>
           </div>
+
+          {/* (Item 10) Child selector — skills belong to a child, not the
+              family, so with several kids you switch between them here. With one
+              child there's nothing to switch, so it stays hidden. */}
+          {children.length > 1 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '18px' }}>
+              {children.map((child) => {
+                const isSelected = child.id === selectedChildId
+                return (
+                  <button
+                    key={child.id}
+                    type="button"
+                    onClick={() => handleSelectChild(child.id)}
+                    className={`category-pill${isSelected ? ' category-pill--selected sheen' : ''}`}
+                    style={{ gap: '8px', padding: '8px 14px' }}
+                  >
+                    <span style={{
+                      width: '22px',
+                      height: '22px',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '10px',
+                      fontWeight: 700,
+                      color: isSelected ? '#fff' : 'var(--ink-1)',
+                      background: isSelected ? 'rgba(255,255,255,0.30)' : 'var(--glass-3)',
+                      backgroundImage: child.profile_picture_url ? `url(${child.profile_picture_url})` : 'none',
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      border: '1px solid rgba(255,255,255,0.20)',
+                    }}>
+                      {!child.profile_picture_url && child.name.charAt(0).toUpperCase()}
+                    </span>
+                    <span style={{ fontWeight: 500 }}>{child.name}</span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
 
           {/* Overall progress card */}
           <div

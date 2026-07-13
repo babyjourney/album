@@ -7,6 +7,7 @@
 //   <FeatureGate feature="multipleChildren" mode="hide">…</FeatureGate>
 
 import { useTier } from '../hooks/useTier'
+import { useLanguage } from '../contexts/LanguageContext'
 
 export default function FeatureGate({
   feature,
@@ -16,6 +17,7 @@ export default function FeatureGate({
   title,              // optional label for the lock card
 }) {
   const { has, requiredTierLabel } = useTier()
+  const { t } = useLanguage()
 
   if (has(feature)) return children
   if (fallback !== null) return fallback
@@ -36,12 +38,12 @@ export default function FeatureGate({
     >
       <div style={{ fontSize: 32, marginBottom: 10 }}>🔒</div>
       <h3 className="text-section-title" style={{ fontSize: 17, marginBottom: 8 }}>
-        {title || 'Funcție blocată'}
+        {title || t('featureLocked')}
       </h3>
       <p style={{ fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.55, margin: 0 }}>
         {tierLabel
-          ? `Această funcție este disponibilă în planul ${tierLabel}.`
-          : 'Această funcție nu este disponibilă în planul tău.'}
+          ? t('featureAvailableInPlan', { tier: tierLabel })
+          : t('featureNotInYourPlan')}
       </p>
     </div>
   )
@@ -51,10 +53,11 @@ export default function FeatureGate({
 // disabled (e.g. "Add custom category 🔒").
 export function LockBadge({ feature, style }) {
   const { has, requiredTierLabel } = useTier()
+  const { t } = useLanguage()
   if (has(feature)) return null
   return (
     <span
-      title={`Disponibil în planul ${requiredTierLabel(feature) || 'superior'}`}
+      title={t('featureLockBadgeTitle', { tier: requiredTierLabel(feature) || t('tierHigher') })}
       style={{ fontSize: 12, opacity: 0.7, marginLeft: 6, ...style }}
     >
       🔒

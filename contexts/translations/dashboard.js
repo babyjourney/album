@@ -1,0 +1,317 @@
+// Translations for the dashboard surface (item 13).
+// Every key must exist in all three languages. Keys must not collide with the
+// other modules in this folder or with the legacy dictionary in LanguageContext.
+const dashboard = {
+  ro: {
+    // Filter drawer — calendar anchor (item 6)
+    clear: 'Șterge',
+    dateAnchorHint: '3 postări înainte · toată ziua aleasă · 3 postări după',
+    // Dashboard page
+    loadingAlbum: 'Se încarcă albumul…',
+    dashboardEyebrow: 'Amintiri de familie',
+    memoryCountSingular: 'amintire',
+    memoryCountPlural: 'amintiri',
+    growingEveryDay: 'Crește în fiecare zi',
+    slideshowAction: 'Slideshow',
+    signOutDialogTitle: 'Ieși din album?',
+    signOutDialogBody: 'Va trebui să te autentifici din nou cu PIN-ul.',
+    signOutStay: 'Rămân',
+    signOutLeave: 'Ieși',
+
+    // Settings drawer
+    settingsTitle: 'Setări',
+    settingsContent: 'Conținut',
+    settingsTools: 'Instrumente',
+    columnSingular: 'coloană',
+    columnPlural: 'coloane',
+    profileSectionLabel: 'Profil',
+    profilePictureAction: 'Poză de profil',
+
+    // Album export (.zip)
+    exportSectionLabel: 'Descarcă albumul',
+    exportDownloadAlbumZip: 'Descarcă albumul (.zip)',
+    exportWholeAlbum: 'Tot albumul',
+    exportYearOption: 'Anul {year}',
+    exportPreparing: 'Se pregătește…',
+    exportDownloadingPosts: 'Se descarcă {done}/{total} postări…',
+    exportZippingFiles: 'Se arhivează {done}/{total} fișiere…',
+    exportArchiveSuccess: 'Arhivă creată: {files} fișiere din {posts} postări.',
+    exportFailedError: 'Exportul a eșuat',
+    exportHelpBefore: 'Arhivă .zip cu un folder pentru fiecare an: poze, video, audio și text, plus un tabel',
+    exportHelpAfter: 'care se deschide în Excel. Descărcarea poate dura câteva minute.',
+
+    // Floating dock
+    dockJourney: 'Parcurs',
+    dockFamilyTree: 'Familie',
+    dockLegacy: 'Legacy',
+    switchChildAria: 'Schimbă copilul',
+
+    // Vertical rail
+    filtersLabel: 'Filtre',
+    searchMemoriesPlaceholder: 'Caută în amintiri...',
+
+    // Timeline navigation
+    timelineAriaLabel: 'Cronologie',
+    monthShortJan: 'Ian',
+    monthShortFeb: 'Feb',
+    monthShortMar: 'Mar',
+    monthShortApr: 'Apr',
+    monthShortMay: 'Mai',
+    monthShortJun: 'Iun',
+    monthShortJul: 'Iul',
+    monthShortAug: 'Aug',
+    monthShortSep: 'Sep',
+    monthShortOct: 'Oct',
+    monthShortNov: 'Noi',
+    monthShortDec: 'Dec',
+
+    // Feed (bento masonry)
+    postsLoadFailed: 'Încărcarea postărilor a eșuat',
+    textPostFallback: 'Postare text',
+    privateContentTooltip: 'Conținut privat — vizibil doar pentru editori',
+    privateContentAria: 'Conținut privat',
+    privateBadge: 'Privat',
+    noResultsFound: 'Nu s-au găsit rezultate',
+    noResultsForQuery: 'Nicio postare nu se potrivește cu căutarea pentru “{query}”.',
+    shareFirstMemory: 'Împărtășiți prima amintire',
+    shareFirstMemoryHint: 'Apăsați butonul de upload din dreapta-jos pentru a începe.',
+
+    // Calendar page
+    calendarEyebrow: '🗓️ Calendar',
+    calendarViewTitle: 'Vedere calendar',
+    calendarPostsFromDay: 'Postări din {date}',
+    dowMon: 'Lu',
+    dowTue: 'Ma',
+    dowWed: 'Mi',
+    dowThu: 'Jo',
+    dowFri: 'Vi',
+    dowSat: 'Sâ',
+    dowSun: 'Du',
+    monthLongJan: 'Ianuarie',
+    monthLongFeb: 'Februarie',
+    monthLongMar: 'Martie',
+    monthLongApr: 'Aprilie',
+    monthLongMay: 'Mai',
+    monthLongJun: 'Iunie',
+    monthLongJul: 'Iulie',
+    monthLongAug: 'August',
+    monthLongSep: 'Septembrie',
+    monthLongOct: 'Octombrie',
+    monthLongNov: 'Noiembrie',
+    monthLongDec: 'Decembrie',
+
+    // On this day page
+    onThisDayEyebrow: '📅 Acum, în anii trecuți',
+    onThisDayTitle: 'În această zi',
+    onThisDaySubtitle: 'Amintiri din {date}, din anii anteriori.',
+    onThisDayEmpty: 'Nicio amintire pe {date} încă. Revino după ce adaugi postări.',
+  },
+  ru: {
+    clear: 'Очистить',
+    dateAnchorHint: '3 записи до · весь выбранный день · 3 записи после',
+    // Dashboard page
+    loadingAlbum: 'Загрузка альбома…',
+    dashboardEyebrow: 'Семейные воспоминания',
+    memoryCountSingular: 'воспоминание',
+    memoryCountPlural: 'воспоминаний',
+    growingEveryDay: 'Растёт с каждым днём',
+    slideshowAction: 'Слайд-шоу',
+    signOutDialogTitle: 'Выйти из альбома?',
+    signOutDialogBody: 'Вам нужно будет снова войти с помощью PIN-кода.',
+    signOutStay: 'Остаться',
+    signOutLeave: 'Выйти',
+
+    // Settings drawer
+    settingsTitle: 'Настройки',
+    settingsContent: 'Содержимое',
+    settingsTools: 'Инструменты',
+    columnSingular: 'колонка',
+    columnPlural: 'колонки',
+    profileSectionLabel: 'Профиль',
+    profilePictureAction: 'Фото профиля',
+
+    // Album export (.zip)
+    exportSectionLabel: 'Скачать альбом',
+    exportDownloadAlbumZip: 'Скачать альбом (.zip)',
+    exportWholeAlbum: 'Весь альбом',
+    exportYearOption: '{year} год',
+    exportPreparing: 'Подготовка…',
+    exportDownloadingPosts: 'Загрузка {done}/{total} постов…',
+    exportZippingFiles: 'Архивация {done}/{total} файлов…',
+    exportArchiveSuccess: 'Архив создан: {files} файлов из {posts} постов.',
+    exportFailedError: 'Не удалось выполнить экспорт',
+    exportHelpBefore: 'Архив .zip с папкой на каждый год: фото, видео, аудио и текст, а также таблица',
+    exportHelpAfter: 'которая открывается в Excel. Загрузка может занять несколько минут.',
+
+    // Floating dock
+    dockJourney: 'Путь',
+    dockFamilyTree: 'Семья',
+    dockLegacy: 'Legacy',
+    switchChildAria: 'Сменить ребёнка',
+
+    // Vertical rail
+    filtersLabel: 'Фильтры',
+    searchMemoriesPlaceholder: 'Поиск по воспоминаниям...',
+
+    // Timeline navigation
+    timelineAriaLabel: 'Хронология',
+    monthShortJan: 'Янв',
+    monthShortFeb: 'Фев',
+    monthShortMar: 'Мар',
+    monthShortApr: 'Апр',
+    monthShortMay: 'Май',
+    monthShortJun: 'Июн',
+    monthShortJul: 'Июл',
+    monthShortAug: 'Авг',
+    monthShortSep: 'Сен',
+    monthShortOct: 'Окт',
+    monthShortNov: 'Ноя',
+    monthShortDec: 'Дек',
+
+    // Feed (bento masonry)
+    postsLoadFailed: 'Не удалось загрузить посты',
+    textPostFallback: 'Текстовый пост',
+    privateContentTooltip: 'Приватный контент — виден только редакторам',
+    privateContentAria: 'Приватный контент',
+    privateBadge: 'Приватно',
+    noResultsFound: 'Результаты не найдены',
+    noResultsForQuery: 'Ни один пост не соответствует поиску «{query}».',
+    shareFirstMemory: 'Поделитесь первым воспоминанием',
+    shareFirstMemoryHint: 'Нажмите кнопку загрузки в правом нижнем углу, чтобы начать.',
+
+    // Calendar page
+    calendarEyebrow: '🗓️ Календарь',
+    calendarViewTitle: 'Вид календаря',
+    calendarPostsFromDay: 'Посты за {date}',
+    dowMon: 'Пн',
+    dowTue: 'Вт',
+    dowWed: 'Ср',
+    dowThu: 'Чт',
+    dowFri: 'Пт',
+    dowSat: 'Сб',
+    dowSun: 'Вс',
+    monthLongJan: 'Январь',
+    monthLongFeb: 'Февраль',
+    monthLongMar: 'Март',
+    monthLongApr: 'Апрель',
+    monthLongMay: 'Май',
+    monthLongJun: 'Июнь',
+    monthLongJul: 'Июль',
+    monthLongAug: 'Август',
+    monthLongSep: 'Сентябрь',
+    monthLongOct: 'Октябрь',
+    monthLongNov: 'Ноябрь',
+    monthLongDec: 'Декабрь',
+
+    // On this day page
+    onThisDayEyebrow: '📅 Сегодня, в прошлые годы',
+    onThisDayTitle: 'В этот день',
+    onThisDaySubtitle: 'Воспоминания за {date} из прошлых лет.',
+    onThisDayEmpty: 'Пока нет воспоминаний за {date}. Возвращайтесь, когда добавите посты.',
+  },
+  en: {
+    clear: 'Clear',
+    dateAnchorHint: '3 posts before · that whole day · 3 posts after',
+    // Dashboard page
+    loadingAlbum: 'Loading the album…',
+    dashboardEyebrow: 'Family memories',
+    memoryCountSingular: 'memory',
+    memoryCountPlural: 'memories',
+    growingEveryDay: 'Growing every day',
+    slideshowAction: 'Slideshow',
+    signOutDialogTitle: 'Leave the album?',
+    signOutDialogBody: 'You will need to sign in again with your PIN.',
+    signOutStay: 'Stay',
+    signOutLeave: 'Leave',
+
+    // Settings drawer
+    settingsTitle: 'Settings',
+    settingsContent: 'Content',
+    settingsTools: 'Tools',
+    columnSingular: 'column',
+    columnPlural: 'columns',
+    profileSectionLabel: 'Profile',
+    profilePictureAction: 'Profile picture',
+
+    // Album export (.zip)
+    exportSectionLabel: 'Download the album',
+    exportDownloadAlbumZip: 'Download the album (.zip)',
+    exportWholeAlbum: 'Entire album',
+    exportYearOption: 'Year {year}',
+    exportPreparing: 'Preparing…',
+    exportDownloadingPosts: 'Downloading {done}/{total} posts…',
+    exportZippingFiles: 'Archiving {done}/{total} files…',
+    exportArchiveSuccess: 'Archive created: {files} files from {posts} posts.',
+    exportFailedError: 'Export failed',
+    exportHelpBefore: 'A .zip archive with one folder per year: photos, videos, audio and text, plus a',
+    exportHelpAfter: 'table that opens in Excel. The download may take a few minutes.',
+
+    // Floating dock
+    dockJourney: 'Journey',
+    dockFamilyTree: 'Family',
+    dockLegacy: 'Legacy',
+    switchChildAria: 'Switch child',
+
+    // Vertical rail
+    filtersLabel: 'Filters',
+    searchMemoriesPlaceholder: 'Search memories...',
+
+    // Timeline navigation
+    timelineAriaLabel: 'Timeline',
+    monthShortJan: 'Jan',
+    monthShortFeb: 'Feb',
+    monthShortMar: 'Mar',
+    monthShortApr: 'Apr',
+    monthShortMay: 'May',
+    monthShortJun: 'Jun',
+    monthShortJul: 'Jul',
+    monthShortAug: 'Aug',
+    monthShortSep: 'Sep',
+    monthShortOct: 'Oct',
+    monthShortNov: 'Nov',
+    monthShortDec: 'Dec',
+
+    // Feed (bento masonry)
+    postsLoadFailed: 'Failed to load posts',
+    textPostFallback: 'Text post',
+    privateContentTooltip: 'Private content — visible only to editors',
+    privateContentAria: 'Private content',
+    privateBadge: 'Private',
+    noResultsFound: 'No results found',
+    noResultsForQuery: 'No post matches the search for “{query}”.',
+    shareFirstMemory: 'Share your first memory',
+    shareFirstMemoryHint: 'Tap the upload button at the bottom right to get started.',
+
+    // Calendar page
+    calendarEyebrow: '🗓️ Calendar',
+    calendarViewTitle: 'Calendar view',
+    calendarPostsFromDay: 'Posts from {date}',
+    dowMon: 'Mo',
+    dowTue: 'Tu',
+    dowWed: 'We',
+    dowThu: 'Th',
+    dowFri: 'Fr',
+    dowSat: 'Sa',
+    dowSun: 'Su',
+    monthLongJan: 'January',
+    monthLongFeb: 'February',
+    monthLongMar: 'March',
+    monthLongApr: 'April',
+    monthLongMay: 'May',
+    monthLongJun: 'June',
+    monthLongJul: 'July',
+    monthLongAug: 'August',
+    monthLongSep: 'September',
+    monthLongOct: 'October',
+    monthLongNov: 'November',
+    monthLongDec: 'December',
+
+    // On this day page
+    onThisDayEyebrow: '📅 Today, in years past',
+    onThisDayTitle: 'On this day',
+    onThisDaySubtitle: 'Memories from {date}, in previous years.',
+    onThisDayEmpty: 'No memories on {date} yet. Come back once you add posts.',
+  },
+}
+
+export default dashboard

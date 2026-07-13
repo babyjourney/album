@@ -3,12 +3,14 @@
 // card. The actual playback/preview happens in PostModal.
 
 import { documentMeta } from '../lib/fileTypes'
+import { useLanguage } from '../contexts/LanguageContext'
 
 export default function MediaTypeCard({ kind, url, title }) {
+  const { t } = useLanguage()
   const isAudio = kind === 'audio'
   const meta = isAudio ? null : documentMeta(url)
   const icon = isAudio ? '🎧' : (meta?.icon || '📄')
-  const label = title || (isAudio ? 'Audio' : (meta?.name || 'Document'))
+  const label = title || (isAudio ? t('audioLabel') : (meta?.name || t('documentLabel')))
   const gradient = isAudio
     ? 'linear-gradient(135deg, #f0abfc 0%, #c026d3 50%, #7e22ce 100%)'
     : 'linear-gradient(135deg, #93c5fd 0%, #2563eb 50%, #1e3a8a 100%)'

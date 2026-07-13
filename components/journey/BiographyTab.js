@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { authenticatedFetch, isEditor } from '../../lib/pinAuth'
 import { useToast } from '../../contexts/ToastContext'
+import { useLanguage } from '../../contexts/LanguageContext'
 import FilteredPosts from './FilteredPosts'
 
 export default function BiographyTab({ familyId, childId }) {
@@ -10,6 +11,7 @@ export default function BiographyTab({ familyId, childId }) {
   const [loaded, setLoaded] = useState(false)
   const [saving, setSaving] = useState(false)
   const { showSuccess, showError } = useToast()
+  const { t } = useLanguage()
   const canEdit = isEditor()
 
   useEffect(() => {
@@ -35,17 +37,17 @@ export default function BiographyTab({ familyId, childId }) {
         method: 'POST',
         body: JSON.stringify({ childId: childId || null, body }),
       })
-      if (!res.ok) throw new Error((await res.json()).error || 'Eroare')
-      showSuccess('Biografie salvată')
+      if (!res.ok) throw new Error((await res.json()).error || t('error'))
+      showSuccess(t('biographySaved'))
     } catch (e) { showError(e.message) } finally { setSaving(false) }
   }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       <section className="card-glass" style={{ padding: 20 }}>
-        <h3 className="text-section-title" style={{ marginTop: 0, fontSize: 18 }}>Biografie & Povestea Vieții</h3>
+        <h3 className="text-section-title" style={{ marginTop: 0, fontSize: 18 }}>{t('biographyTitle')}</h3>
         {!loaded ? (
-          <div className="text-subtle">Se încarcă…</div>
+          <div className="text-subtle">{t('loading')}</div>
         ) : (
           <>
             <textarea
@@ -53,13 +55,13 @@ export default function BiographyTab({ familyId, childId }) {
               onChange={(e) => setBody(e.target.value)}
               disabled={!canEdit}
               rows={12}
-              placeholder="Scrie povestea copilului — naștere, primii pași, momente importante…"
+              placeholder={t('biographyPlaceholder')}
               className="input-glass"
               style={{ width: '100%', resize: 'vertical', lineHeight: 1.6 }}
             />
             {canEdit && (
               <button onClick={save} disabled={saving} className="btn-iris sheen" style={{ marginTop: 12, padding: '10px 18px' }}>
-                {saving ? 'Se salvează…' : 'Salvează'}
+                {saving ? t('saving') : t('save')}
               </button>
             )}
           </>
@@ -67,7 +69,7 @@ export default function BiographyTab({ familyId, childId }) {
       </section>
 
       <section className="card-glass" style={{ padding: 20 }}>
-        <h3 className="text-section-title" style={{ marginTop: 0, fontSize: 16 }}>Postări recente</h3>
+        <h3 className="text-section-title" style={{ marginTop: 0, fontSize: 16 }}>{t('recentPosts')}</h3>
         <FilteredPosts familyId={familyId} childId={childId} params={{ sort: 'newest' }} />
       </section>
     </div>

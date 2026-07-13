@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useLanguage } from '../contexts/LanguageContext'
+import { getCoverPoster } from '../lib/posters'
 
 // Helper function to clean description from old multi-photo format
 const getCleanDescription = (post) => {
@@ -35,6 +37,7 @@ const fisherYatesShuffle = (arr) => {
 const SLIDE_DURATION_MS = 4000
 
 export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
+  const { t } = useLanguage()
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(true)
   const [isShuffled, setIsShuffled] = useState(false)
@@ -206,7 +209,7 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
               : 'rgba(255, 255, 255, 0.10)',
             borderColor: isShuffled ? 'transparent' : 'rgba(255,255,255,0.18)'
           }}
-          title={isShuffled ? 'Dezactivează shuffle' : 'Activează shuffle'}
+          title={isShuffled ? t('shuffleOff') : t('shuffleOn')}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="16 3 21 3 21 8" />
@@ -250,11 +253,20 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
         onClick={(e) => e.stopPropagation()}
       >
         {isVideo ? (
+          // playsInline is required or iOS refuses to play inline (it tries to
+          // go fullscreen and, inside a modal, just shows nothing). `src` is set
+          // directly rather than via <source type="video/mp4">, which made the
+          // browser reject any .mov/.webm outright.
           <video
             key={currentMemory.id}
+            src={fileUrl}
+            poster={getCoverPoster(currentMemory) || undefined}
             autoPlay
             muted
             controls
+            playsInline
+            webkit-playsinline="true"
+            preload="metadata"
             style={{
               maxWidth: '100%',
               maxHeight: '100%',
@@ -263,9 +275,7 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
             }}
             onPlay={() => setIsPlaying(false)}
             onPause={() => setIsPlaying(true)}
-          >
-            <source src={fileUrl} type="video/mp4" />
-          </video>
+          />
         ) : (
           <img
             src={fileUrl}
@@ -328,34 +338,74 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
         )}
       </div>
 
-      {/* Memory info */}
+      {/* Memory info.
+          This caption had no height bound, so a long description wrapped into
+          many lines and painted straight over the centred photo on a phone
+          (item 15). It's now capped and clamped, and the type scales down on
+          narrow screens. */}
       {(currentMemory.title || getCleanDescription(currentMemory)) && (
         <div
-          className="glass-strong"
+          className="glass-strong slideshow-caption"
           style={{
-            position: 'absolute',
-            bottom: '40px',
+            // NB: position/bottom/padding/max-* live in the styled-jsx block
+            // below, not here — an inline style would beat the media query.
             left: '50%',
             transform: 'translateX(-50%)',
             color: '#fff',
-            padding: '14px 22px',
             borderRadius: '20px',
-            maxWidth: '80vw',
             textAlign: 'center',
             background: 'rgba(20, 20, 24, 0.55)',
-            border: '1px solid rgba(255,255,255,0.14)'
+            border: '1px solid rgba(255,255,255,0.14)',
+            overflow: 'hidden',
           }}
         >
           {currentMemory.title && (
-            <h3 style={{ margin: 0, marginBottom: '6px', fontSize: '17px', fontWeight: 600, letterSpacing: '-0.01em' }}>
+            <h3 className="slideshow-caption-title" style={{ margin: 0, fontWeight: 600, letterSpacing: '-0.01em' }}>
               {currentMemory.title}
             </h3>
           )}
           {getCleanDescription(currentMemory) && (
-            <p style={{ margin: 0, fontSize: '14px', opacity: 0.85, lineHeight: 1.5 }}>
+            <p className="slideshow-caption-body" style={{
+              margin: 0,
+              opacity: 0.85,
+              whiteSpace: 'pre-wrap',   // keep the author's line breaks (item 4)
+              overflow: 'hidden',
+              display: '-webkit-box',
+              WebkitBoxOrient: 'vertical',
+            }}>
               {getCleanDescription(currentMemory)}
             </p>
           )}
+
+          <style jsx>{`
+            .slideshow-caption {
+              position: absolute;
+              bottom: 40px;
+              padding: 14px 22px;
+              max-width: 80vw;
+              max-height: 30vh;
+            }
+            .slideshow-caption-title { font-size: 17px; margin-bottom: 6px !important; }
+            .slideshow-caption-body {
+              font-size: 14px;
+              line-height: 1.5;
+              -webkit-line-clamp: 4;
+            }
+            @media (max-width: 768px) {
+              .slideshow-caption {
+                padding: 10px 14px;
+                bottom: 24px;
+                max-width: 92vw;
+                max-height: 22vh;
+              }
+              .slideshow-caption-title { font-size: 14px; margin-bottom: 4px !important; }
+              .slideshow-caption-body {
+                font-size: 12px;
+                line-height: 1.4;
+                -webkit-line-clamp: 3;
+              }
+            }
+          `}</style>
         </div>
       )}
 

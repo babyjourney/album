@@ -383,6 +383,20 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 }
 .input-glass::placeholder { color: var(--ink-3); }
 .input-glass:hover { border-color: var(--glass-hairline-strong); }
+
+/* Native dropdown popups are painted by the OS, not by our glass tokens. Without
+   `color-scheme` the popup surface stays white while .input-glass paints the
+   text near-white (--ink-1 on dark) — invisible until the hover bar appears.
+   Declaring the scheme fixes the popup chrome; the explicit option colors fix
+   the rows on the platforms that ignore it. Admin routes are force-dark
+   (ThemeContext), so they inherit the dark branch below. */
+select.input-glass { color-scheme: light; }
+select.input-glass option,
+select.input-glass optgroup {
+  background: var(--canvas);
+  color: var(--ink-1);
+}
+[data-theme='dark'] select.input-glass { color-scheme: dark; }
 .input-glass:focus {
   background: var(--glass-2);
   border-color: var(--accent-iris);

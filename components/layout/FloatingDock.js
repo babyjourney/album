@@ -112,7 +112,7 @@ export default function FloatingDock({
         {showJourney && (
           <DockAccentPill
             onClick={() => router.push(isJourneyPage ? '/dashboard' : '/journey')}
-            label={t('journey') || 'Parcurs'}
+            label={t('dockJourney')}
             active={isJourneyPage}
             isMobile={isMobile}
             gradient="linear-gradient(135deg, #a78bfa, #7c3aed)"
@@ -129,7 +129,7 @@ export default function FloatingDock({
 
         <DockAccentPill
           onClick={() => router.push(isFamilyTreePage ? '/dashboard' : '/family-tree')}
-          label={t('familyTree') || 'Familie'}
+          label={t('dockFamilyTree')}
           active={isFamilyTreePage}
           isMobile={isMobile}
           gradient="linear-gradient(135deg, #fb923c, #c2410c)"
@@ -148,7 +148,7 @@ export default function FloatingDock({
         {showLegacy && (
           <DockAccentPill
             onClick={() => router.push(isLegacyPage ? '/dashboard' : '/legacy')}
-            label={t('legacy') || 'Legacy'}
+            label={t('dockLegacy')}
             active={isLegacyPage}
             isMobile={isMobile}
             gradient="linear-gradient(135deg, #fbbf24, #b45309)"
@@ -165,8 +165,8 @@ export default function FloatingDock({
           <div style={{ position: 'relative' }} ref={childPopoverRef}>
             <button
               onClick={() => setShowChildPopover((s) => !s)}
-              title={currentChild ? currentChild.name : (t('allPosts') || 'Toți copiii')}
-              aria-label="Switch child"
+              title={currentChild ? currentChild.name : t('allPosts')}
+              aria-label={t('switchChildAria')}
               style={{
                 width: 38, height: 38, padding: 2,
                 borderRadius: '50%',
@@ -222,7 +222,7 @@ export default function FloatingDock({
                   style={popoverItemStyle(selectedChildId === null)}
                 >
                   <span style={{ fontSize: 18 }}>👶</span>
-                  <span>{t('allPosts') || 'Toate'}</span>
+                  <span>{t('allPosts')}</span>
                 </button>
                 {children.map((c) => (
                   <button
@@ -287,7 +287,7 @@ export default function FloatingDock({
           </DockIconButton>
         )}
 
-        <DockIconButton onClick={onSettings} title="Settings">
+        <DockIconButton onClick={onSettings} title={t('settingsTitle')}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
             <circle cx="12" cy="12" r="3"/>

@@ -1,18 +1,20 @@
 // Age timelines + skills/achievements — each is a filtered view over existing
 // posts. Age windows use the child's birth_date (handled server-side).
 import { useState } from 'react'
+import { useLanguage } from '../../contexts/LanguageContext'
 import FilteredPosts from './FilteredPosts'
 
 const VIEWS = [
-  { id: 'birth',  label: 'Naștere (0–1 an)',     params: { ageMinMonths: 0,   ageMaxMonths: 12 } },
-  { id: 'toddler',label: 'Anii mici (1–4 ani)',  params: { ageMinMonths: 12,  ageMaxMonths: 48 } },
-  { id: 'school', label: 'Anii de școală (4–13)', params: { ageMinMonths: 48,  ageMaxMonths: 156 } },
-  { id: 'teen',   label: 'Adolescență (13–20)',   params: { ageMinMonths: 156, ageMaxMonths: 240 } },
-  { id: 'skills', label: 'Abilități & Realizări',  params: { categoryAny: 'milestones,achievements', hashtagsAny: 'skill,abilitate,achievement,realizare,milestone,medal,medalie,award,premiu,trophy' } },
+  { id: 'birth',  labelKey: 'timelineBirth',   params: { ageMinMonths: 0,   ageMaxMonths: 12 } },
+  { id: 'toddler',labelKey: 'timelineToddler', params: { ageMinMonths: 12,  ageMaxMonths: 48 } },
+  { id: 'school', labelKey: 'timelineSchool',  params: { ageMinMonths: 48,  ageMaxMonths: 156 } },
+  { id: 'teen',   labelKey: 'timelineTeen',    params: { ageMinMonths: 156, ageMaxMonths: 240 } },
+  { id: 'skills', labelKey: 'timelineSkills',  params: { categoryAny: 'milestones,achievements', hashtagsAny: 'skill,abilitate,achievement,realizare,milestone,medal,medalie,award,premiu,trophy' } },
 ]
 
 export default function TimelinesTab({ familyId, childId }) {
   const [active, setActive] = useState('birth')
+  const { t } = useLanguage()
   const view = VIEWS.find((v) => v.id === active) || VIEWS[0]
 
   return (
@@ -25,7 +27,7 @@ export default function TimelinesTab({ familyId, childId }) {
             className={active === v.id ? 'category-pill category-pill--selected sheen' : 'category-pill'}
             style={{ padding: '7px 14px', fontSize: 13 }}
           >
-            {v.label}
+            {t(v.labelKey)}
           </button>
         ))}
       </div>
@@ -35,8 +37,8 @@ export default function TimelinesTab({ familyId, childId }) {
           childId={childId}
           params={view.params}
           emptyText={view.id === 'skills'
-            ? 'Nicio postare etichetată cu abilități/realizări încă.'
-            : 'Nicio postare în acest interval de vârstă. (Necesită data nașterii copilului.)'}
+            ? t('noSkillPostsYet')
+            : t('noPostsInAgeRange')}
         />
       </section>
     </div>

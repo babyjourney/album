@@ -3,9 +3,11 @@ import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Link from 'next/link'
 import { loginWithPin, isAuthenticated, requestLoginOtp } from '../lib/pinAuth'
+import { useLanguage } from '../contexts/LanguageContext'
 
 export default function Login() {
   const router = useRouter()
+  const { t } = useLanguage()
   const [pin, setPin] = useState('')
   const [phoneNumber, setPhoneNumber] = useState('')
   const [email, setEmail] = useState('')
@@ -72,19 +74,19 @@ export default function Login() {
     setError('')
 
     if (channel === 'phone' && !phoneNumber) {
-      setError('Introduceți numărul de telefon')
+      setError(t('loginErrorPhoneRequired'))
       return
     }
     if (channel === 'email' && !email) {
-      setError('Introduceți adresa de email')
+      setError(t('loginErrorEmailRequired'))
       return
     }
     if (!pin) {
-      setError('Introduceți PIN-ul')
+      setError(t('loginErrorPinRequired'))
       return
     }
     if (otpStep && !otpCode) {
-      setError('Introduceți codul de verificare primit')
+      setError(t('loginErrorOtpRequired'))
       return
     }
 
@@ -146,7 +148,7 @@ export default function Login() {
     const probe = await requestLoginOtp(contactPayload())
     setLoading(false)
     if (!probe.success) {
-      setError(probe.error || 'Nu am putut retrimite codul.')
+      setError(probe.error || t('loginErrorResendFailed'))
       return
     }
     setOtpDeliveryHint(probe.deliveryHint || otpDeliveryHint)
@@ -236,10 +238,10 @@ export default function Login() {
             </svg>
           </div>
           <h1 className="text-display" style={{ fontSize: 32, marginBottom: 8 }}>
-            Bine ai revenit
+            {t('loginTitle')}
           </h1>
           <p style={{ color: 'var(--ink-2)', fontSize: 15 }}>
-            Albumul familiei te așteaptă
+            {t('loginSubtitle')}
           </p>
         </div>
 
@@ -264,7 +266,7 @@ export default function Login() {
               borderRadius: 12, color: 'var(--ink-1)',
               backdropFilter: 'blur(12px)', fontSize: 13,
             }}>
-              PIN-ul a fost actualizat. Conectează-te cu noul PIN.
+              {t('loginPinResetSuccess')}
             </div>
           )}
 
@@ -276,7 +278,7 @@ export default function Login() {
               className={`category-pill${channel === 'phone' ? ' category-pill--selected sheen' : ''}`}
               style={{ flex: 1 }}
             >
-              📱 Telefon
+              📱 {t('authPhoneShort')}
             </button>
             <button
               type="button"
@@ -284,14 +286,14 @@ export default function Login() {
               className={`category-pill${channel === 'email' ? ' category-pill--selected sheen' : ''}`}
               style={{ flex: 1 }}
             >
-              ✉️ Email
+              ✉️ {t('authEmailShort')}
             </button>
           </div>
 
           {channel === 'phone' ? (
             <>
               <label htmlFor="phone" className="text-eyebrow" style={{ display: 'block', marginBottom: 8 }}>
-                Număr de telefon
+                {t('authPhoneLabel')}
               </label>
               <input
                 id="phone" name="phone" type="tel" autoComplete="tel"
@@ -306,13 +308,13 @@ export default function Login() {
           ) : (
             <>
               <label htmlFor="email" className="text-eyebrow" style={{ display: 'block', marginBottom: 8 }}>
-                Adresă de email
+                {t('authEmailLabel')}
               </label>
               <input
                 id="email" name="email" type="email" autoComplete="email"
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setOtpStep(false); setOtpCode('') }}
-                placeholder="parinte@email.com"
+                placeholder={t('authEmailPlaceholder')}
                 required
                 className="input-glass"
                 style={{ marginBottom: 18 }}
@@ -321,7 +323,7 @@ export default function Login() {
           )}
 
           <label htmlFor="pin" className="text-eyebrow" style={{ display: 'block', marginBottom: 8 }}>
-            PIN
+            {t('loginPinLabel')}
           </label>
           <input
             id="pin" name="password" type="password" inputMode="numeric"
@@ -343,7 +345,7 @@ export default function Login() {
           {otpStep && (
             <>
               <label htmlFor="otp" className="text-eyebrow" style={{ display: 'block', marginBottom: 8, marginTop: 6 }}>
-                Cod de verificare {otpDeliveryHint ? `(${otpDeliveryHint === 'email' ? 'email' : 'SMS'})` : ''}
+                {t('authVerificationCode')} {otpDeliveryHint ? `(${otpDeliveryHint === 'email' ? t('loginOtpHintEmail') : 'SMS'})` : ''}
               </label>
               <input
                 id="otp" name="otp" type="text" inputMode="numeric" pattern="[0-9]*" maxLength="6"
@@ -368,7 +370,7 @@ export default function Login() {
                   cursor: 'pointer', padding: '2px 0', marginBottom: 12,
                 }}
               >
-                Retrimite codul
+                {t('loginResendCode')}
               </button>
             </>
           )}
@@ -377,10 +379,10 @@ export default function Login() {
             display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 24,
           }}>
             <span className="glass-pill" style={{ padding: '6px 12px', fontSize: 12, color: 'var(--ink-2)' }}>
-              4 cifre · Viewer
+              {t('loginViewerPinHint')}
             </span>
             <span className="glass-pill" style={{ padding: '6px 12px', fontSize: 12, color: 'var(--ink-2)' }}>
-              8 cifre · Editor
+              {t('loginEditorPinHint')}
             </span>
           </div>
 
@@ -393,10 +395,10 @@ export default function Login() {
               backdropFilter: 'blur(12px)',
             }}>
               <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 2 }}>
-                {rateLimitInfo.level === 1 ? 'Cooldown 10 minute' : 'Cooldown 24 ore'}
+                {rateLimitInfo.level === 1 ? t('loginCooldown10Min') : t('loginCooldown24H')}
               </div>
               <div style={{ fontSize: 13, color: 'var(--ink-2)' }}>
-                Timp rămas: <strong className="nums">{cooldownTimer}</strong>
+                {t('loginTimeRemaining')} <strong className="nums">{cooldownTimer}</strong>
               </div>
             </div>
           )}
@@ -424,7 +426,7 @@ export default function Login() {
               borderRadius: 14,
             }}
           >
-            {loading ? 'Se conectează…' : isBlocked ? `Blocat (${cooldownTimer})` : 'Intră în album'}
+            {loading ? t('loginSubmitting') : isBlocked ? t('loginBlocked', { time: cooldownTimer }) : t('loginSubmit')}
           </button>
 
           <div style={{
@@ -433,7 +435,7 @@ export default function Login() {
             textAlign: 'center',
           }}>
             <p style={{ fontSize: 13, color: 'var(--ink-3)', margin: 0 }}>
-              Amintirile tale sunt în siguranță.
+              {t('loginSafeNote')}
             </p>
           </div>
         </form>
@@ -450,7 +452,17 @@ export default function Login() {
               borderBottom: '1px dashed var(--glass-hairline-strong)',
               paddingBottom: 1,
             }}>
-              Ai uitat PIN-ul?
+              {t('loginForgotPin')}
+            </a>
+          </Link>
+        </div>
+
+        {/* (Item 14) Self-registration. /signup existed but nothing linked to it. */}
+        <div style={{ textAlign: 'center', marginTop: 14, fontSize: 13, color: 'var(--ink-2)' }}>
+          {t('loginNoAccount')}{' '}
+          <Link href="/signup" legacyBehavior>
+            <a style={{ color: 'var(--accent-iris)', fontWeight: 600, textDecoration: 'none' }}>
+              {t('signupTitle')}
             </a>
           </Link>
         </div>
@@ -461,7 +473,7 @@ export default function Login() {
           fontSize: 12, color: 'var(--ink-3)',
           letterSpacing: '0.05em', textTransform: 'uppercase',
         }}>
-          Album · Familie · Momente
+          {t('loginTagline')}
         </div>
 
         {/* Legal footer */}
@@ -473,13 +485,13 @@ export default function Login() {
           gap: 12,
           flexWrap: 'wrap',
         }}>
-          <Link href="/terms" legacyBehavior><a style={{ color: 'inherit', textDecoration: 'none' }}>Termeni</a></Link>
+          <Link href="/terms" legacyBehavior><a style={{ color: 'inherit', textDecoration: 'none' }}>{t('footerTerms')}</a></Link>
           <span aria-hidden>·</span>
-          <Link href="/privacy" legacyBehavior><a style={{ color: 'inherit', textDecoration: 'none' }}>Confidențialitate</a></Link>
+          <Link href="/privacy" legacyBehavior><a style={{ color: 'inherit', textDecoration: 'none' }}>{t('footerPrivacy')}</a></Link>
           <span aria-hidden>·</span>
-          <Link href="/cookies" legacyBehavior><a style={{ color: 'inherit', textDecoration: 'none' }}>Cookies</a></Link>
+          <Link href="/cookies" legacyBehavior><a style={{ color: 'inherit', textDecoration: 'none' }}>{t('footerCookies')}</a></Link>
           <span aria-hidden>·</span>
-          <Link href="/demo" legacyBehavior><a style={{ color: 'inherit', textDecoration: 'none' }}>Demo</a></Link>
+          <Link href="/demo" legacyBehavior><a style={{ color: 'inherit', textDecoration: 'none' }}>{t('footerDemo')}</a></Link>
         </div>
       </div>
     </div>

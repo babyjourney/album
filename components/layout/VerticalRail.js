@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useLanguage } from '../../contexts/LanguageContext'
 
 // Left-edge floating glass rail. On desktop only.
 // Holds: search expand and filter chip. (Child switching moved to the top dock.)
@@ -7,6 +8,7 @@ export default function VerticalRail({
   onFilters,
   searchQuery = '',
 }) {
+  const { t } = useLanguage()
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchVal, setSearchVal] = useState(searchQuery)
   const [isMobile, setIsMobile] = useState(false)
@@ -54,7 +56,7 @@ export default function VerticalRail({
           <RailButton
             active={searchOpen || !!searchQuery}
             onClick={() => setSearchOpen(s => !s)}
-            tooltip="Search"
+            tooltip={t('search')}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8"/>
@@ -65,7 +67,7 @@ export default function VerticalRail({
 
         {/* Filter chip trigger */}
         {onFilters && (
-          <RailButton onClick={onFilters} tooltip="Filters">
+          <RailButton onClick={onFilters} tooltip={t('filtersLabel')}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="4"  y1="6"  x2="20" y2="6"/>
               <line x1="7"  y1="12" x2="17" y2="12"/>
@@ -93,7 +95,7 @@ export default function VerticalRail({
             type="text"
             value={searchVal}
             onChange={(e) => { setSearchVal(e.target.value); onSearch(e.target.value) }}
-            placeholder="Caută în amintiri..."
+            placeholder={t('searchMemoriesPlaceholder')}
             style={{
               width: '100%',
               border: 'none',

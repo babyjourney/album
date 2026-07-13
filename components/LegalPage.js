@@ -1,9 +1,11 @@
 import Head from 'next/head'
 import Link from 'next/link'
+import { useLanguage } from '../contexts/LanguageContext'
 
 // Shared shell for the Terms / Privacy / Cookies pages. Keeps the visual
 // language consistent across legal surfaces and centralizes layout/footer.
 export default function LegalPage({ title, subtitle, lastUpdated, children }) {
+  const { t } = useLanguage()
   return (
     <>
       <Head>
@@ -42,7 +44,7 @@ export default function LegalPage({ title, subtitle, lastUpdated, children }) {
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="15 18 9 12 15 6"/>
                 </svg>
-                Înapoi
+                {t('back')}
               </a>
             </Link>
             <h1 className="text-display" style={{ fontSize: 'clamp(32px, 5vw, 44px)', marginBottom: 10, lineHeight: 1.1 }}>
@@ -55,7 +57,7 @@ export default function LegalPage({ title, subtitle, lastUpdated, children }) {
             )}
             {lastUpdated && (
               <p className="text-tertiary nums" style={{ marginTop: 10, fontSize: 13 }}>
-                Ultima actualizare: {lastUpdated}
+                {t('legalLastUpdated')}: {lastUpdated}
               </p>
             )}
           </header>
@@ -81,11 +83,11 @@ export default function LegalPage({ title, subtitle, lastUpdated, children }) {
             gap: 18,
             flexWrap: 'wrap',
           }}>
-            <Link href="/terms" legacyBehavior><a style={{ color: 'inherit' }}>Termeni și condiții</a></Link>
+            <Link href="/terms" legacyBehavior><a style={{ color: 'inherit' }}>{t('legalTermsFull')}</a></Link>
             <span aria-hidden>·</span>
-            <Link href="/privacy" legacyBehavior><a style={{ color: 'inherit' }}>Politica de confidențialitate</a></Link>
+            <Link href="/privacy" legacyBehavior><a style={{ color: 'inherit' }}>{t('legalPrivacyFull')}</a></Link>
             <span aria-hidden>·</span>
-            <Link href="/cookies" legacyBehavior><a style={{ color: 'inherit' }}>Politica de cookies</a></Link>
+            <Link href="/cookies" legacyBehavior><a style={{ color: 'inherit' }}>{t('legalCookiesFull')}</a></Link>
           </footer>
         </main>
 

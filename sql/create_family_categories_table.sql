@@ -54,12 +54,16 @@ GRANT USAGE, SELECT ON SEQUENCE family_categories_id_seq TO authenticated;
 
 -- Insert default categories for existing families (optional)
 -- Note: This will only insert if there are no existing categories for each family
+--
+-- Kept in sync with lib/defaultCategories.js (item 9). This file used to seed the
+-- OLD set (memories / special / play / learning) — running it on a fresh or reset
+-- database would have quietly re-introduced the categories we just retired.
 INSERT INTO family_categories (family_id, category_value, category_label, category_emoji)
-SELECT 
+SELECT
   f.id as family_id,
-  unnest(ARRAY['memories', 'milestones', 'everyday', 'special', 'family', 'play', 'learning']) as category_value,
-  unnest(ARRAY['Amintiri', 'Etape importante', 'Zilnic', 'Special', 'Familie', 'Joacă', 'Învățare']) as category_label,
-  unnest(ARRAY['💭', '🎯', '☀️', '✨', '👨‍👩‍👧‍👦', '🎮', '📚']) as category_emoji
+  unnest(ARRAY['milestones', 'family', 'health', 'education', 'adventures', 'everyday']) as category_value,
+  unnest(ARRAY['Milestones', 'Family', 'Health', 'Education', 'Adventures', 'Everyday Life']) as category_label,
+  unnest(ARRAY['🎯', '👨‍👩‍👧‍👦', '🏥', '📚', '🌍', '☀️']) as category_emoji
 FROM families f
 WHERE NOT EXISTS (
   SELECT 1 FROM family_categories fc WHERE fc.family_id = f.id

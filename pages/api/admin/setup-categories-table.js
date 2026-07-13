@@ -1,5 +1,6 @@
 import { supabase } from '../../../lib/supabaseClient'
 import { requireAdmin } from '../../../lib/authMiddleware'
+import { DEFAULT_CATEGORIES } from '../../../lib/defaultCategories'
 
 async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -53,16 +54,7 @@ async function handler(req, res) {
         console.error('Error fetching families:', familiesError)
       } else if (families && families.length > 0) {
         // Insert default categories for each family
-        const defaultCategories = [
-          { value: 'memories', label: 'Amintiri', emoji: '💭' },
-          { value: 'milestones', label: 'Etape importante', emoji: '🎯' },
-          { value: 'everyday', label: 'Zilnic', emoji: '☀️' },
-          { value: 'special', label: 'Special', emoji: '✨' },
-          { value: 'family', label: 'Familie', emoji: '👨‍👩‍👧‍👦' },
-          { value: 'play', label: 'Joacă', emoji: '🎮' },
-          { value: 'learning', label: 'Învățare', emoji: '📚' }
-        ]
-
+        const defaultCategories = DEFAULT_CATEGORIES
         for (const family of families) {
           const categoriesToInsert = defaultCategories.map(cat => ({
             family_id: family.id,

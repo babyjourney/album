@@ -1,6 +1,7 @@
 import { supabase } from '../../../lib/supabaseClient'
-import { requireEditor } from '../../../lib/authMiddleware'
+import { requireAuth } from '../../../lib/authMiddleware'
 import { ensureFamilyCategories } from '../../../lib/categoryMigration'
+import { DEFAULT_CATEGORIES } from '../../../lib/defaultCategories'
 
 async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -22,17 +23,11 @@ async function handler(req, res) {
     // Fallback to defaults on any error
     res.status(200).json({
       success: true,
-      categories: [
-        { value: 'memories', label: 'Amintiri', emoji: '💭' },
-        { value: 'milestones', label: 'Etape importante', emoji: '🎯' },
-        { value: 'everyday', label: 'Zilnic', emoji: '☀️' },
-        { value: 'special', label: 'Special', emoji: '✨' },
-        { value: 'family', label: 'Familie', emoji: '👨‍👩‍👧‍👦' },
-        { value: 'play', label: 'Joacă', emoji: '🎮' },
-        { value: 'learning', label: 'Învățare', emoji: '📚' }
-      ]
+      categories: DEFAULT_CATEGORIES
     })
   }
 }
 
-export default requireEditor(handler)
+// requireAuth, not requireEditor: viewers (grandparents) need the category
+// list to use the filter drawer. Reading the category names is not an edit.
+export default requireAuth(handler)

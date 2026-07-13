@@ -1,41 +1,62 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import SideSheet from './SideSheet'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useTheme } from '../../contexts/ThemeContext'
-import { getSession, authenticatedFetch } from '../../lib/pinAuth'
+import { useToast } from '../../contexts/ToastContext'
+import { getSession } from '../../lib/pinAuth'
+import { exportFamilyArchive, fetchExportYears } from '../../lib/exportArchive'
 
 export default function SettingsDrawer({ isOpen, onClose, onProfilePicture, onSignOut, columns, onColumnsChange }) {
   const { language, changeLanguage, t } = useLanguage()
   const { currentTheme, changeTheme, themes } = useTheme()
+  const { showError, showSuccess } = useToast()
   const router = useRouter()
-  const [exporting, setExporting] = useState(false)
 
-  // User-facing Data Export (baseline — included in every plan). Downloads a
-  // JSON archive of the family's posts + metadata.
+  // (Item 8) Export is a real .zip of the actual photos/videos/text, organized
+  // into year folders — not a JSON file of URLs that nobody can use.
+  const [exporting, setExporting] = useState(false)
+  const [exportStatus, setExportStatus] = useState(null) // { stage, done, total }
+  const [exportYear, setExportYear] = useState('all')
+  const [years, setYears] = useState([])
+
+  useEffect(() => {
+    if (!isOpen) return
+    const session = getSession()
+    if (!session?.familyId) return
+    fetchExportYears(session.familyId).then(setYears).catch(() => setYears([]))
+  }, [isOpen])
+
   const exportData = async () => {
+    const session = getSession()
+    if (!session?.familyId) return
+
     setExporting(true)
+    setExportStatus({ stage: 'fetching', done: 0, total: 0 })
     try {
-      const session = getSession()
-      const res = await authenticatedFetch(`/api/photos/list?familyId=${session.familyId}&sort=oldest`)
-      const data = await res.json()
-      const archive = {
-        exportedAt: new Date().toISOString(),
-        family: { id: session.familyId, name: session.familyName },
-        posts: (data.photos || []),
-      }
-      const blob = new Blob([JSON.stringify(archive, null, 2)], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `babyjourney-export-${new Date().toISOString().slice(0, 10)}.json`
-      document.body.appendChild(a); a.click(); a.remove()
-      URL.revokeObjectURL(url)
+      const result = await exportFamilyArchive({
+        familyId: session.familyId,
+        familyName: session.familyName,
+        year: exportYear,
+        onProgress: (stage, done, total) => setExportStatus({ stage, done, total }),
+      })
+      showSuccess(t('exportArchiveSuccess', { files: result.files, posts: result.posts }))
     } catch (e) {
       console.error('export failed', e)
+      showError(e.message || t('exportFailedError'))
     } finally {
       setExporting(false)
+      setExportStatus(null)
     }
+  }
+
+  const exportLabel = () => {
+    if (!exportStatus) return t('exportDownloadAlbumZip')
+    const { stage, done, total } = exportStatus
+    if (stage === 'fetching') return t('exportPreparing')
+    if (stage === 'downloading') return t('exportDownloadingPosts', { done, total })
+    if (stage === 'zipping') return t('exportZippingFiles', { done, total })
+    return t('done')
   }
 
   const goTo = (path) => { onClose && onClose(); router.push(path) }
@@ -48,8 +69,8 @@ export default function SettingsDrawer({ isOpen, onClose, onProfilePicture, onSi
         borderBottom: '1px solid var(--glass-hairline)',
         flexShrink: 0,
       }}>
-        <h2 className="text-section-title" style={{ fontSize: 22 }}>Settings</h2>
-        <button onClick={onClose} className="btn-icon" aria-label="Close" style={{ width: 36, height: 36 }}>
+        <h2 className="text-section-title" style={{ fontSize: 22 }}>{t('settingsTitle')}</h2>
+        <button onClick={onClose} className="btn-icon" aria-label={t('close')} style={{ width: 36, height: 36 }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <line x1="18" y1="6" x2="6" y2="18"/>
             <line x1="6"  y1="6" x2="18" y2="18"/>
@@ -132,7 +153,7 @@ export default function SettingsDrawer({ isOpen, onClose, onProfilePicture, onSi
         </Section>
 
         {onColumnsChange && (
-          <Section label={t('content') || 'CONTENT'}>
+          <Section label={t('settingsContent')}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
               {[2, 3].map((n) => {
                 const active = columns === n
@@ -140,7 +161,7 @@ export default function SettingsDrawer({ isOpen, onClose, onProfilePicture, onSi
                   <button
                     key={n}
                     onClick={() => onColumnsChange(n)}
-                    title={`${n} ${n === 1 ? 'coloană' : 'coloane'}`}
+                    title={`${n} ${n === 1 ? t('columnSingular') : t('columnPlural')}`}
                     style={{
                       display: 'flex',
                       flexDirection: 'column',
@@ -172,7 +193,7 @@ export default function SettingsDrawer({ isOpen, onClose, onProfilePicture, onSi
                       ))}
                     </div>
                     <span style={{ fontSize: 12, fontWeight: 600 }}>
-                      {n} {n === 1 ? 'coloană' : 'coloane'}
+                      {n} {n === 1 ? t('columnSingular') : t('columnPlural')}
                     </span>
                   </button>
                 )
@@ -181,20 +202,47 @@ export default function SettingsDrawer({ isOpen, onClose, onProfilePicture, onSi
           </Section>
         )}
 
-        <Section label={t('tools') || 'Instrumente'}>
+        <Section label={t('settingsTools')}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <DrawerLink icon="🗓️" label="Vedere calendar" onClick={() => goTo('/calendar')} />
-            <DrawerLink icon="📅" label="În această zi" onClick={() => goTo('/on-this-day')} />
-            <DrawerLink
-              icon="⬇️"
-              label={exporting ? 'Se exportă…' : 'Exportă datele (JSON)'}
+            <DrawerLink icon="🗓️" label={t('calendarViewTitle')} onClick={() => goTo('/calendar')} />
+            <DrawerLink icon="📅" label={t('onThisDayTitle')} onClick={() => goTo('/on-this-day')} />
+          </div>
+        </Section>
+
+        {/* (Item 8) Album download — a .zip with a folder per year, containing
+            the real photos/videos/text named
+            [an.luna.zi][copii]_[titlu]_[nr].ext */}
+        <Section label={t('exportSectionLabel')}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <select
+              className="input-glass"
+              value={exportYear}
+              onChange={(e) => setExportYear(e.target.value)}
+              disabled={exporting}
+            >
+              <option value="all">{t('exportWholeAlbum')}</option>
+              {years.map((y) => (
+                <option key={y} value={y}>{t('exportYearOption', { year: y })}</option>
+              ))}
+            </select>
+
+            <button
               onClick={exporting ? undefined : exportData}
-            />
+              disabled={exporting}
+              className="btn-iris sheen"
+              style={{ width: '100%', padding: '12px 16px', justifyContent: 'center' }}
+            >
+              {exportLabel()}
+            </button>
+
+            <p className="text-subtle" style={{ fontSize: 11.5, lineHeight: 1.4, margin: 0 }}>
+              {t('exportHelpBefore')}{' '}<strong>postari.csv</strong>{' '}{t('exportHelpAfter')}
+            </p>
           </div>
         </Section>
 
         {onProfilePicture && (
-          <Section label="Profile">
+          <Section label={t('profileSectionLabel')}>
             <button
               onClick={onProfilePicture}
               className="btn-glass"
@@ -205,7 +253,7 @@ export default function SettingsDrawer({ isOpen, onClose, onProfilePicture, onSi
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                   <circle cx="12" cy="7" r="4"/>
                 </svg>
-                Profile picture
+                {t('profilePictureAction')}
               </span>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="9 18 15 12 9 6"/>

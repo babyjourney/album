@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
+import { useLanguage } from '../contexts/LanguageContext'
 
 // PIN reset flow (Task #2). 3-step inline wizard:
 //   step 1: pick channel (email / phone) and enter the value
@@ -10,6 +11,7 @@ import Link from 'next/link'
 
 export default function ForgotPassword() {
   const router = useRouter()
+  const { t } = useLanguage()
   const [step, setStep] = useState(1)
   const [channel, setChannel] = useState('phone') // 'phone' | 'email'
   const [phone, setPhone] = useState('')
@@ -30,11 +32,11 @@ export default function ForgotPassword() {
     setNotice('')
 
     if (channel === 'phone' && !phone.trim()) {
-      setError('Introdu numărul de telefon')
+      setError(t('forgotErrorPhoneRequired'))
       return
     }
     if (channel === 'email' && !email.trim()) {
-      setError('Introdu adresa de email')
+      setError(t('forgotErrorEmailRequired'))
       return
     }
 
@@ -54,13 +56,13 @@ export default function ForgotPassword() {
       // step 3 if the code doesn't validate.
       setNotice(
         channel === 'email'
-          ? 'Dacă există un cont, vei primi codul pe email în câteva secunde.'
-          : 'Dacă există un cont, vei primi codul prin SMS în câteva secunde.'
+          ? t('forgotNoticeEmail')
+          : t('forgotNoticeSms')
       )
       setStep(2)
     } catch (err) {
       console.error('forgot-pin request failed', err)
-      setError('Eroare de rețea. Încearcă din nou.')
+      setError(t('forgotNetworkError'))
     } finally {
       setLoading(false)
     }
@@ -72,20 +74,20 @@ export default function ForgotPassword() {
     setNotice('')
 
     if (!code.trim()) {
-      setError('Introdu codul primit')
+      setError(t('forgotErrorCodeRequired'))
       return
     }
     const cleaned = newPin.replace(/\D/g, '')
     if (role === 'viewer' && !/^\d{4}$/.test(cleaned)) {
-      setError('PIN-ul de viewer trebuie să aibă exact 4 cifre')
+      setError(t('forgotErrorViewerPinLength'))
       return
     }
     if (role === 'editor' && !/^\d{8}$/.test(cleaned)) {
-      setError('PIN-ul de editor trebuie să aibă exact 8 cifre')
+      setError(t('forgotErrorEditorPinLength'))
       return
     }
     if (cleaned !== confirmPin.replace(/\D/g, '')) {
-      setError('Cele două PIN-uri nu coincid')
+      setError(t('forgotErrorPinMismatch'))
       return
     }
 
@@ -104,13 +106,13 @@ export default function ForgotPassword() {
       })
       const data = await res.json()
       if (!res.ok) {
-        setError(data.error || 'Nu am putut reseta PIN-ul.')
+        setError(data.error || t('forgotResetFailed'))
         return
       }
       router.push('/login?reset=ok')
     } catch (err) {
       console.error('reset-pin failed', err)
-      setError('Eroare de rețea. Încearcă din nou.')
+      setError(t('forgotNetworkError'))
     } finally {
       setLoading(false)
     }
@@ -142,9 +144,12 @@ export default function ForgotPassword() {
 
       <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 460 }} className="animate-glass-in">
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <h1 className="text-display" style={{ fontSize: 28, marginBottom: 6 }}>Resetează PIN-ul</h1>
+          <h1 className="text-display" style={{ fontSize: 28, marginBottom: 6 }}>{t('forgotTitle')}</h1>
           <p style={{ color: 'var(--ink-2)', fontSize: 14, margin: 0 }}>
-            Pas {step} din 2 — {step === 1 ? 'verificare contact' : 'cod și PIN nou'}
+            {t('forgotStepIndicator', {
+              step,
+              label: step === 1 ? t('forgotStep1Label') : t('forgotStep2Label'),
+            })}
           </p>
         </div>
 
@@ -157,7 +162,7 @@ export default function ForgotPassword() {
                 className={`category-pill${channel === 'phone' ? ' category-pill--selected sheen' : ''}`}
                 style={{ flex: 1 }}
               >
-                📱 Telefon
+                📱 {t('authPhoneShort')}
               </button>
               <button
                 type="button"
@@ -165,14 +170,14 @@ export default function ForgotPassword() {
                 className={`category-pill${channel === 'email' ? ' category-pill--selected sheen' : ''}`}
                 style={{ flex: 1 }}
               >
-                ✉️ Email
+                ✉️ {t('authEmailShort')}
               </button>
             </div>
 
             {channel === 'phone' ? (
               <>
                 <label htmlFor="phone" className="text-eyebrow" style={{ display: 'block', marginBottom: 8 }}>
-                  Număr de telefon
+                  {t('authPhoneLabel')}
                 </label>
                 <input
                   id="phone" type="tel" inputMode="tel"
@@ -187,13 +192,13 @@ export default function ForgotPassword() {
             ) : (
               <>
                 <label htmlFor="email" className="text-eyebrow" style={{ display: 'block', marginBottom: 8 }}>
-                  Adresă de email
+                  {t('authEmailLabel')}
                 </label>
                 <input
                   id="email" type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="parinte@email.com"
+                  placeholder={t('authEmailPlaceholder')}
                   className="input-glass"
                   style={{ marginBottom: 16 }}
                   required
@@ -202,7 +207,7 @@ export default function ForgotPassword() {
             )}
 
             <label className="text-eyebrow" style={{ display: 'block', marginBottom: 8 }}>
-              Ce PIN vrei să resetezi
+              {t('forgotWhichPin')}
             </label>
             <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
               <button
@@ -211,7 +216,7 @@ export default function ForgotPassword() {
                 className={`category-pill${role === 'viewer' ? ' category-pill--selected sheen' : ''}`}
                 style={{ flex: 1 }}
               >
-                Viewer (4 cifre)
+                {t('forgotRoleViewer')}
               </button>
               <button
                 type="button"
@@ -219,7 +224,7 @@ export default function ForgotPassword() {
                 className={`category-pill${role === 'editor' ? ' category-pill--selected sheen' : ''}`}
                 style={{ flex: 1 }}
               >
-                Editor (8 cifre)
+                {t('forgotRoleEditor')}
               </button>
             </div>
 
@@ -235,7 +240,7 @@ export default function ForgotPassword() {
             )}
 
             <button type="submit" disabled={loading} className="btn-iris sheen" style={{ width: '100%', padding: 13, fontSize: 15, borderRadius: 14 }}>
-              {loading ? 'Se trimite…' : 'Trimite codul'}
+              {loading ? t('authSending') : t('authSendCode')}
             </button>
           </form>
         )}
@@ -243,11 +248,11 @@ export default function ForgotPassword() {
         {step === 2 && (
           <form onSubmit={handleResetPin} className="modal-glass" style={{ padding: '28px 26px' }}>
             <p className="text-subtle" style={{ marginBottom: 14, fontSize: 13 }}>
-              Cod trimis către <strong style={{ color: 'var(--ink-1)' }}>{contactValue}</strong>
+              {t('forgotCodeSentTo')} <strong style={{ color: 'var(--ink-1)' }}>{contactValue}</strong>
             </p>
 
             <label htmlFor="code" className="text-eyebrow" style={{ display: 'block', marginBottom: 8 }}>
-              Codul primit (6 cifre)
+              {t('forgotCodeLabel')}
             </label>
             <input
               id="code" type="text" inputMode="numeric" pattern="[0-9]*" maxLength="6"
@@ -260,7 +265,7 @@ export default function ForgotPassword() {
             />
 
             <label htmlFor="new-pin" className="text-eyebrow" style={{ display: 'block', marginBottom: 8 }}>
-              PIN nou {role === 'viewer' ? '(4 cifre)' : '(8 cifre)'}
+              {role === 'viewer' ? t('forgotNewPinLabel4') : t('forgotNewPinLabel8')}
             </label>
             <input
               id="new-pin" type="password" inputMode="numeric" pattern="[0-9]*"
@@ -274,7 +279,7 @@ export default function ForgotPassword() {
             />
 
             <label htmlFor="confirm-pin" className="text-eyebrow" style={{ display: 'block', marginBottom: 8 }}>
-              Confirmă PIN-ul
+              {t('forgotConfirmPinLabel')}
             </label>
             <input
               id="confirm-pin" type="password" inputMode="numeric" pattern="[0-9]*"
@@ -310,7 +315,7 @@ export default function ForgotPassword() {
             )}
 
             <button type="submit" disabled={loading} className="btn-iris sheen" style={{ width: '100%', padding: 13, fontSize: 15, borderRadius: 14 }}>
-              {loading ? 'Se actualizează…' : 'Setează PIN-ul nou'}
+              {loading ? t('forgotUpdating') : t('forgotSubmit')}
             </button>
 
             <button
@@ -321,7 +326,7 @@ export default function ForgotPassword() {
                 color: 'var(--ink-2)', fontSize: 13, width: '100%', cursor: 'pointer',
               }}
             >
-              ← Înapoi
+              ← {t('back')}
             </button>
           </form>
         )}
@@ -332,7 +337,7 @@ export default function ForgotPassword() {
         }}>
           <Link href="/login" legacyBehavior>
             <a style={{ color: 'inherit', textDecoration: 'none', borderBottom: '1px dashed var(--glass-hairline-strong)', paddingBottom: 1 }}>
-              Înapoi la login
+              {t('forgotBackToLogin')}
             </a>
           </Link>
         </div>

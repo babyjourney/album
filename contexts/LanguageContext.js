@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
+import extraTranslations from './translations'
 
 const LanguageContext = createContext()
 
@@ -802,32 +803,48 @@ export const translations = {
   }
 }
 
+// (Item 13) The legacy dictionary above covers the header and the upload/post
+// forms. Everything else — dashboard chrome, Journey, auth pages, media
+// viewers — lives in contexts/translations/*, merged in here. See that module
+// for why the new keys aren't just appended to the object above.
+const ALL = ['ro', 'ru', 'en'].reduce((acc, lang) => {
+  acc[lang] = { ...(translations[lang] || {}), ...(extraTranslations[lang] || {}) }
+  return acc
+}, {})
+
 export function LanguageProvider({ children }) {
   const [language, setLanguage] = useState('ro')
 
   useEffect(() => {
     // Load saved language preference from localStorage
     const savedLanguage = localStorage.getItem('selectedLanguage')
-    if (savedLanguage && translations[savedLanguage]) {
+    if (savedLanguage && ALL[savedLanguage]) {
       setLanguage(savedLanguage)
     }
   }, [])
 
   const changeLanguage = (newLanguage) => {
-    if (translations[newLanguage]) {
+    if (ALL[newLanguage]) {
       setLanguage(newLanguage)
       localStorage.setItem('selectedLanguage', newLanguage)
     }
   }
 
   const t = (key, variables = {}) => {
-    let text = translations[language]?.[key] || key
-    
+    // Fall back through ro before giving up. Previously a missing key rendered
+    // as the raw key string ("skillsTracker" on screen); showing the Romanian
+    // is at least readable while a translation is still missing.
+    let text = ALL[language]?.[key] ?? ALL.ro?.[key] ?? key
+
+    if (process.env.NODE_ENV !== 'production' && ALL[language]?.[key] === undefined) {
+      console.warn(`[i18n] missing "${key}" for language "${language}"`)
+    }
+
     // Replace variables in the text
     Object.keys(variables).forEach(variable => {
       text = text.replace(new RegExp(`{${variable}}`, 'g'), variables[variable])
     })
-    
+
     return text
   }
 
@@ -836,7 +853,7 @@ export function LanguageProvider({ children }) {
       language,
       changeLanguage,
       t,
-      translations: translations[language]
+      translations: ALL[language]
     }}>
       {children}
     </LanguageContext.Provider>

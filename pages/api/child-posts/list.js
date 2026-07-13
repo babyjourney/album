@@ -1,13 +1,46 @@
-// Return the child ids currently associated with a post (item 3b — so the edit
-// form can pre-check the right children). Family-scoped for security.
+// Child <-> post associations.
+//
+// Two modes:
+//   ?photoId=<id>   -> { childIds: [...] } for one post (the edit form, so it
+//                      can pre-check the right children).
+//   ?familyId=<id>  -> { links: [{ photo_id, child_id }] } for the whole family
+//                      (the ZIP export, so filenames can carry child names —
+//                      one request instead of one per post).
+// Family-scoped for security in both modes.
 import { supabase } from '../../../lib/supabaseClient'
 import { requireAuthOrAdmin } from '../../../lib/authMiddleware'
+
+async function listFamilyLinks(req, res) {
+  // SECURITY: family sessions may only read their own family; admins may pick.
+  const familyId = req.auth.isAdmin ? req.query.familyId : req.auth.familyId
+  if (!familyId) return res.status(400).json({ error: 'familyId lipsește' })
+
+  try {
+    // Restrict to this family's posts, so the join can't leak another family's
+    // associations even if a photo_id were guessed.
+    const { data: photos, error: photosErr } = await supabase
+      .from('photos').select('id').eq('family_id', familyId)
+    if (photosErr) throw photosErr
+
+    const photoIds = (photos || []).map((p) => p.id)
+    if (photoIds.length === 0) return res.status(200).json({ success: true, links: [] })
+
+    const { data, error } = await supabase
+      .from('child_posts').select('photo_id, child_id').in('photo_id', photoIds)
+    if (error) throw error
+
+    return res.status(200).json({ success: true, links: data || [] })
+  } catch (error) {
+    console.error('child-posts family list error:', error)
+    return res.status(500).json({ error: 'Încărcarea asocierilor a eșuat' })
+  }
+}
 
 async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Metoda nu este permisă' })
 
   const photoId = req.query.photoId
-  if (!photoId) return res.status(400).json({ error: 'photoId lipsește' })
+  if (!photoId) return listFamilyLinks(req, res)
 
   try {
     // Verify the post belongs to the caller's family (admins bypass).

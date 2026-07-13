@@ -87,8 +87,16 @@ async function handler(req, res) {
     if (hashtagArray && hashtagArray.length > 0) {
       insertData.hashtags = hashtagArray
     }
+    // The user-chosen memory date overrides created_at, which is what the whole
+    // app sorts and filters by. This used to write `custom_date`, a column that
+    // does not exist in any schema — so every request carrying a date 500'd
+    // (the retry below only strips `quality`, so it failed too).
+    //
+    // uploaded_at is untouched and keeps the real insert time, which is what the
+    // admin activity stats read. See sql/sergiu_batch2.sql.
     if (customDate) {
-      insertData.custom_date = customDate
+      const d = new Date(customDate)
+      if (!isNaN(d.getTime())) insertData.created_at = d.toISOString()
     }
 
     // Insert photo directly without relying on RLS. If the deployed schema

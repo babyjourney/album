@@ -75,18 +75,23 @@ export default async function handler(req, res) {
     const pinColumn = cleanPin.length === 4 ? 'viewer_pin' : 'editor_pin'
     const roleForPin = cleanPin.length === 4 ? 'viewer' : 'editor'
 
-    let query = supabase
-      .from('families')
-      .select('id, name, phone_number, email, viewer_pin, editor_pin, is_suspended, package, require_otp_login')
-      .eq(pinColumn, cleanPin)
-
-    if (cleanPhone) {
-      query = query.eq('phone_number', cleanPhone)
-    } else if (cleanEmail) {
-      query = query.ilike('email', cleanEmail)
+    // self_registered arrives with sql/sergiu_batch2.sql — select it defensively
+    // so login still works if the migration hasn't been run.
+    const buildQuery = (cols) => {
+      let q = supabase.from('families').select(cols).eq(pinColumn, cleanPin)
+      if (cleanPhone) q = q.eq('phone_number', cleanPhone)
+      else if (cleanEmail) q = q.ilike('email', cleanEmail)
+      return q
     }
 
-    const { data, error } = await query.maybeSingle()
+    const FULL_COLS = 'id, name, phone_number, email, viewer_pin, editor_pin, is_suspended, package, require_otp_login, self_registered'
+    const LEGACY_COLS = 'id, name, phone_number, email, viewer_pin, editor_pin, is_suspended, package, require_otp_login'
+
+    let { data, error } = await buildQuery(FULL_COLS).maybeSingle()
+    if (error && /self_registered/i.test(error.message || '')) {
+      ;({ data, error } = await buildQuery(LEGACY_COLS).maybeSingle())
+    }
+
     if (!error && data) {
       family = data
       role = roleForPin
@@ -132,9 +137,12 @@ export default async function handler(req, res) {
     // verify the OTP code BEFORE issuing the session token. The OTP was
     // requested earlier via /api/auth/request-otp.
     //
-    // TEMPORARY: LOGIN_OTP_BYPASS skips the OTP step while SMS/email
-    // delivery (Twilio/Resend) is not yet configured. Remove once verified.
-    const otpBypass = process.env.LOGIN_OTP_BYPASS === 'true'
+    // LOGIN_OTP_BYPASS is the temporary escape hatch from when Resend/Twilio
+    // weren't configured. It deliberately does NOT apply to self-registered
+    // families (item 14): they exist only because they received a signup code by
+    // email, so delivery demonstrably works for them, and they were promised a
+    // code on every login. Must stay in lockstep with request-otp.js.
+    const otpBypass = process.env.LOGIN_OTP_BYPASS === 'true' && !family.self_registered
     if (family.require_otp_login && !otpBypass) {
       if (!otpCode) {
         return res.status(401).json({

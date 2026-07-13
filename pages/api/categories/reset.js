@@ -1,16 +1,6 @@
 import { supabase } from '../../../lib/supabaseClient'
 import { requireEditor } from '../../../lib/authMiddleware'
-
-// Default categories
-const DEFAULT_CATEGORIES = [
-  { value: 'memories', label: 'Amintiri', emoji: '💭' },
-  { value: 'milestones', label: 'Etape importante', emoji: '🎯' },
-  { value: 'everyday', label: 'Zilnic', emoji: '☀️' },
-  { value: 'special', label: 'Special', emoji: '✨' },
-  { value: 'family', label: 'Familie', emoji: '👨‍👩‍👧‍👦' },
-  { value: 'play', label: 'Joacă', emoji: '🎮' },
-  { value: 'learning', label: 'Învățare', emoji: '📚' }
-]
+import { DEFAULT_CATEGORIES } from '../../../lib/defaultCategories'
 
 async function handler(req, res) {
   if (req.method !== 'POST') {

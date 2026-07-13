@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { authenticatedFetch, isEditor } from '../../lib/pinAuth'
 import { useToast } from '../../contexts/ToastContext'
+import { useLanguage } from '../../contexts/LanguageContext'
 
 export default function GrowthTab({ familyId, childId }) {
   const [entries, setEntries] = useState([])
@@ -14,6 +15,7 @@ export default function GrowthTab({ familyId, childId }) {
   const [nowImg, setNowImg] = useState('')
   const [uploadingSlot, setUploadingSlot] = useState(null)
   const { showSuccess, showError } = useToast()
+  const { t } = useLanguage()
   const canEdit = isEditor()
 
   const load = async () => {
@@ -52,22 +54,22 @@ export default function GrowthTab({ familyId, childId }) {
         method: 'POST',
         body: JSON.stringify({ childId: childId || null, [slot === 'then' ? 'thenUrl' : 'nowUrl']: url }),
       })
-      if (!res.ok) throw new Error((await res.json()).error || 'Eroare')
-      showSuccess('Foto salvată')
+      if (!res.ok) throw new Error((await res.json()).error || t('error'))
+      showSuccess(t('growthPhotoSaved'))
     } catch (e) { showError(e.message) } finally { setUploadingSlot(null) }
   }
 
   const add = async () => {
-    if (!form.measuredOn) { showError('Adaugă o dată'); return }
+    if (!form.measuredOn) { showError(t('growthDateRequired')); return }
     setAdding(true)
     try {
       const res = await authenticatedFetch('/api/journey/growth', {
         method: 'POST',
         body: JSON.stringify({ childId: childId || null, ...form }),
       })
-      if (!res.ok) throw new Error((await res.json()).error || 'Eroare')
+      if (!res.ok) throw new Error((await res.json()).error || t('error'))
       setForm({ measuredOn: '', heightCm: '', weightKg: '', note: '' })
-      showSuccess('Înregistrare adăugată')
+      showSuccess(t('growthEntryAdded'))
       load()
     } catch (e) { showError(e.message) } finally { setAdding(false) }
   }
@@ -75,7 +77,7 @@ export default function GrowthTab({ familyId, childId }) {
   const remove = async (id) => {
     try {
       const res = await authenticatedFetch(`/api/journey/growth?id=${id}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error('Eroare')
+      if (!res.ok) throw new Error(t('error'))
       setEntries((e) => e.filter((x) => x.id !== id))
     } catch (e) { showError(e.message) }
   }
@@ -85,30 +87,30 @@ export default function GrowthTab({ familyId, childId }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       <section className="card-glass" style={{ padding: 20 }}>
-        <h3 className="text-section-title" style={{ marginTop: 0, fontSize: 18 }}>Creștere</h3>
+        <h3 className="text-section-title" style={{ marginTop: 0, fontSize: 18 }}>{t('journeyTabGrowth')}</h3>
 
         {canEdit && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 16, alignItems: 'end' }}>
             <div>
-              <label className="text-eyebrow" style={{ display: 'block', marginBottom: 6 }}>Data</label>
+              <label className="text-eyebrow" style={{ display: 'block', marginBottom: 6 }}>{t('date')}</label>
               <input type="date" value={form.measuredOn} onChange={(e) => setForm({ ...form, measuredOn: e.target.value })} className="input-glass" style={{ width: '100%' }} />
             </div>
             <div>
-              <label className="text-eyebrow" style={{ display: 'block', marginBottom: 6 }}>Înălțime (cm)</label>
+              <label className="text-eyebrow" style={{ display: 'block', marginBottom: 6 }}>{t('heightCmLabel')}</label>
               <input type="number" step="any" value={form.heightCm} onChange={(e) => setForm({ ...form, heightCm: e.target.value })} className="input-glass" style={{ width: '100%' }} />
             </div>
             <div>
-              <label className="text-eyebrow" style={{ display: 'block', marginBottom: 6 }}>Greutate (kg)</label>
+              <label className="text-eyebrow" style={{ display: 'block', marginBottom: 6 }}>{t('weightKgLabel')}</label>
               <input type="number" step="any" value={form.weightKg} onChange={(e) => setForm({ ...form, weightKg: e.target.value })} className="input-glass" style={{ width: '100%' }} />
             </div>
             <button onClick={add} disabled={adding} className="btn-iris sheen" style={{ padding: '10px 16px', height: 42 }}>
-              {adding ? '…' : '+ Adaugă'}
+              {adding ? '…' : t('addPlus')}
             </button>
           </div>
         )}
 
-        {!loaded ? <div className="text-subtle">Se încarcă…</div> : entries.length === 0 ? (
-          <div className="text-subtle">Nicio măsurătoare încă.</div>
+        {!loaded ? <div className="text-subtle">{t('loading')}</div> : entries.length === 0 ? (
+          <div className="text-subtle">{t('noMeasurementsYet')}</div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {entries.map((e) => (
@@ -121,7 +123,7 @@ export default function GrowthTab({ familyId, childId }) {
                   </span>
                 </div>
                 {canEdit && (
-                  <button onClick={() => remove(e.id)} className="btn-icon" title="Șterge" style={{ width: 30, height: 30 }}>✕</button>
+                  <button onClick={() => remove(e.id)} className="btn-icon" title={t('delete')} style={{ width: 30, height: 30 }}>✕</button>
                 )}
               </div>
             ))}
@@ -130,9 +132,9 @@ export default function GrowthTab({ familyId, childId }) {
       </section>
 
       <section className="card-glass" style={{ padding: 20 }}>
-        <h3 className="text-section-title" style={{ marginTop: 0, fontSize: 16 }}>Comparație foto — Atunci vs Acum</h3>
+        <h3 className="text-section-title" style={{ marginTop: 0, fontSize: 16 }}>{t('photoCompareTitle')}</h3>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-          {[{ slot: 'then', label: 'Atunci', img: thenImg }, { slot: 'now', label: 'Acum', img: nowImg }].map((c) => (
+          {[{ slot: 'then', label: t('compareThen'), img: thenImg }, { slot: 'now', label: t('compareNow'), img: nowImg }].map((c) => (
             <div key={c.slot} style={{ textAlign: 'center' }}>
               <div style={{ aspectRatio: '3/4', borderRadius: 14, overflow: 'hidden', background: 'var(--glass-1)', border: '1px solid var(--glass-hairline)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {c.img ? <img src={c.img} alt={c.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span className="text-subtle" style={{ fontSize: 13 }}>{c.label}</span>}
@@ -140,7 +142,7 @@ export default function GrowthTab({ familyId, childId }) {
               {canEdit && (
                 <input type="file" accept="image/*" disabled={uploadingSlot === c.slot} onChange={pickCompare(c.slot)} style={{ marginTop: 8, fontSize: 12 }} />
               )}
-              {uploadingSlot === c.slot && <div className="text-subtle" style={{ fontSize: 11, marginTop: 4 }}>Se încarcă…</div>}
+              {uploadingSlot === c.slot && <div className="text-subtle" style={{ fontSize: 11, marginTop: 4 }}>{t('uploading')}</div>}
             </div>
           ))}
         </div>

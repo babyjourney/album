@@ -23,21 +23,41 @@ async function handler(req, res) {
 
     if (req.method === 'POST') {
       if (!canWrite(req)) return res.status(403).json({ error: 'Necesită rol de editor' })
-      const { childId, title, color, startDate, endDate, displayOrder } = req.body || {}
+      const { childId, title, description, hashtags, color, startDate, endDate, displayOrder } = req.body || {}
       if (!title || !title.trim()) return res.status(400).json({ error: 'Titlul este obligatoriu' })
-      const { data, error } = await supabase
-        .from('life_chapters')
-        .insert({
-          family_id: familyId,
-          child_id: childId || null,
-          title: title.trim(),
-          color: color || '#7c3aed',
-          start_date: startDate || null,
-          end_date: endDate || null,
-          display_order: displayOrder || 0,
-        })
-        .select()
-        .single()
+
+      // (Item 11) Hashtags let an event pull in matching posts even when they
+      // fall outside its date range. Accept a raw string or an array; normalize
+      // to bare lowercase tags so they agree with how posts store them.
+      const tagList = (Array.isArray(hashtags) ? hashtags : String(hashtags || '').split(/[\s,]+/))
+        .map((t) => String(t).trim().toLowerCase().replace(/^#/, ''))
+        .filter(Boolean)
+        .slice(0, 10)
+
+      const payload = {
+        family_id: familyId,
+        child_id: childId || null,
+        title: title.trim(),
+        color: color || '#7c3aed',
+        start_date: startDate || null,
+        end_date: endDate || null,
+        display_order: displayOrder || 0,
+        description: (description || '').trim(),
+        hashtags: tagList.length ? tagList : null,
+      }
+
+      let { data, error } = await supabase
+        .from('life_chapters').insert(payload).select().single()
+
+      // description/hashtags come from sql/sergiu_batch2.sql. On a deployment
+      // that hasn't run it, still save the event rather than failing outright.
+      if (error && /description|hashtags/i.test(error.message || '')) {
+        console.warn('life_chapters missing description/hashtags — run sql/sergiu_batch2.sql')
+        const { description: _d, hashtags: _h, ...legacy } = payload
+        ;({ data, error } = await supabase
+          .from('life_chapters').insert(legacy).select().single())
+      }
+
       if (error) throw error
       return res.status(200).json({ success: true, chapter: data })
     }

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { getPosterForUrl } from '../lib/posters'
 
 export default function InstagramCarousel({ images, currentIndex = 0, onIndexChange, post }) {
   const [index, setIndex] = useState(currentIndex)
@@ -341,14 +342,21 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
             }}
           >
 {isVideoUrl(url) ? (
+              // No crossOrigin here: we only play the video, we never read its
+              // pixels. Requesting CORS made playback fail outright whenever the
+              // storage response lacked an Access-Control-Allow-Origin header —
+              // a prime suspect for "video won't load" on mobile.
+              //
+              // `poster` is the frame captured at upload, so the slide shows the
+              // real content instead of a black box while the video loads.
               <video
                 src={url}
+                poster={getPosterForUrl(post, url) || undefined}
                 controls
                 playsInline
                 preload="metadata"
                 webkit-playsinline="true"
-                crossOrigin="anonymous"
-                style={{ 
+                style={{
                   maxWidth: '100%',
                   maxHeight: '100%',
                   objectFit: 'contain',
@@ -360,20 +368,8 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
                   })
                 }}
                 onDragStart={(e) => e.preventDefault()}
-                onError={(e) => {
-                  console.error('Video failed to load:', url)
-                  console.error('Video error event:', e)
-                  // Show a fallback instead of hiding completely
-                  e.target.style.background = 'var(--glass-1)'
-                  e.target.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--ink-2);">⚠️ Video încărcare eșuată</div>'
-                }}
-                onLoadStart={() => console.log('Video load started:', url)}
-                onCanPlay={() => console.log('Video can play:', url)}
-              >
-                <source src={url} type="video/mp4" />
-                <source src={url} type="video/quicktime" />
-                <p>Browserul nu suportă redarea video-ului.</p>
-              </video>
+                onError={() => console.error('Video failed to load:', url)}
+              />
             ) : (
               <img
                 src={url}

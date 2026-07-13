@@ -1,6 +1,7 @@
 import Head from 'next/head'
 import Link from 'next/link'
 import { useState } from 'react'
+import { useLanguage } from '../contexts/LanguageContext'
 
 // Public-facing /demo route.
 //
@@ -12,70 +13,73 @@ import { useState } from 'react'
 // fake feed that mirrors the dashboard's layout so the visual language is
 // continuous between marketing and product.
 
+// The sample feed is translated like the rest of the UI, so it holds
+// translation keys rather than literals (see contexts/translations/auth.js).
 const SAMPLE_POSTS = [
   {
     id: 1,
-    title: 'Prima dată la mare',
-    date: '12 Iulie 2025',
-    category: 'Călătorii',
+    titleKey: 'demoPost1Title',
+    dateKey: 'demoPost1Date',
+    categoryKey: 'demoCategoryTravel',
     emoji: '🏖️',
-    description: 'Maia a descoperit valurile. Râsete, nisip și o pălărioară pierdută.',
+    descriptionKey: 'demoPost1Desc',
     accent: 'linear-gradient(135deg, #38bdf8, #6366f1)',
   },
   {
     id: 2,
-    title: 'Primii pași',
-    date: '3 Iunie 2025',
-    category: 'Repere',
+    titleKey: 'demoPost2Title',
+    dateKey: 'demoPost2Date',
+    categoryKey: 'demoCategoryMilestones',
     emoji: '👣',
-    description: '4 pași până la canapea. Tati a strigat. Maia a căzut și a râs.',
+    descriptionKey: 'demoPost2Desc',
     accent: 'linear-gradient(135deg, #34d399, #10b981)',
   },
   {
     id: 3,
-    title: 'Tortul de 1 an',
-    date: '21 Mai 2025',
-    category: 'Sărbători',
+    titleKey: 'demoPost3Title',
+    dateKey: 'demoPost3Date',
+    categoryKey: 'demoCategoryCelebrations',
     emoji: '🎂',
-    description: 'Lumânarea, glazura pe nas, bunica plângând. Toate într-o singură poză.',
+    descriptionKey: 'demoPost3Desc',
     accent: 'linear-gradient(135deg, #fb7185, #ec4899)',
   },
   {
     id: 4,
-    title: 'Pădurea de toamnă',
-    date: '18 Octombrie 2024',
-    category: 'Plimbări',
+    titleKey: 'demoPost4Title',
+    dateKey: 'demoPost4Date',
+    categoryKey: 'demoCategoryWalks',
     emoji: '🍂',
-    description: 'Frunze adunate în buzunarele jachetei. Multe. Multe frunze.',
+    descriptionKey: 'demoPost4Desc',
     accent: 'linear-gradient(135deg, #f59e0b, #ea580c)',
   },
   {
     id: 5,
-    title: 'A spus „mama"',
-    date: '7 Aprilie 2024',
-    category: 'Repere',
+    titleKey: 'demoPost5Title',
+    dateKey: 'demoPost5Date',
+    categoryKey: 'demoCategoryMilestones',
     emoji: '💬',
-    description: 'Lângă pătuț, la 7:42 dimineața. Înregistrarea o avem.',
+    descriptionKey: 'demoPost5Desc',
     accent: 'linear-gradient(135deg, #a78bfa, #7c3aed)',
   },
   {
     id: 6,
-    title: 'Prima zi de creșă',
-    date: '1 Septembrie 2025',
-    category: 'Repere',
+    titleKey: 'demoPost6Title',
+    dateKey: 'demoPost6Date',
+    categoryKey: 'demoCategoryMilestones',
     emoji: '🎒',
-    description: 'A intrat singură. Eu am plâns în mașină.',
+    descriptionKey: 'demoPost6Desc',
     accent: 'linear-gradient(135deg, #06b6d4, #0891b2)',
   },
 ]
 
 export default function Demo() {
-  const [activeCategory, setActiveCategory] = useState('Toate')
+  const { t } = useLanguage()
+  const [activeCategory, setActiveCategory] = useState('all')
 
-  const categories = ['Toate', ...Array.from(new Set(SAMPLE_POSTS.map(p => p.category)))]
-  const visiblePosts = activeCategory === 'Toate'
+  const categories = ['all', ...Array.from(new Set(SAMPLE_POSTS.map(p => p.categoryKey)))]
+  const visiblePosts = activeCategory === 'all'
     ? SAMPLE_POSTS
-    : SAMPLE_POSTS.filter(p => p.category === activeCategory)
+    : SAMPLE_POSTS.filter(p => p.categoryKey === activeCategory)
 
   return (
     <>
@@ -127,14 +131,14 @@ export default function Demo() {
           {/* Header */}
           <header style={{ textAlign: 'center', marginBottom: 48 }}>
             <span className="glass-pill" style={{ padding: '6px 14px', fontSize: 12, color: 'var(--accent-iris)', fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase' }}>
-              Demo · Tur de produs
+              {t('demoEyebrow')}
             </span>
             <h1 className="text-display" style={{
               fontSize: 'clamp(36px, 6vw, 56px)',
               margin: '18px 0 12px',
               lineHeight: 1.1,
             }}>
-              Așa arată albumul familiei tale
+              {t('demoHeading')}
             </h1>
             <p className="text-body" style={{
               maxWidth: 620,
@@ -142,14 +146,13 @@ export default function Demo() {
               color: 'var(--ink-2)',
               fontSize: 17,
             }}>
-              Sub e o mostră de feed. Filtrele, categoriile și aspectul sunt identice cu albumul real.
-              Nici un cont nu e necesar pentru a derula.
+              {t('demoIntro')}
             </p>
 
             <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 28, flexWrap: 'wrap' }}>
               <Link href="/login" legacyBehavior>
                 <a className="btn-iris sheen" style={{ padding: '12px 22px', textDecoration: 'none', fontSize: 15 }}>
-                  Intră în albumul meu
+                  {t('demoCtaMyAlbum')}
                 </a>
               </Link>
               <a
@@ -157,7 +160,7 @@ export default function Demo() {
                 className="btn-glass"
                 style={{ padding: '12px 22px', textDecoration: 'none', fontSize: 15 }}
               >
-                Despre BabyJourney
+                {t('demoAboutLink')}
               </a>
             </div>
           </header>
@@ -177,7 +180,7 @@ export default function Demo() {
                 onClick={() => setActiveCategory(cat)}
                 className={`category-pill${activeCategory === cat ? ' category-pill--selected sheen' : ''}`}
               >
-                {cat}
+                {t(cat)}
               </button>
             ))}
           </div>
@@ -212,12 +215,12 @@ export default function Demo() {
                 </div>
                 <div style={{ padding: '18px 20px 20px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 8 }}>
-                    <span className="text-eyebrow" style={{ color: 'var(--accent-iris)' }}>{post.category}</span>
-                    <span className="text-tertiary nums">{post.date}</span>
+                    <span className="text-eyebrow" style={{ color: 'var(--accent-iris)' }}>{t(post.categoryKey)}</span>
+                    <span className="text-tertiary nums">{t(post.dateKey)}</span>
                   </div>
-                  <h3 className="text-section-title" style={{ fontSize: 18, marginBottom: 8 }}>{post.title}</h3>
+                  <h3 className="text-section-title" style={{ fontSize: 18, marginBottom: 8 }}>{t(post.titleKey)}</h3>
                   <p className="text-body" style={{ color: 'var(--ink-2)', fontSize: 14.5, lineHeight: 1.55, margin: 0 }}>
-                    {post.description}
+                    {t(post.descriptionKey)}
                   </p>
                 </div>
               </article>
@@ -232,14 +235,14 @@ export default function Demo() {
             borderRadius: 24,
           }}>
             <h2 className="text-section-title" style={{ marginBottom: 10 }}>
-              Începe-ți propriul album
+              {t('demoStartTitle')}
             </h2>
             <p className="text-body" style={{ color: 'var(--ink-2)', marginBottom: 22, maxWidth: 520, marginLeft: 'auto', marginRight: 'auto' }}>
-              Albumul tău e privat și sigur. Doar familia ta îl vede, cu PIN-urile pe care le alegi.
+              {t('demoStartText')}
             </p>
             <Link href="/login" legacyBehavior>
               <a className="btn-iris sheen" style={{ padding: '13px 28px', textDecoration: 'none', fontSize: 15 }}>
-                Intră în album
+                {t('loginSubmit')}
               </a>
             </Link>
           </section>
@@ -255,11 +258,11 @@ export default function Demo() {
             gap: 18,
             flexWrap: 'wrap',
           }}>
-            <Link href="/terms" legacyBehavior><a style={{ color: 'inherit' }}>Termeni și condiții</a></Link>
+            <Link href="/terms" legacyBehavior><a style={{ color: 'inherit' }}>{t('demoFooterTerms')}</a></Link>
             <span aria-hidden>·</span>
-            <Link href="/privacy" legacyBehavior><a style={{ color: 'inherit' }}>Politica de confidențialitate</a></Link>
+            <Link href="/privacy" legacyBehavior><a style={{ color: 'inherit' }}>{t('demoFooterPrivacy')}</a></Link>
             <span aria-hidden>·</span>
-            <Link href="/cookies" legacyBehavior><a style={{ color: 'inherit' }}>Politica de cookies</a></Link>
+            <Link href="/cookies" legacyBehavior><a style={{ color: 'inherit' }}>{t('demoFooterCookies')}</a></Link>
           </footer>
         </main>
       </div>

@@ -1,0 +1,238 @@
+// Translations for the media surface (item 13).
+// Every key must exist in all three languages. Keys must not collide with the
+// other modules in this folder or with the legacy dictionary in LanguageContext.
+const media = {
+  ro: {
+    videoCompressFailedTooLarge: 'Browserul nu a putut comprima {count} video. Fișierul depășește {maxMB}MB. Încearcă din Chrome/Safari, sau folosește un clip mai scurt.',
+    fileRejectedTooLargeForStorage: '{count} fișier(e) depășesc {maxMB}MB și nu pot fi încărcate.',
+    // Media kinds / fallback labels
+    videoLabel: 'Video',
+    audioLabel: 'Audio',
+    documentLabel: 'Document',
+    openFile: 'Deschide {name}',
+
+    // Post viewer
+    postFallbackTitle: 'Postare',
+    share: 'Distribuie',
+    linkCopied: 'Link copiat',
+    shareMemoryText: 'Amintire BabyJourney',
+    videoLoadFailed: 'Video încărcare eșuată',
+    videoNotSupported: 'Browserul nu suportă redarea video-ului.',
+    previousImage: 'Imaginea anterioară',
+    nextImage: 'Imaginea următoare',
+    removeTag: 'Elimină eticheta',
+
+    // Post editing
+    childrenLabel: 'Copii',
+    selectCategory: 'Selectează o categorie',
+    coverThumbnail: 'Cover / Thumbnail',
+    deletePhoto: 'Șterge poza',
+    coverHintMobile: 'Cover = apasă imaginea · × șterge · ‹ › schimbă ordinea.',
+    coverHintDesktop: 'Click = cover · trage pentru reordine · × pentru a șterge o poză.',
+
+    // Private content toggle (upload + edit)
+    privateContent: 'Conținut privat',
+    privateContentHint: 'Vizibil doar pentru editori (părinți), nu și pentru vizualizatori.',
+
+    // Upload form
+    hashtags: 'Hashtag-uri',
+    compressingVideo: 'Se comprimă video-ul…',
+    compressingVideoHint: 'Durează cât filmarea. Nu închide fereastra.',
+    titleOrDescriptionRequired: 'Adaugă un titlu sau o descriere',
+    selectAtLeastOneChild: 'Selectează cel puțin un copil pentru această postare',
+    videoRejectedDurationOne: 'Un video a fost respins: durata maximă pentru pachetul {package} este {seconds} secunde. Treci la Premium pentru video-uri mai lungi.',
+    videoRejectedDurationMany: '{count} video-uri au fost respinse: durata maximă pentru pachetul {package} este {seconds} secunde. Treci la Premium pentru video-uri mai lungi.',
+    videoRejectedSizeOne: 'Un video a fost respins: dimensiunea maximă pentru pachetul {package} este {maxMB}MB. Comprimă-l sau treci la Premium pentru video HD.',
+    videoRejectedSizeMany: '{count} video-uri au fost respinse: dimensiunea maximă pentru pachetul {package} este {maxMB}MB.',
+    fileSingular: 'fișier',
+    filePlural: 'fișiere',
+
+    // Header island (compose bar / viewer welcome)
+    postedSuccessfully: 'Postat cu succes!',
+    postFailed: 'Postarea a eșuat',
+    memorySingular: 'amintire',
+    memoryPlural: 'amintiri',
+    viewProfilePictureOf: 'Vezi poza de profil a lui {name}',
+    uploadPhotoTooltip: 'Încarcă fotografie',
+    uploadVideoTooltip: 'Încarcă video',
+    hashtagsExamplePlaceholder: '#familie #dragoste #creștere #amintiri',
+    posting: 'Se postează…',
+    postButton: 'Postează',
+    searchMemories: 'Caută în amintiri...',
+    welcomeToAlbum: 'Bun venit în {album}!',
+    viewerWelcomeText: 'Vizionați amintiri prețioase. Pentru a adăuga fotografii noi și a crea postări, folosiți PIN-ul de editor când vă conectați.',
+
+    // Profile picture modal
+    profilePictureOf: 'Poza de profil a lui {name}',
+    pressEscToClose: 'Apăsați ESC sau faceți clic în afară pentru a închide',
+
+    // Category manager
+    categoriesLoadError: 'Eroare la încărcarea categoriilor',
+    categoriesMigrationNeeded: 'Sistemul de categorii necesită migrare. Contactează administratorul.',
+    categoryNameEmpty: 'Numele categoriei nu poate fi gol',
+    categoryUpdateError: 'Eroare la actualizarea categoriei',
+    categoriesResetError: 'Eroare la resetarea categoriilor',
+    emojiPlaceholder: 'emoji (ex: 🎨)',
+    categoryNamePlaceholder: 'Numele categoriei',
+
+    // Memory slideshow
+    shuffleOn: 'Activează shuffle',
+    shuffleOff: 'Dezactivează shuffle',
+  },
+  ru: {
+    videoCompressFailedTooLarge: 'Браузер не смог сжать {count} видео. Файл больше {maxMB}МБ. Попробуйте Chrome/Safari или более короткий ролик.',
+    fileRejectedTooLargeForStorage: '{count} файл(ов) больше {maxMB}МБ — загрузка невозможна.',
+    // Media kinds / fallback labels
+    videoLabel: 'Видео',
+    audioLabel: 'Аудио',
+    documentLabel: 'Документ',
+    openFile: 'Открыть {name}',
+
+    // Post viewer
+    postFallbackTitle: 'Пост',
+    share: 'Поделиться',
+    linkCopied: 'Ссылка скопирована',
+    shareMemoryText: 'Воспоминание BabyJourney',
+    videoLoadFailed: 'Не удалось загрузить видео',
+    videoNotSupported: 'Ваш браузер не поддерживает воспроизведение видео.',
+    previousImage: 'Предыдущее изображение',
+    nextImage: 'Следующее изображение',
+    removeTag: 'Удалить тег',
+
+    // Post editing
+    childrenLabel: 'Дети',
+    selectCategory: 'Выберите категорию',
+    coverThumbnail: 'Обложка / Миниатюра',
+    deletePhoto: 'Удалить фото',
+    coverHintMobile: 'Обложка = нажмите на изображение · × удаляет · ‹ › меняет порядок.',
+    coverHintDesktop: 'Клик = обложка · перетащите, чтобы изменить порядок · × чтобы удалить фото.',
+
+    // Private content toggle (upload + edit)
+    privateContent: 'Приватный контент',
+    privateContentHint: 'Виден только редакторам (родителям), но не зрителям.',
+
+    // Upload form
+    hashtags: 'Хештеги',
+    compressingVideo: 'Сжатие видео…',
+    compressingVideoHint: 'Занимает столько же, сколько длится ролик. Не закрывайте окно.',
+    titleOrDescriptionRequired: 'Добавьте заголовок или описание',
+    selectAtLeastOneChild: 'Выберите хотя бы одного ребенка для этого поста',
+    videoRejectedDurationOne: 'Одно видео отклонено: максимальная длительность для пакета {package} — {seconds} секунд. Перейдите на Premium для более длинных видео.',
+    videoRejectedDurationMany: 'Отклонено видео: {count}. Максимальная длительность для пакета {package} — {seconds} секунд. Перейдите на Premium для более длинных видео.',
+    videoRejectedSizeOne: 'Одно видео отклонено: максимальный размер для пакета {package} — {maxMB}MB. Сожмите его или перейдите на Premium для HD-видео.',
+    videoRejectedSizeMany: 'Отклонено видео: {count}. Максимальный размер для пакета {package} — {maxMB}MB.',
+    fileSingular: 'файл',
+    filePlural: 'файлов',
+
+    // Header island (compose bar / viewer welcome)
+    postedSuccessfully: 'Успешно опубликовано!',
+    postFailed: 'Не удалось опубликовать',
+    memorySingular: 'воспоминание',
+    memoryPlural: 'воспоминаний',
+    viewProfilePictureOf: 'Посмотреть фото профиля: {name}',
+    uploadPhotoTooltip: 'Загрузить фото',
+    uploadVideoTooltip: 'Загрузить видео',
+    hashtagsExamplePlaceholder: '#семья #любовь #взросление #воспоминания',
+    posting: 'Публикация…',
+    postButton: 'Опубликовать',
+    searchMemories: 'Поиск по воспоминаниям...',
+    welcomeToAlbum: 'Добро пожаловать в {album}!',
+    viewerWelcomeText: 'Вы просматриваете дорогие сердцу воспоминания. Чтобы добавлять новые фотографии и создавать посты, используйте PIN редактора при входе.',
+
+    // Profile picture modal
+    profilePictureOf: 'Фото профиля: {name}',
+    pressEscToClose: 'Нажмите ESC или щёлкните снаружи, чтобы закрыть',
+
+    // Category manager
+    categoriesLoadError: 'Ошибка при загрузке категорий',
+    categoriesMigrationNeeded: 'Системе категорий требуется миграция. Свяжитесь с администратором.',
+    categoryNameEmpty: 'Название категории не может быть пустым',
+    categoryUpdateError: 'Ошибка при обновлении категории',
+    categoriesResetError: 'Ошибка при сбросе категорий',
+    emojiPlaceholder: 'эмодзи (напр.: 🎨)',
+    categoryNamePlaceholder: 'Название категории',
+
+    // Memory slideshow
+    shuffleOn: 'Включить перемешивание',
+    shuffleOff: 'Выключить перемешивание',
+  },
+  en: {
+    videoCompressFailedTooLarge: 'Your browser could not compress {count} video(s). The file is over {maxMB}MB. Try Chrome/Safari, or use a shorter clip.',
+    fileRejectedTooLargeForStorage: '{count} file(s) are over {maxMB}MB and cannot be uploaded.',
+    // Media kinds / fallback labels
+    videoLabel: 'Video',
+    audioLabel: 'Audio',
+    documentLabel: 'Document',
+    openFile: 'Open {name}',
+
+    // Post viewer
+    postFallbackTitle: 'Post',
+    share: 'Share',
+    linkCopied: 'Link copied',
+    shareMemoryText: 'BabyJourney memory',
+    videoLoadFailed: 'Video failed to load',
+    videoNotSupported: 'Your browser does not support video playback.',
+    previousImage: 'Previous image',
+    nextImage: 'Next image',
+    removeTag: 'Remove tag',
+
+    // Post editing
+    childrenLabel: 'Children',
+    selectCategory: 'Select a category',
+    coverThumbnail: 'Cover / Thumbnail',
+    deletePhoto: 'Delete photo',
+    coverHintMobile: 'Cover = tap the image · × deletes · ‹ › reorders.',
+    coverHintDesktop: 'Click = cover · drag to reorder · × to delete a photo.',
+
+    // Private content toggle (upload + edit)
+    privateContent: 'Private content',
+    privateContentHint: 'Visible only to editors (parents), not to viewers.',
+
+    // Upload form
+    hashtags: 'Hashtags',
+    compressingVideo: 'Compressing video…',
+    compressingVideoHint: 'It takes as long as the clip itself. Do not close this window.',
+    titleOrDescriptionRequired: 'Add a title or a description',
+    selectAtLeastOneChild: 'Select at least one child for this post',
+    videoRejectedDurationOne: 'One video was rejected: the maximum length for the {package} plan is {seconds} seconds. Upgrade to Premium for longer videos.',
+    videoRejectedDurationMany: '{count} videos were rejected: the maximum length for the {package} plan is {seconds} seconds. Upgrade to Premium for longer videos.',
+    videoRejectedSizeOne: 'One video was rejected: the maximum size for the {package} plan is {maxMB}MB. Compress it or upgrade to Premium for HD video.',
+    videoRejectedSizeMany: '{count} videos were rejected: the maximum size for the {package} plan is {maxMB}MB.',
+    fileSingular: 'file',
+    filePlural: 'files',
+
+    // Header island (compose bar / viewer welcome)
+    postedSuccessfully: 'Posted successfully!',
+    postFailed: 'Posting failed',
+    memorySingular: 'memory',
+    memoryPlural: 'memories',
+    viewProfilePictureOf: "View {name}'s profile picture",
+    uploadPhotoTooltip: 'Upload photo',
+    uploadVideoTooltip: 'Upload video',
+    hashtagsExamplePlaceholder: '#family #love #growing #memories',
+    posting: 'Posting…',
+    postButton: 'Post',
+    searchMemories: 'Search memories...',
+    welcomeToAlbum: 'Welcome to {album}!',
+    viewerWelcomeText: 'You are viewing precious memories. To add new photos and create posts, use the editor PIN when you sign in.',
+
+    // Profile picture modal
+    profilePictureOf: "{name}'s profile picture",
+    pressEscToClose: 'Press ESC or click outside to close',
+
+    // Category manager
+    categoriesLoadError: 'Error loading categories',
+    categoriesMigrationNeeded: 'The category system needs a migration. Contact the administrator.',
+    categoryNameEmpty: 'The category name cannot be empty',
+    categoryUpdateError: 'Error updating the category',
+    categoriesResetError: 'Error resetting the categories',
+    emojiPlaceholder: 'emoji (e.g. 🎨)',
+    categoryNamePlaceholder: 'Category name',
+
+    // Memory slideshow
+    shuffleOn: 'Turn on shuffle',
+    shuffleOff: 'Turn off shuffle',
+  },
+}
+
+export default media
