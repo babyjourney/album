@@ -4,6 +4,7 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { loginWithPin, isAuthenticated, requestLoginOtp } from '../lib/pinAuth'
 import { useLanguage } from '../contexts/LanguageContext'
+import LanguagePicker from '../components/LanguagePicker'
 
 export default function Login() {
   const router = useRouter()
@@ -192,6 +193,12 @@ export default function Login() {
       padding: '24px',
       position: 'relative',
     }}>
+      {/* (Sergiu batch3 #6) Language switch on the entry screen itself — a
+          first-time EN/RU visitor never reaches the in-app header drawer. */}
+      <div style={{ position: 'absolute', top: 20, right: 20, zIndex: 2 }}>
+        <LanguagePicker />
+      </div>
+
       {/* Slow orbiting accent orbs (purely decorative) */}
       <div aria-hidden style={{
         position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0,

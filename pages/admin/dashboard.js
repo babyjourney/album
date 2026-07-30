@@ -130,9 +130,13 @@ export default function AdminDashboard() {
     runFamilyExport(family, year)
   }
 
-  // The dropdown lets the admin pick any year between the family's account
-  // creation and the current year (inclusive). Used to scope EXPORT (per ani).
+  // (Sergiu batch3 #4) The dropdown lists the years that actually contain posts
+  // (post_years, derived from photo memory-dates by the API) — Sergiu's albums
+  // are backdated to 2019/2020, but the account was made in 2026, so the old
+  // account-creation range only ever offered the current year. Fall back to that
+  // range only for families with no post_years yet (e.g. empty albums).
   const yearsForFamily = (family) => {
+    if (Array.isArray(family.post_years) && family.post_years.length) return family.post_years
     const startYear = family.created_at
       ? new Date(family.created_at).getFullYear()
       : new Date().getFullYear()
@@ -140,6 +144,13 @@ export default function AdminDashboard() {
     const years = []
     for (let y = endYear; y >= startYear; y--) years.push(y)
     return years
+  }
+
+  // The year the export defaults to when the admin hasn't picked one — the most
+  // recent year that actually has posts, so it always matches a real option.
+  const defaultYearFor = (family) => {
+    const years = yearsForFamily(family)
+    return years[0] ?? new Date().getFullYear()
   }
 
   const createCSV = (data) => {
@@ -1122,7 +1133,7 @@ export default function AdminDashboard() {
 
                           <div style={{ display: 'flex', gap: '4px' }}>
                             <select
-                              value={exportYearByFamily[family.id] ?? new Date().getFullYear()}
+                              value={exportYearByFamily[family.id] ?? defaultYearFor(family)}
                               onChange={(e) => setExportYearByFamily(prev => ({ ...prev, [family.id]: e.target.value }))}
                               className="input-glass"
                               style={{ padding: '5px 8px', fontSize: '11.5px', flex: '0 0 auto' }}
@@ -1133,7 +1144,7 @@ export default function AdminDashboard() {
                               ))}
                             </select>
                             <button
-                              onClick={() => handleExportFamilyYear(family, exportYearByFamily[family.id] ?? new Date().getFullYear())}
+                              onClick={() => handleExportFamilyYear(family, exportYearByFamily[family.id] ?? defaultYearFor(family))}
                               disabled={exportingFamilyId === family.id}
                               title="Descarcă doar anul selectat, ca .zip — pentru album cadou sau contra plată la sfârșit de an"
                               style={{

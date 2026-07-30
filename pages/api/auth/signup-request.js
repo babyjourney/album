@@ -15,8 +15,12 @@ import { sendOtpEmail } from '../../../lib/notifications'
 import rateLimiter from '../../../lib/rateLimiter'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
-// Same shape pin-login accepts: Moldova/Romania mobile, optional leading 0.
-const PHONE_RE = /^(0)?[67][0-9]{7}$/
+// (Sergiu batch3 #5) Two accepted shapes:
+//   - International E.164 (what the country picker now sends): +373 69010712 ->
+//     "+37369010712". 7–15 digits after the "+".
+//   - Legacy Moldova/Romania mobile, optional leading 0 — kept so anything that
+//     still posts the old local format (and existing tests) keeps working.
+const PHONE_RE = /^(\+[1-9]\d{6,14}|(0)?[67][0-9]{7})$/
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -29,14 +33,16 @@ export default async function handler(req, res) {
   const cleanEmail = String(email || '').trim().toLowerCase()
   const cleanPhone = String(phoneNumber || '').replace(/[\s-]/g, '')
 
+  // errorKey lets the client render the message in the visitor's language via
+  // t(); error stays as a Romanian fallback for logs and older clients.
   if (!cleanName || cleanName.length < 2) {
-    return res.status(400).json({ error: 'Introdu numele familiei' })
+    return res.status(400).json({ error: 'Introdu numele familiei', errorKey: 'signupErrNameRequired' })
   }
   if (!EMAIL_RE.test(cleanEmail)) {
-    return res.status(400).json({ error: 'Adresa de email nu este validă' })
+    return res.status(400).json({ error: 'Adresa de email nu este validă', errorKey: 'authErrEmailInvalid' })
   }
   if (!PHONE_RE.test(cleanPhone)) {
-    return res.status(400).json({ error: 'Numărul de telefon nu este valid (ex. 069123456)' })
+    return res.status(400).json({ error: 'Numărul de telefon nu este valid (ex. 069123456)', errorKey: 'authErrPhoneInvalid' })
   }
 
   // Throttle by client. Every request COUNTS — this endpoint sends an email to

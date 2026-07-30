@@ -77,6 +77,18 @@ const auth = {
     signupGoToLogin: 'Mergi la autentificare',
     signupHaveAccount: 'Ai deja cont?',
     signupLoginLink: 'Autentifică-te',
+    signupCountryLabel: 'Țară',
+    signupPhoneHint: 'Alege țara, apoi scrie numărul fără prefix. Ex: {dial} 69123456',
+    // (Sergiu batch3 #8) Signup error messages — the API returns an errorKey so
+    // these show in the visitor's language instead of always Romanian.
+    signupErrNameRequired: 'Introdu numele familiei',
+    authErrEmailInvalid: 'Adresa de email nu este validă',
+    authErrPhoneInvalid: 'Numărul de telefon nu este valid',
+    signupErrEmailCodeRequired: 'Email și cod sunt obligatorii',
+    signupErrCodeWrong: 'Codul este greșit sau a expirat. Cere unul nou.',
+    signupErrNotConfigured: 'Înregistrarea nu este configurată complet. Contactează suportul.',
+    signupErrCreateFailed: 'Crearea contului a eșuat. Încearcă din nou.',
+    signupErrEmailExists: 'Există deja un cont cu acest email. Folosește „Am uitat PIN-ul".',
 
     // Forgot PIN
     forgotTitle: 'Resetează PIN-ul',
@@ -238,6 +250,16 @@ const auth = {
     signupGoToLogin: 'Перейти ко входу',
     signupHaveAccount: 'Уже есть аккаунт?',
     signupLoginLink: 'Войти',
+    signupCountryLabel: 'Страна',
+    signupPhoneHint: 'Выберите страну, затем введите номер без кода. Напр.: {dial} 69123456',
+    signupErrNameRequired: 'Введите название семьи',
+    authErrEmailInvalid: 'Неверный адрес электронной почты',
+    authErrPhoneInvalid: 'Неверный номер телефона',
+    signupErrEmailCodeRequired: 'Email и код обязательны',
+    signupErrCodeWrong: 'Код неверный или истёк. Запросите новый.',
+    signupErrNotConfigured: 'Регистрация настроена не полностью. Свяжитесь с поддержкой.',
+    signupErrCreateFailed: 'Не удалось создать аккаунт. Попробуйте снова.',
+    signupErrEmailExists: 'Аккаунт с этой почтой уже существует. Используйте «Забыли PIN».',
 
     // Forgot PIN
     forgotTitle: 'Сброс PIN-кода',
@@ -399,6 +421,16 @@ const auth = {
     signupGoToLogin: 'Go to sign in',
     signupHaveAccount: 'Already have an account?',
     signupLoginLink: 'Sign in',
+    signupCountryLabel: 'Country',
+    signupPhoneHint: 'Pick your country, then type the number without the prefix. E.g. {dial} 69123456',
+    signupErrNameRequired: 'Enter the family name',
+    authErrEmailInvalid: 'Email address is not valid',
+    authErrPhoneInvalid: 'Phone number is not valid',
+    signupErrEmailCodeRequired: 'Email and code are required',
+    signupErrCodeWrong: 'The code is wrong or has expired. Request a new one.',
+    signupErrNotConfigured: 'Registration is not fully configured. Contact support.',
+    signupErrCreateFailed: 'Account creation failed. Please try again.',
+    signupErrEmailExists: 'An account with this email already exists. Use "Forgot PIN".',
 
     // Forgot PIN
     forgotTitle: 'Reset your PIN',

@@ -141,6 +141,12 @@ async function handler(req, res) {
         let storageUsed = 0
         let postsLast30Days = 0
         let photoFilesCount = 0
+        // (Sergiu batch3 #4) Years that actually contain posts, taken from the
+        // MEMORY date (created_at) the export groups by — often backdated years
+        // before the account existed. The export year dropdown was built from
+        // the account-creation year instead, so it only ever offered the current
+        // year. Deriving it here is free: we're already iterating every photo.
+        const postYears = new Set()
         if (photosData && photosData.length > 0) {
           photosData.forEach(photo => {
             storageUsed += bytesOfPost(photo)
@@ -151,6 +157,8 @@ async function handler(req, res) {
             }
             // (text posts have neither file_url nor file_urls → not counted)
             if (new Date(postedAt(photo)) >= thirtyDaysAgo) postsLast30Days += 1
+            const y = new Date(photo.created_at).getFullYear()
+            if (!Number.isNaN(y)) postYears.add(y)
           })
         }
 
@@ -187,6 +195,7 @@ async function handler(req, res) {
           activity_code: activity.code,
           activity_rank: activity.rank,
           account_age_days: accountAgeDays,
+          post_years: [...postYears].sort((a, b) => b - a),
         }
       })
     )

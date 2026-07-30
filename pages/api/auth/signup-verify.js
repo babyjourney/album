@@ -26,7 +26,7 @@ export default async function handler(req, res) {
   const cleanCode = String(code || '').trim()
 
   if (!cleanEmail || !cleanCode) {
-    return res.status(400).json({ error: 'Email și cod sunt obligatorii' })
+    return res.status(400).json({ error: 'Email și cod sunt obligatorii', errorKey: 'signupErrEmailCodeRequired' })
   }
 
   // Brute-forcing a 4-digit code is only 10k guesses, so throttle hard here.
@@ -57,7 +57,7 @@ export default async function handler(req, res) {
       // address has no OTP row ("codul nu există"), while a fresh one does and
       // reports "cod greșit, mai ai N încercări" — two distinct replies, and the
       // enumeration is back.
-      return res.status(401).json({ error: 'Codul este greșit sau a expirat. Cere unul nou.' })
+      return res.status(401).json({ error: 'Codul este greșit sau a expirat. Cere unul nou.', errorKey: 'signupErrCodeWrong' })
     }
 
     rateLimiter.recordSuccessfulAttempt(clientId)
@@ -67,7 +67,7 @@ export default async function handler(req, res) {
       // The row verified but carries no payload — that means the `payload`
       // column is missing, i.e. sql/sergiu_batch2.sql hasn't been run.
       console.error('signup-verify: OTP row has no payload — run sql/sergiu_batch2.sql')
-      return res.status(500).json({ error: 'Înregistrarea nu este configurată complet. Contactează suportul.' })
+      return res.status(500).json({ error: 'Înregistrarea nu este configurată complet. Contactează suportul.', errorKey: 'signupErrNotConfigured' })
     }
 
     // Re-check for a race: two tabs could both verify before either inserted.
@@ -84,11 +84,11 @@ export default async function handler(req, res) {
 
     if (lookupError) {
       console.error('signup-verify: duplicate check failed:', lookupError)
-      return res.status(500).json({ error: 'Crearea contului a eșuat. Încearcă din nou.' })
+      return res.status(500).json({ error: 'Crearea contului a eșuat. Încearcă din nou.', errorKey: 'signupErrCreateFailed' })
     }
 
     if (existing) {
-      return res.status(409).json({ error: 'Există deja un cont cu acest email. Folosește „Am uitat PIN-ul".' })
+      return res.status(409).json({ error: 'Există deja un cont cu acest email. Folosește „Am uitat PIN-ul".', errorKey: 'signupErrEmailExists' })
     }
 
     const { data: family, error: insertError } = await supabase
@@ -110,7 +110,7 @@ export default async function handler(req, res) {
     if (insertError) {
       // A unique-violation here means someone else won the race.
       if (insertError.code === '23505') {
-        return res.status(409).json({ error: 'Există deja un cont cu acest email.' })
+        return res.status(409).json({ error: 'Există deja un cont cu acest email.', errorKey: 'signupErrEmailExists' })
       }
       throw insertError
     }
@@ -167,6 +167,6 @@ export default async function handler(req, res) {
     })
   } catch (error) {
     console.error('signup-verify error:', error)
-    return res.status(500).json({ error: 'Crearea contului a eșuat. Încearcă din nou.' })
+    return res.status(500).json({ error: 'Crearea contului a eșuat. Încearcă din nou.', errorKey: 'signupErrCreateFailed' })
   }
 }

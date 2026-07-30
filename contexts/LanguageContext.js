@@ -816,10 +816,21 @@ export function LanguageProvider({ children }) {
   const [language, setLanguage] = useState('ro')
 
   useEffect(() => {
-    // Load saved language preference from localStorage
+    // An explicit choice always wins and is remembered.
     const savedLanguage = localStorage.getItem('selectedLanguage')
     if (savedLanguage && ALL[savedLanguage]) {
       setLanguage(savedLanguage)
+      return
+    }
+    // (Sergiu batch3 #6) No saved choice yet — follow the browser/OS language so
+    // a Russian- or English-speaking visitor doesn't land on a Romanian page and
+    // have to hunt for the switch. navigator.languages is ordered by preference;
+    // take the first that maps to a language we ship. We do NOT persist this —
+    // detection stays live until the user makes an explicit pick.
+    const prefs = (typeof navigator !== 'undefined' && (navigator.languages || [navigator.language])) || []
+    for (const pref of prefs) {
+      const code = String(pref || '').slice(0, 2).toLowerCase()
+      if (ALL[code]) { setLanguage(code); break }
     }
   }, [])
 

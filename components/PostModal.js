@@ -2461,27 +2461,30 @@ function PostModalInner({
               <label className="text-eyebrow" style={{ display: 'block', marginBottom: '8px' }}>
                 {t('category')}
               </label>
-              <select
-                value={editCategory}
-                onChange={(e) => setEditCategory(e.target.value)}
-                className="input-glass"
-                style={{
-                  width: '100%',
-                  appearance: 'none',
-                  backgroundImage: 'url("data:image/svg+xml,%3csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 20 20\'%3e%3cpath stroke=\'%237c3aed\' stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'1.5\' d=\'M6 8l4 4 4-4\'/%3e%3c/svg%3e")',
-                  backgroundPosition: 'right 0.75rem center',
-                  backgroundRepeat: 'no-repeat',
-                  backgroundSize: '1.4em 1.4em',
-                  paddingRight: '2.5rem'
-                }}
-              >
-                <option value="">{t('selectCategory')}</option>
-                {categories.map((cat) => (
-                  <option key={cat.value} value={cat.value}>
-                    {cat.emoji ? `${cat.emoji} ` : ''}{cat.label}
-                  </option>
-                ))}
-              </select>
+              {/* (Sergiu batch3 #2) Was a native <select>. On hover the OS
+                  repaints the option row and the author text color no longer
+                  contrasts with it — the category label went invisible exactly
+                  when you pointed at it. Native <option> hover styling isn't
+                  reliably controllable via CSS, so use the same pill picker the
+                  rest of the app uses (UploadForm/CreatePost). Click the active
+                  pill again to clear, matching the old empty option. */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {categories.map((cat) => {
+                  const on = editCategory === cat.value
+                  return (
+                    <button
+                      key={cat.value}
+                      type="button"
+                      onClick={() => setEditCategory(on ? '' : cat.value)}
+                      className={on ? 'category-pill category-pill--selected' : 'category-pill'}
+                      style={{ padding: '6px 12px', fontSize: '13px' }}
+                    >
+                      {cat.emoji ? <span style={{ marginRight: 6 }}>{cat.emoji}</span> : null}
+                      {cat.label}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
 
             {isEditor() && (

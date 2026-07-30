@@ -14,6 +14,26 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useLanguage } from '../contexts/LanguageContext'
+import LanguagePicker from '../components/LanguagePicker'
+
+// (Sergiu batch3 #5) Registration hard-coded the Moldovan "069…" format. The
+// country picker supplies the dial code so the user types only the local number,
+// and we store a full international (E.164) number. Moldova first — that's where
+// the clients are — then the countries the diaspora actually lives in.
+const COUNTRIES = [
+  { code: 'MD', flag: '🇲🇩', dial: '+373' },
+  { code: 'RO', flag: '🇷🇴', dial: '+40' },
+  { code: 'RU', flag: '🇷🇺', dial: '+7' },
+  { code: 'UA', flag: '🇺🇦', dial: '+380' },
+  { code: 'IT', flag: '🇮🇹', dial: '+39' },
+  { code: 'DE', flag: '🇩🇪', dial: '+49' },
+  { code: 'FR', flag: '🇫🇷', dial: '+33' },
+  { code: 'ES', flag: '🇪🇸', dial: '+34' },
+  { code: 'PT', flag: '🇵🇹', dial: '+351' },
+  { code: 'GB', flag: '🇬🇧', dial: '+44' },
+  { code: 'US', flag: '🇺🇸', dial: '+1' },
+]
+const dialOf = (code) => COUNTRIES.find((c) => c.code === code)?.dial || ''
 
 export default function Signup() {
   const router = useRouter()
@@ -24,7 +44,13 @@ export default function Signup() {
 
   const [familyName, setFamilyName] = useState('')
   const [email, setEmail] = useState('')
-  const [phoneNumber, setPhoneNumber] = useState('')
+  const [country, setCountry] = useState('MD')
+  const [phoneNumber, setPhoneNumber] = useState('') // local part only, digits
+
+  // Full international number: dial code + local digits (leading zeros dropped,
+  // since the dial code replaces the national trunk "0"). E.g. MD + "069010712"
+  // -> "+37369010712".
+  const fullPhone = () => `${dialOf(country)}${phoneNumber.replace(/\D/g, '').replace(/^0+/, '')}`
 
   const [code, setCode] = useState('')
   const [devCode, setDevCode] = useState('')
@@ -39,10 +65,12 @@ export default function Signup() {
       const res = await fetch('/api/auth/signup-request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ familyName, email, phoneNumber }),
+        body: JSON.stringify({ familyName, email, phoneNumber: fullPhone() }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || t('signupFailed'))
+      // Prefer the localized key (Sergiu batch3 #8); fall back to the server's
+      // Romanian string, then a generic message.
+      if (!res.ok) throw new Error(data.errorKey ? t(data.errorKey) : (data.error || t('signupFailed')))
 
       // Only present when email delivery isn't configured AND we're in dev.
       if (data.devCode) setDevCode(data.devCode)
@@ -65,7 +93,7 @@ export default function Signup() {
         body: JSON.stringify({ email, code }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || t('signupCodeVerifyFailed'))
+      if (!res.ok) throw new Error(data.errorKey ? t(data.errorKey) : (data.error || t('signupCodeVerifyFailed')))
 
       setCredentials({ viewerPin: data.viewerPin, editorPin: data.editorPin })
       setStep('done')
@@ -83,7 +111,12 @@ export default function Signup() {
       alignItems: 'center',
       justifyContent: 'center',
       padding: 20,
+      position: 'relative',
     }}>
+      {/* (Sergiu batch3 #6) Language switch on the entry screen itself. */}
+      <div style={{ position: 'absolute', top: 20, right: 20, zIndex: 2 }}>
+        <LanguagePicker />
+      </div>
       <div className="card-glass" style={{ width: '100%', maxWidth: 440, padding: 32 }}>
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <h1 className="text-display" style={{ fontSize: 26, marginBottom: 6 }}>
@@ -138,15 +171,33 @@ export default function Signup() {
             </div>
             <div>
               <label className="text-eyebrow" style={{ display: 'block', marginBottom: 6 }}>{t('authPhoneShort')}</label>
-              <input
-                type="tel"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                className="input-glass"
-                placeholder="069123456"
-                autoComplete="tel"
-                required
-              />
+              <div style={{ display: 'flex', gap: 8 }}>
+                <select
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                  className="input-glass"
+                  aria-label={t('signupCountryLabel')}
+                  style={{ flex: '0 0 auto', width: 116, paddingRight: 8 }}
+                >
+                  {COUNTRIES.map((c) => (
+                    <option key={c.code} value={c.code}>{c.flag} {c.dial}</option>
+                  ))}
+                </select>
+                <input
+                  type="tel"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value.replace(/[^\d]/g, ''))}
+                  className="input-glass"
+                  placeholder="69123456"
+                  inputMode="numeric"
+                  autoComplete="tel-national"
+                  required
+                  style={{ flex: 1 }}
+                />
+              </div>
+              <p className="text-subtle" style={{ fontSize: 11.5, margin: '6px 2px 0', lineHeight: 1.4 }}>
+                {t('signupPhoneHint', { dial: dialOf(country) })}
+              </p>
             </div>
             <button type="submit" disabled={loading} className="btn-iris sheen" style={{ padding: '13px 16px', justifyContent: 'center', marginTop: 4 }}>
               {loading ? t('authSending') : t('authSendCode')}
