@@ -42,7 +42,7 @@ export default function ImportPage() {
         body: JSON.stringify({ service: 'dataMigration', message: `Migrare din ${provider.name}` }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || t('error'))
+      if (!res.ok) throw new Error((data.errorKey ? t(data.errorKey) : data.error) || t('error'))
       showSuccess(t('importMigrationRequested', { provider: provider.name }))
     } catch (e) { showError(e.message) } finally { setRequesting(null) }
   }

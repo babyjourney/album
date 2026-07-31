@@ -96,7 +96,7 @@ export default function Skills() {
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.error || t('loading'))
+        throw new Error((result.errorKey ? t(result.errorKey) : result.error) || t('loading'))
       }
 
       const progressMap = {}
@@ -143,7 +143,7 @@ export default function Skills() {
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.error || t('error'))
+        throw new Error((result.errorKey ? t(result.errorKey) : result.error) || t('error'))
       }
 
       // Update local state

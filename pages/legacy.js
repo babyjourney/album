@@ -37,7 +37,7 @@ export default function Legacy() {
         method: 'POST', body: JSON.stringify({ service: key }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || t('error'))
+      if (!res.ok) throw new Error((data.errorKey ? t(data.errorKey) : data.error) || t('error'))
       showSuccess(t('conciergeRequestSent'))
     } catch (e) { showError(e.message) } finally { setRequesting(null) }
   }

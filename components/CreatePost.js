@@ -76,7 +76,7 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.error || t('postCreationFailed'))
+        throw new Error((result.errorKey ? t(result.errorKey) : result.error) || t('postCreationFailed'))
       }
 
       // Reset form

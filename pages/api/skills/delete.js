@@ -9,7 +9,7 @@ async function handler(req, res) {
   const { skillId } = req.body
 
   if (!skillId) {
-    return res.status(400).json({ error: 'ID-ul abilității este obligatoriu' })
+    return res.status(400).json({ error: 'ID-ul abilității este obligatoriu', errorKey: 'errSkillIdRequired' })
   }
 
   try {
@@ -31,7 +31,7 @@ async function handler(req, res) {
 
   } catch (error) {
     console.error('Skill delete error:', error)
-    return res.status(500).json({ error: 'Ștergerea abilității a eșuat' })
+    return res.status(500).json({ error: 'Ștergerea abilității a eșuat', errorKey: 'errSkillDeleteFailed' })
   }
 }
 

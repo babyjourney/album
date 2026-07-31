@@ -106,7 +106,7 @@ export default function ForgotPassword() {
       })
       const data = await res.json()
       if (!res.ok) {
-        setError(data.error || t('forgotResetFailed'))
+        setError((data.errorKey ? t(data.errorKey) : data.error) || t('forgotResetFailed'))
         return
       }
       router.push('/login?reset=ok')

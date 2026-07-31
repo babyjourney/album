@@ -8,7 +8,7 @@ import { getTierLimits, TIERS, FEATURE_MIN_TIER } from '../../../lib/tiers'
 
 async function handler(req, res) {
   const familyId = resolveFamilyId(req)
-  if (!familyId) return res.status(400).json({ error: 'familyId lipsește' })
+  if (!familyId) return res.status(400).json({ error: 'familyId lipsește', errorKey: 'errFamilyIdRequired' })
 
   try {
     if (req.method === 'GET') {
@@ -20,9 +20,9 @@ async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      if (!canWrite(req)) return res.status(403).json({ error: 'Necesită rol de editor' })
+      if (!canWrite(req)) return res.status(403).json({ error: 'Necesită rol de editor', errorKey: 'errEditorRole' })
       const { name, relation, parentId, photoUrl, birthYear, notes, displayOrder } = req.body || {}
-      if (!name || !name.trim()) return res.status(400).json({ error: 'Numele este obligatoriu' })
+      if (!name || !name.trim()) return res.status(400).json({ error: 'Numele este obligatoriu', errorKey: 'errNameRequired' })
 
       // Enforce the tier node cap (basic tree). Admins bypass.
       if (!req.auth.isAdmin) {
@@ -65,9 +65,9 @@ async function handler(req, res) {
     }
 
     if (req.method === 'PUT') {
-      if (!canWrite(req)) return res.status(403).json({ error: 'Necesită rol de editor' })
+      if (!canWrite(req)) return res.status(403).json({ error: 'Necesită rol de editor', errorKey: 'errEditorRole' })
       const { id, name, relation, parentId, photoUrl, birthYear, notes, displayOrder } = req.body || {}
-      if (!id) return res.status(400).json({ error: 'id lipsește' })
+      if (!id) return res.status(400).json({ error: 'id lipsește', errorKey: 'errIdRequired' })
       const patch = {}
       if (name !== undefined) patch.name = name
       if (relation !== undefined) patch.relation = relation
@@ -84,9 +84,9 @@ async function handler(req, res) {
     }
 
     if (req.method === 'DELETE') {
-      if (!canWrite(req)) return res.status(403).json({ error: 'Necesită rol de editor' })
+      if (!canWrite(req)) return res.status(403).json({ error: 'Necesită rol de editor', errorKey: 'errEditorRole' })
       const id = req.query.id || req.body?.id
-      if (!id) return res.status(400).json({ error: 'id lipsește' })
+      if (!id) return res.status(400).json({ error: 'id lipsește', errorKey: 'errIdRequired' })
       const { error } = await supabase
         .from('family_tree_nodes').delete().eq('id', id).eq('family_id', familyId)
       if (error) throw error
@@ -96,7 +96,7 @@ async function handler(req, res) {
     return res.status(405).json({ error: 'Metoda nu este permisă' })
   } catch (err) {
     console.error('family-tree nodes api error:', err)
-    return res.status(500).json({ error: err.message || 'Eroare internă' })
+    return res.status(500).json({ error: err.message || 'Eroare internă', errorKey: 'errServerInternal' })
   }
 }
 

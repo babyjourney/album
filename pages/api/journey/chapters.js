@@ -7,7 +7,7 @@ import { resolveFamilyId, canWrite } from '../../../lib/childRecord'
 
 async function handler(req, res) {
   const familyId = resolveFamilyId(req)
-  if (!familyId) return res.status(400).json({ error: 'familyId lipsește' })
+  if (!familyId) return res.status(400).json({ error: 'familyId lipsește', errorKey: 'errFamilyIdRequired' })
 
   try {
     if (req.method === 'GET') {
@@ -22,9 +22,9 @@ async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      if (!canWrite(req)) return res.status(403).json({ error: 'Necesită rol de editor' })
+      if (!canWrite(req)) return res.status(403).json({ error: 'Necesită rol de editor', errorKey: 'errEditorRole' })
       const { childId, title, description, hashtags, color, startDate, endDate, displayOrder } = req.body || {}
-      if (!title || !title.trim()) return res.status(400).json({ error: 'Titlul este obligatoriu' })
+      if (!title || !title.trim()) return res.status(400).json({ error: 'Titlul este obligatoriu', errorKey: 'errTitleRequired' })
 
       // (Item 11) Hashtags let an event pull in matching posts even when they
       // fall outside its date range. Accept a raw string or an array; normalize
@@ -63,9 +63,9 @@ async function handler(req, res) {
     }
 
     if (req.method === 'DELETE') {
-      if (!canWrite(req)) return res.status(403).json({ error: 'Necesită rol de editor' })
+      if (!canWrite(req)) return res.status(403).json({ error: 'Necesită rol de editor', errorKey: 'errEditorRole' })
       const id = req.query.id || req.body?.id
-      if (!id) return res.status(400).json({ error: 'id lipsește' })
+      if (!id) return res.status(400).json({ error: 'id lipsește', errorKey: 'errIdRequired' })
       const { error } = await supabase
         .from('life_chapters').delete().eq('id', id).eq('family_id', familyId)
       if (error) throw error
@@ -75,7 +75,7 @@ async function handler(req, res) {
     return res.status(405).json({ error: 'Metoda nu este permisă' })
   } catch (err) {
     console.error('chapters api error:', err)
-    return res.status(500).json({ error: err.message || 'Eroare internă' })
+    return res.status(500).json({ error: err.message || 'Eroare internă', errorKey: 'errServerInternal' })
   }
 }
 

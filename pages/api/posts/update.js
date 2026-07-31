@@ -14,11 +14,11 @@ async function handler(req, res) {
 
   // Input validation
   if (title && title.length > 200) {
-    return res.status(400).json({ error: 'Titlul nu poate depăși 200 de caractere' })
+    return res.status(400).json({ error: 'Titlul nu poate depăși 200 de caractere', errorKey: 'errTitleTooLong' })
   }
 
   if (description && description.length > 2000) {
-    return res.status(400).json({ error: 'Descrierea nu poate depăși 2000 de caractere' })
+    return res.status(400).json({ error: 'Descrierea nu poate depăși 2000 de caractere', errorKey: 'errDescTooLong' })
   }
 
   try {
@@ -27,7 +27,7 @@ async function handler(req, res) {
     
     if (!ownershipCheck.isOwner) {
       return res.status(403).json({ 
-        error: ownershipCheck.error || 'Nu aveți permisiunea să modificați această postare',
+        error: ownershipCheck.error || 'Nu aveți permisiunea să modificați această postare', errorKey: 'errNoEditPermission',
         code: 'FORBIDDEN'
       })
     }
@@ -241,7 +241,7 @@ async function handler(req, res) {
 
     if (!data || data.length === 0) {
       console.log('No post found with ID:', postId)
-      return res.status(404).json({ error: 'Post not found' })
+      return res.status(404).json({ error: 'Post not found', errorKey: 'errPostNotFound' })
     }
 
     // (Item 3b) Rewrite child associations when childIds is provided. Delete the

@@ -12,25 +12,25 @@ async function handler(req, res) {
   const familyId = req.auth.isAdmin ? rawFamilyId : req.auth.familyId
 
   if (!familyId) {
-    return res.status(400).json({ error: 'ID-ul familiei este obligatoriu' })
+    return res.status(400).json({ error: 'ID-ul familiei este obligatoriu', errorKey: 'errFamilyIdRequired' })
   }
 
   if (!type || (!description && !fileUrl)) {
-    return res.status(400).json({ error: 'Câmpuri obligatorii lipsă' })
+    return res.status(400).json({ error: 'Câmpuri obligatorii lipsă', errorKey: 'errRequiredFields' })
   }
 
   // Input validation and sanitization
   if (title && title.length > 200) {
-    return res.status(400).json({ error: 'Titlul nu poate depăși 200 de caractere' })
+    return res.status(400).json({ error: 'Titlul nu poate depăși 200 de caractere', errorKey: 'errTitleTooLong' })
   }
 
   if (description && description.length > 2000) {
-    return res.status(400).json({ error: 'Descrierea nu poate depăși 2000 de caractere' })
+    return res.status(400).json({ error: 'Descrierea nu poate depăși 2000 de caractere', errorKey: 'errDescTooLong' })
   }
 
   // Validate post type
   if (!['image', 'video', 'text'].includes(type)) {
-    return res.status(400).json({ error: 'Tip de postare invalid' })
+    return res.status(400).json({ error: 'Tip de postare invalid', errorKey: 'errPostTypeInvalid' })
   }
 
   try {

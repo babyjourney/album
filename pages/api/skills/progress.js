@@ -69,7 +69,7 @@ async function getSkillsProgress(req, res) {
 
     if (await hasChildColumn()) {
       const { ok, childId } = await resolveChildId(familyId, req.query.childId)
-      if (!ok) return res.status(403).json({ error: 'Copilul nu aparține familiei dvs.' })
+      if (!ok) return res.status(403).json({ error: 'Copilul nu aparține familiei dvs.', errorKey: 'errChildNotInFamily' })
       query = scopeToChild(query, childId)
     }
 
@@ -86,7 +86,7 @@ async function getSkillsProgress(req, res) {
 
   } catch (error) {
     console.error('Skills fetch error:', error)
-    return res.status(500).json({ error: 'Încărcarea progresului a eșuat' })
+    return res.status(500).json({ error: 'Încărcarea progresului a eșuat', errorKey: 'errProgressLoadFailed' })
   }
 }
 
@@ -95,11 +95,11 @@ async function updateSkillProgress(req, res) {
   const familyId = req.auth.familyId
 
   if (!skillId || progress === undefined) {
-    return res.status(400).json({ error: 'Date incomplete pentru actualizarea progresului' })
+    return res.status(400).json({ error: 'Date incomplete pentru actualizarea progresului', errorKey: 'errProgressIncomplete' })
   }
 
   if (progress < 0 || progress > 100) {
-    return res.status(400).json({ error: 'Progresul trebuie să fie între 0 și 100' })
+    return res.status(400).json({ error: 'Progresul trebuie să fie între 0 și 100', errorKey: 'errProgressRange' })
   }
 
   try {
@@ -107,7 +107,7 @@ async function updateSkillProgress(req, res) {
     let childId = null
     if (childScoped) {
       const resolved = await resolveChildId(familyId, rawChildId)
-      if (!resolved.ok) return res.status(403).json({ error: 'Copilul nu aparține familiei dvs.' })
+      if (!resolved.ok) return res.status(403).json({ error: 'Copilul nu aparține familiei dvs.', errorKey: 'errChildNotInFamily' })
       childId = resolved.childId
     }
 
@@ -184,7 +184,7 @@ async function updateSkillProgress(req, res) {
 
   } catch (error) {
     console.error('Skills update error:', error)
-    return res.status(500).json({ error: 'Actualizarea progresului a eșuat' })
+    return res.status(500).json({ error: 'Actualizarea progresului a eșuat', errorKey: 'errProgressUpdateFailed' })
   }
 }
 

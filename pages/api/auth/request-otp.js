@@ -25,7 +25,7 @@ export default async function handler(req, res) {
   const { phoneNumber, email } = req.body || {}
 
   if (!phoneNumber && !email) {
-    return res.status(400).json({ error: 'Introdu numărul de telefon sau email-ul' })
+    return res.status(400).json({ error: 'Introdu numărul de telefon sau email-ul', errorKey: 'authErrContactRequired' })
   }
 
   const ok = (channel = null, otpRequired = false, extra = {}) => res.status(200).json({

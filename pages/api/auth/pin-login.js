@@ -13,13 +13,13 @@ export default async function handler(req, res) {
   const { pin, phoneNumber, email, otpCode } = req.body
 
   if (!pin) {
-    return res.status(400).json({ error: 'PIN-ul este obligatoriu' })
+    return res.status(400).json({ error: 'PIN-ul este obligatoriu', errorKey: 'authErrPinRequired' })
   }
 
   // Either phone OR email must be provided. Phone remains the primary path
   // for backward compatibility; email is allowed for 2FA-enabled families.
   if (!phoneNumber && !email) {
-    return res.status(400).json({ error: 'Numărul de telefon sau email-ul este obligatoriu' })
+    return res.status(400).json({ error: 'Numărul de telefon sau email-ul este obligatoriu', errorKey: 'authErrContactRequired' })
   }
 
   // Remove any spaces and validate formats first
@@ -46,7 +46,7 @@ export default async function handler(req, res) {
   }
   
   if (!/^\d{4}$|^\d{8}$/.test(cleanPin)) {
-    return res.status(400).json({ error: 'PIN-ul trebuie să aibă 4 sau 8 cifre' })
+    return res.status(400).json({ error: 'PIN-ul trebuie să aibă 4 sau 8 cifre', errorKey: 'authErrPinFormat' })
   }
 
   // Validate phone number format (Romanian format: 068327082 or 68327082).
@@ -55,14 +55,14 @@ export default async function handler(req, res) {
   if (cleanPhone) {
     const phoneRegex = /^(0)?[67][0-9]{7}$/
     if (!phoneRegex.test(cleanPhone)) {
-      return res.status(400).json({ error: 'Numărul de telefon nu este valid (format: 061234567 sau 61234567)' })
+      return res.status(400).json({ error: 'Numărul de telefon nu este valid (format: 061234567 sau 61234567)', errorKey: 'authErrPhoneInvalid' })
     }
   }
 
   if (cleanEmail) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(cleanEmail)) {
-      return res.status(400).json({ error: 'Adresa de email nu este validă' })
+      return res.status(400).json({ error: 'Adresa de email nu este validă', errorKey: 'authErrEmailInvalid' })
     }
   }
 
@@ -119,6 +119,7 @@ export default async function handler(req, res) {
       
       return res.status(401).json({ 
         error: errorMessage,
+        errorKey: 'authErrWrongCredentials',
         rateLimited: attemptResult.blocked || false,
         level: attemptResult.level || null,
         attemptsRemaining: attemptResult.attemptsRemaining || 0
@@ -129,6 +130,7 @@ export default async function handler(req, res) {
     if (family.is_suspended) {
       return res.status(403).json({
         error: 'Acest album a fost suspendat. Contactați administratorul pentru mai multe informații.',
+        errorKey: 'authErrSuspended',
         suspended: true
       })
     }
@@ -147,6 +149,7 @@ export default async function handler(req, res) {
       if (!otpCode) {
         return res.status(401).json({
           error: 'Cod de verificare necesar.',
+          errorKey: 'authErrOtpRequired',
           code: 'OTP_REQUIRED',
           otpRequired: true,
           deliveryHint: cleanEmail ? 'email' : 'phone',
@@ -162,6 +165,7 @@ export default async function handler(req, res) {
       if (!otpResult.ok) {
         return res.status(401).json({
           error: otpResult.error,
+          errorKey: 'authErrOtpInvalid',
           code: 'OTP_INVALID',
           otpRequired: true,
         })
@@ -215,6 +219,6 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('PIN login error:', error)
-    return res.status(500).json({ error: 'Eroare internă a serverului' })
+    return res.status(500).json({ error: 'Eroare internă a serverului', errorKey: 'authErrServer' })
   }
 }

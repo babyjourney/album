@@ -67,6 +67,18 @@ export default function Login() {
       : { phoneNumber: phoneNumber.trim() }
   )
 
+  // (Sergiu batch3 #8) Prefer the server's errorKey — localized here via t() —
+  // over its Romanian string, so EN/RU users see errors in their language. The
+  // "N attempts left" tail is appended in the active language too.
+  const resolveError = (result) => {
+    let msg = result.errorKey ? t(result.errorKey) : (result.error || '')
+    if (!result.rateLimited && result.attemptsRemaining != null &&
+        result.attemptsRemaining > 0 && result.attemptsRemaining <= 2) {
+      msg = `${msg} ${t('loginAttemptsRemaining', { n: result.attemptsRemaining })}`
+    }
+    return msg
+  }
+
   // Single login submit. We first call /api/auth/request-otp to find out
   // whether this family has 2FA enabled. If yes, we collect the OTP code
   // before calling pin-login. If no, we go straight to pin-login.
@@ -126,20 +138,20 @@ export default function Login() {
     if (result.otpRequired) {
       setOtpStep(true)
       setOtpDeliveryHint(result.deliveryHint || null)
-      setError(result.code === 'OTP_INVALID' ? result.error : '')
+      setError(result.code === 'OTP_INVALID' ? resolveError(result) : '')
       setLoading(false)
       return
     }
 
     if (result.suspended) {
-      setRateLimitInfo(null); setCooldownTimer(null); setError(result.error); setLoading(false); return
+      setRateLimitInfo(null); setCooldownTimer(null); setError(resolveError(result)); setLoading(false); return
     }
     if (result.rateLimited) {
       setRateLimitInfo({ level: result.level, blockedUntil: result.blockedUntil, timeRemaining: result.timeRemaining })
     } else {
       setRateLimitInfo(null); setCooldownTimer(null)
     }
-    setError(result.error)
+    setError(resolveError(result))
     setLoading(false)
   }
 
@@ -149,7 +161,7 @@ export default function Login() {
     const probe = await requestLoginOtp(contactPayload())
     setLoading(false)
     if (!probe.success) {
-      setError(probe.error || t('loginErrorResendFailed'))
+      setError(probe.errorKey ? t(probe.errorKey) : (probe.error || t('loginErrorResendFailed')))
       return
     }
     setOtpDeliveryHint(probe.deliveryHint || otpDeliveryHint)

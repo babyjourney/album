@@ -22,18 +22,18 @@ export default async function handler(req, res) {
 
   const { phoneNumber, email, code, newPin, role } = req.body || {}
 
-  if (!code) return res.status(400).json({ error: 'Codul de verificare lipsește' })
-  if (!newPin) return res.status(400).json({ error: 'PIN-ul nou lipsește' })
+  if (!code) return res.status(400).json({ error: 'Codul de verificare lipsește', errorKey: 'errCodeMissing' })
+  if (!newPin) return res.status(400).json({ error: 'PIN-ul nou lipsește', errorKey: 'errNewPinMissing' })
   if (role !== 'viewer' && role !== 'editor') {
-    return res.status(400).json({ error: 'Rol invalid (viewer sau editor)' })
+    return res.status(400).json({ error: 'Rol invalid (viewer sau editor)', errorKey: 'errRoleInvalid' })
   }
 
   const cleanPin = String(newPin).replace(/\D/g, '')
   if (role === 'viewer' && !/^\d{4}$/.test(cleanPin)) {
-    return res.status(400).json({ error: 'PIN-ul de viewer trebuie să aibă 4 cifre' })
+    return res.status(400).json({ error: 'PIN-ul de viewer trebuie să aibă 4 cifre', errorKey: 'errViewerPin4' })
   }
   if (role === 'editor' && !/^\d{8}$/.test(cleanPin)) {
-    return res.status(400).json({ error: 'PIN-ul de editor trebuie să aibă 8 cifre' })
+    return res.status(400).json({ error: 'PIN-ul de editor trebuie să aibă 8 cifre', errorKey: 'errEditorPin8' })
   }
 
   let contactValue = null
@@ -46,16 +46,16 @@ export default async function handler(req, res) {
     contactValue = String(phoneNumber).replace(/\s/g, '')
     lookupQuery = lookupQuery.eq('phone_number', contactValue)
   } else {
-    return res.status(400).json({ error: 'Introdu numărul de telefon sau email-ul' })
+    return res.status(400).json({ error: 'Introdu numărul de telefon sau email-ul', errorKey: 'authErrContactRequired' })
   }
 
   try {
     const { data: family, error: lookupError } = await lookupQuery.maybeSingle()
     if (lookupError || !family) {
-      return res.status(400).json({ error: 'Cont negăsit sau cod expirat' })
+      return res.status(400).json({ error: 'Cont negăsit sau cod expirat', errorKey: 'errAccountNotFoundOrExpired' })
     }
     if (family.is_suspended) {
-      return res.status(403).json({ error: 'Acest cont este suspendat' })
+      return res.status(403).json({ error: 'Acest cont este suspendat', errorKey: 'errAccountSuspended' })
     }
 
     const result = await verifyOtp({
@@ -80,7 +80,7 @@ export default async function handler(req, res) {
 
     if (updateError) {
       console.error('reset-pin update failed:', updateError)
-      return res.status(500).json({ error: 'Nu s-a putut actualiza PIN-ul' })
+      return res.status(500).json({ error: 'Nu s-a putut actualiza PIN-ul', errorKey: 'errPinUpdateFailed' })
     }
 
     return res.status(200).json({
@@ -89,6 +89,6 @@ export default async function handler(req, res) {
     })
   } catch (error) {
     console.error('reset-pin error:', error)
-    return res.status(500).json({ error: 'Eroare internă' })
+    return res.status(500).json({ error: 'Eroare internă', errorKey: 'errServerInternal' })
   }
 }

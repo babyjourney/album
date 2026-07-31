@@ -10,7 +10,7 @@ async function handler(req, res) {
   const familyId = req.auth.familyId
 
   if (!skillName) {
-    return res.status(400).json({ error: 'Numele abilității este obligatoriu' })
+    return res.status(400).json({ error: 'Numele abilității este obligatoriu', errorKey: 'errSkillNameRequired' })
   }
 
   try {
@@ -35,7 +35,7 @@ async function handler(req, res) {
 
   } catch (error) {
     console.error('Skill create error:', error)
-    return res.status(500).json({ error: 'Crearea abilității a eșuat' })
+    return res.status(500).json({ error: 'Crearea abilității a eșuat', errorKey: 'errSkillCreateFailed' })
   }
 }
 

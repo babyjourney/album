@@ -28,14 +28,14 @@ async function generateUniqueEditorPin() {
 
 async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Metoda nu este permisă' })
-  if (!canWrite(req)) return res.status(403).json({ error: 'Necesită rol de editor' })
+  if (!canWrite(req)) return res.status(403).json({ error: 'Necesită rol de editor', errorKey: 'errEditorRole' })
 
   const familyId = resolveFamilyId(req)
-  if (!familyId) return res.status(400).json({ error: 'familyId lipsește' })
+  if (!familyId) return res.status(400).json({ error: 'familyId lipsește', errorKey: 'errFamilyIdRequired' })
 
   const newEmail = (req.body?.newEmail || '').trim().toLowerCase()
   if (!EMAIL_REGEX.test(newEmail)) {
-    return res.status(400).json({ error: 'Adresa de email a noului proprietar nu este validă' })
+    return res.status(400).json({ error: 'Adresa de email a noului proprietar nu este validă', errorKey: 'errTransferEmailInvalid' })
   }
 
   try {
@@ -65,7 +65,7 @@ async function handler(req, res) {
     return res.status(200).json({ success: true, newEditorPin: newPin, newEmail })
   } catch (err) {
     console.error('ownership-transfer error:', err)
-    return res.status(500).json({ error: err.message || 'Eroare internă' })
+    return res.status(500).json({ error: err.message || 'Eroare internă', errorKey: 'errServerInternal' })
   }
 }
 

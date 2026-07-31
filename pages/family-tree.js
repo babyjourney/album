@@ -77,7 +77,7 @@ export default function FamilyTree() {
         }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || t('error'))
+      if (!res.ok) throw new Error((data.errorKey ? t(data.errorKey) : data.error) || t('error'))
       setForm({ name: '', relation: RELATIONS[0].value, birthYear: '', notes: '' })
       showSuccess(t('familyTreeMemberAdded'))
       loadNodes(session.familyId)

@@ -114,7 +114,7 @@ export default function BentoMasonry({ familyId, searchQuery, refreshTrigger, on
 
       const response = await authenticatedFetch(`/api/photos/list?${params.toString()}`)
       const result = await response.json()
-      if (!response.ok) throw new Error(result.error || t('postsLoadFailed'))
+      if (!response.ok) throw new Error((result.errorKey ? t(result.errorKey) : result.error) || t('postsLoadFailed'))
       const data = result.photos || []
       setPosts(data)
       onPostCountUpdate && onPostCountUpdate(data.length)

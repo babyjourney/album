@@ -36,20 +36,20 @@ async function handler(req, res) {
   // title or a description. Only reject when there's truly nothing to save.
   const isTextPost = imageUrls.length === 0
   if (isTextPost && !(title && title.trim()) && !(description && description.trim())) {
-    return res.status(400).json({ error: 'Adaugă cel puțin un fișier sau un titlu/descriere' })
+    return res.status(400).json({ error: 'Adaugă cel puțin un fișier sau un titlu/descriere', errorKey: 'errAtLeastOneFileOrText' })
   }
 
   // Input validation
   if (title && title.length > 200) {
-    return res.status(400).json({ error: 'Titlul nu poate depăși 200 de caractere' })
+    return res.status(400).json({ error: 'Titlul nu poate depăși 200 de caractere', errorKey: 'errTitleTooLong' })
   }
 
   if (description && description.length > 2000) {
-    return res.status(400).json({ error: 'Descrierea nu poate depăși 2000 de caractere' })
+    return res.status(400).json({ error: 'Descrierea nu poate depăși 2000 de caractere', errorKey: 'errDescTooLong' })
   }
 
   if (imageUrls.length > 10) {
-    return res.status(400).json({ error: 'Maximum 10 fișiere per postare' })
+    return res.status(400).json({ error: 'Maximum 10 fișiere per postare', errorKey: 'errMaxFiles' })
   }
 
   // Determine the overall type of the post (text | video > audio > document > image).

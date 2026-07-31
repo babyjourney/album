@@ -9,7 +9,7 @@ async function handler(req, res) {
   const { skillId, progress } = req.body
 
   if (!skillId || progress === undefined) {
-    return res.status(400).json({ error: 'ID-ul abilității și progresul sunt obligatorii' })
+    return res.status(400).json({ error: 'ID-ul abilității și progresul sunt obligatorii', errorKey: 'errSkillIdProgressRequired' })
   }
 
   try {
@@ -36,7 +36,7 @@ async function handler(req, res) {
 
   } catch (error) {
     console.error('Skill update error:', error)
-    return res.status(500).json({ error: 'Actualizarea abilității a eșuat' })
+    return res.status(500).json({ error: 'Actualizarea abilității a eșuat', errorKey: 'errSkillUpdateFailed' })
   }
 }
 

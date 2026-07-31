@@ -614,7 +614,7 @@ function PostModalInner({
           onUpdate(updatedPost)
         }
       } else {
-        throw new Error(result.error || 'Failed to update post')
+        throw new Error((result.errorKey ? t(result.errorKey) : result.error) || 'Failed to update post')
       }
     } catch (error) {
       console.error('Error saving post:', error)
@@ -839,7 +839,7 @@ function PostModalInner({
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.error || t('error'))
+        throw new Error((result.errorKey ? t(result.errorKey) : result.error) || t('error'))
       }
 
       showSuccess(t('success'))

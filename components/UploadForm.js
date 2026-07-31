@@ -621,7 +621,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.error || t('error'))
+        throw new Error((result.errorKey ? t(result.errorKey) : result.error) || t('error'))
       }
 
       // Child associations are linked server-side by /api/posts/create-multi

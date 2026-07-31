@@ -89,6 +89,16 @@ const auth = {
     signupErrNotConfigured: 'Înregistrarea nu este configurată complet. Contactează suportul.',
     signupErrCreateFailed: 'Crearea contului a eșuat. Încearcă din nou.',
     signupErrEmailExists: 'Există deja un cont cu acest email. Folosește „Am uitat PIN-ul".',
+    // Login / shared auth error messages (localized via errorKey).
+    authErrPinRequired: 'PIN-ul este obligatoriu',
+    authErrContactRequired: 'Numărul de telefon sau email-ul este obligatoriu',
+    authErrPinFormat: 'PIN-ul trebuie să aibă 4 sau 8 cifre',
+    authErrWrongCredentials: 'Numărul de telefon sau PIN-ul sunt incorecte',
+    authErrSuspended: 'Acest album a fost suspendat. Contactează administratorul pentru mai multe informații.',
+    authErrOtpRequired: 'Cod de verificare necesar.',
+    authErrOtpInvalid: 'Cod de verificare greșit sau expirat.',
+    authErrServer: 'A apărut o eroare. Încearcă din nou.',
+    loginAttemptsRemaining: 'Mai ai {n} încercări înainte de blocare.',
 
     // Forgot PIN
     forgotTitle: 'Resetează PIN-ul',
@@ -260,6 +270,15 @@ const auth = {
     signupErrNotConfigured: 'Регистрация настроена не полностью. Свяжитесь с поддержкой.',
     signupErrCreateFailed: 'Не удалось создать аккаунт. Попробуйте снова.',
     signupErrEmailExists: 'Аккаунт с этой почтой уже существует. Используйте «Забыли PIN».',
+    authErrPinRequired: 'PIN обязателен',
+    authErrContactRequired: 'Укажите номер телефона или email',
+    authErrPinFormat: 'PIN должен содержать 4 или 8 цифр',
+    authErrWrongCredentials: 'Неверный номер телефона или PIN',
+    authErrSuspended: 'Этот альбом приостановлен. Свяжитесь с администратором для получения информации.',
+    authErrOtpRequired: 'Требуется код подтверждения.',
+    authErrOtpInvalid: 'Код подтверждения неверный или истёк.',
+    authErrServer: 'Произошла ошибка. Попробуйте снова.',
+    loginAttemptsRemaining: 'Осталось {n} попыток до блокировки.',
 
     // Forgot PIN
     forgotTitle: 'Сброс PIN-кода',
@@ -431,6 +450,15 @@ const auth = {
     signupErrNotConfigured: 'Registration is not fully configured. Contact support.',
     signupErrCreateFailed: 'Account creation failed. Please try again.',
     signupErrEmailExists: 'An account with this email already exists. Use "Forgot PIN".',
+    authErrPinRequired: 'PIN is required',
+    authErrContactRequired: 'Phone number or email is required',
+    authErrPinFormat: 'PIN must be 4 or 8 digits',
+    authErrWrongCredentials: 'Phone number or PIN is incorrect',
+    authErrSuspended: 'This album has been suspended. Contact the administrator for more information.',
+    authErrOtpRequired: 'Verification code required.',
+    authErrOtpInvalid: 'Verification code is wrong or expired.',
+    authErrServer: 'Something went wrong. Please try again.',
+    loginAttemptsRemaining: 'You have {n} attempts left before lockout.',
 
     // Forgot PIN
     forgotTitle: 'Reset your PIN',
