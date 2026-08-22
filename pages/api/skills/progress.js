@@ -67,7 +67,11 @@ async function getSkillsProgress(req, res) {
       .select('*')
       .eq('family_id', familyId)
 
-    if (await hasChildColumn()) {
+    // Until sql/sergiu_batch2.sql has run, skills_progress has no child_id and
+    // every child reads the same family-wide rows. Report that, so the page
+    // can say so instead of showing a child switcher that changes nothing.
+    const childScoped = await hasChildColumn()
+    if (childScoped) {
       const { ok, childId } = await resolveChildId(familyId, req.query.childId)
       if (!ok) return res.status(403).json({ error: 'Copilul nu aparține familiei dvs.', errorKey: 'errChildNotInFamily' })
       query = scopeToChild(query, childId)
@@ -81,6 +85,7 @@ async function getSkillsProgress(req, res) {
 
     return res.status(200).json({
       success: true,
+      childScoped,
       skills: data || []
     })
 

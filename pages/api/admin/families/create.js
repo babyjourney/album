@@ -26,8 +26,8 @@ import crypto from 'crypto'
 import { supabase, assertServerHasServiceRole } from '../../../../lib/supabaseClient'
 import { requireAdmin } from '../../../../lib/authMiddleware'
 import { normalizeTier } from '../../../../lib/tiers'
+import { normalizePhone, phoneLookupVariants } from '../../../../lib/phone'
 
-const PHONE_REGEX = /^(0)?[67][0-9]{7}$/
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 // A "fetch failed" / network error means the server couldn't reach Supabase at
@@ -123,14 +123,16 @@ async function handler(req, res) {
     }
 
     const cleanName = name.trim()
-    const cleanPhone = phoneNumber ? String(phoneNumber).replace(/\s/g, '') : null
+    // Any spelling accepted ("069010712", "+373 69 010 712"); stored as E.164.
+    const rawPhone = phoneNumber ? String(phoneNumber).replace(/\s/g, '') : null
+    const cleanPhone = rawPhone ? normalizePhone(rawPhone) : null
     const cleanEmail = email ? String(email).trim().toLowerCase() : null
     // 3 tiers: starter | family | legacy. Accept legacy free/premium aliases.
     const finalPackage = normalizeTier(pkg)
     const finalRequireOtp = requireOtpLogin === true
 
-    if (cleanPhone && !PHONE_REGEX.test(cleanPhone)) {
-      return res.status(400).json({ error: 'Numărul de telefon nu este valid (format: 061234567)' })
+    if (rawPhone && !cleanPhone) {
+      return res.status(400).json({ error: 'Numărul de telefon nu este valid (ex. 069010712 sau +37369010712)' })
     }
     if (cleanEmail && !EMAIL_REGEX.test(cleanEmail)) {
       return res.status(400).json({ error: 'Adresa de email nu este validă' })
@@ -148,7 +150,7 @@ async function handler(req, res) {
     // Reject duplicate phone numbers — login keys on phone+PIN.
     if (cleanPhone) {
       const { data: existing, error: phoneErr } = await supabase
-        .from('families').select('id').eq('phone_number', cleanPhone).limit(1)
+        .from('families').select('id').in('phone_number', phoneLookupVariants(cleanPhone)).limit(1)
       if (phoneErr) {
         const network = isNetworkError(phoneErr)
         return res.status(network ? 503 : 500).json({

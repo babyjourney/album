@@ -14,26 +14,14 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useLanguage } from '../contexts/LanguageContext'
+import { COUNTRIES, dialOf } from '../lib/phone'
 import LanguagePicker from '../components/LanguagePicker'
 
 // (Sergiu batch3 #5) Registration hard-coded the Moldovan "069…" format. The
 // country picker supplies the dial code so the user types only the local number,
 // and we store a full international (E.164) number. Moldova first — that's where
 // the clients are — then the countries the diaspora actually lives in.
-const COUNTRIES = [
-  { code: 'MD', flag: '🇲🇩', dial: '+373' },
-  { code: 'RO', flag: '🇷🇴', dial: '+40' },
-  { code: 'RU', flag: '🇷🇺', dial: '+7' },
-  { code: 'UA', flag: '🇺🇦', dial: '+380' },
-  { code: 'IT', flag: '🇮🇹', dial: '+39' },
-  { code: 'DE', flag: '🇩🇪', dial: '+49' },
-  { code: 'FR', flag: '🇫🇷', dial: '+33' },
-  { code: 'ES', flag: '🇪🇸', dial: '+34' },
-  { code: 'PT', flag: '🇵🇹', dial: '+351' },
-  { code: 'GB', flag: '🇬🇧', dial: '+44' },
-  { code: 'US', flag: '🇺🇸', dial: '+1' },
-]
-const dialOf = (code) => COUNTRIES.find((c) => c.code === code)?.dial || ''
+// Country list + dial codes live in lib/phone.js (shared with the server).
 
 export default function Signup() {
   const router = useRouter()

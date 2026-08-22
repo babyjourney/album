@@ -47,7 +47,7 @@ export default function HealthTab({ familyId, childId }) {
       const res = await authenticatedFetch('/api/journey/health', {
         method: 'POST', body: JSON.stringify(payload),
       })
-      if (!res.ok) throw new Error((await res.json()).error || t('error'))
+      if (!res.ok) { const body = await res.json(); throw new Error((body.errorKey ? t(body.errorKey) : body.error) || t('error')) }
       showSuccess(t('healthSaved'))
     } catch (e) { showError(e.message) } finally { setSaving(false) }
   }

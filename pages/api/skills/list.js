@@ -31,7 +31,7 @@ async function handler(req, res) {
 
   } catch (error) {
     console.error('Skills fetch error:', error)
-    return res.status(500).json({ error: 'Încărcarea abilităților a eșuat' })
+    return res.status(500).json({ error: 'Încărcarea abilităților a eșuat', errorKey: 'errSkillsLoadFailed' })
   }
 }
 

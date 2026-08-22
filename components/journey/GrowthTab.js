@@ -54,7 +54,7 @@ export default function GrowthTab({ familyId, childId }) {
         method: 'POST',
         body: JSON.stringify({ childId: childId || null, [slot === 'then' ? 'thenUrl' : 'nowUrl']: url }),
       })
-      if (!res.ok) throw new Error((await res.json()).error || t('error'))
+      if (!res.ok) { const body = await res.json(); throw new Error((body.errorKey ? t(body.errorKey) : body.error) || t('error')) }
       showSuccess(t('growthPhotoSaved'))
     } catch (e) { showError(e.message) } finally { setUploadingSlot(null) }
   }
@@ -67,7 +67,7 @@ export default function GrowthTab({ familyId, childId }) {
         method: 'POST',
         body: JSON.stringify({ childId: childId || null, ...form }),
       })
-      if (!res.ok) throw new Error((await res.json()).error || t('error'))
+      if (!res.ok) { const body = await res.json(); throw new Error((body.errorKey ? t(body.errorKey) : body.error) || t('error')) }
       setForm({ measuredOn: '', heightCm: '', weightKg: '', note: '' })
       showSuccess(t('growthEntryAdded'))
       load()

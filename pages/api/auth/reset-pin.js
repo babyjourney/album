@@ -13,6 +13,7 @@
 // with their new PIN.
 
 import { supabase } from '../../../lib/supabaseClient'
+import { normalizePhone, phoneLookupVariants } from '../../../lib/phone'
 import { verifyOtp } from '../../../lib/otpStore'
 
 export default async function handler(req, res) {
@@ -43,8 +44,11 @@ export default async function handler(req, res) {
     contactValue = String(email).trim().toLowerCase()
     lookupQuery = lookupQuery.ilike('email', contactValue)
   } else if (phoneNumber) {
-    contactValue = String(phoneNumber).replace(/\s/g, '')
-    lookupQuery = lookupQuery.eq('phone_number', contactValue)
+    contactValue = normalizePhone(phoneNumber)   // same value forgot-pin issued the code for
+    if (!contactValue) {
+      return res.status(400).json({ error: 'Numărul de telefon nu este valid', errorKey: 'authErrPhoneInvalid' })
+    }
+    lookupQuery = lookupQuery.in('phone_number', phoneLookupVariants(contactValue)).limit(1)
   } else {
     return res.status(400).json({ error: 'Introdu numărul de telefon sau email-ul', errorKey: 'authErrContactRequired' })
   }
@@ -66,7 +70,7 @@ export default async function handler(req, res) {
     })
 
     if (!result.ok) {
-      return res.status(400).json({ error: result.error })
+      return res.status(400).json({ error: result.error, errorKey: result.errorKey })
     }
 
     // Ensure the new PIN doesn't collide with another family's PIN (we use

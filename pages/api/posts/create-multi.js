@@ -1,6 +1,7 @@
 import { supabase } from '../../../lib/supabaseClient'
 import { requireEditor } from '../../../lib/authMiddleware'
 import { getPackageLimits } from '../../../lib/packages'
+import { getTier } from '../../../lib/tiers'
 import { isVideoUrl, detectPostType } from '../../../lib/fileTypes'
 
 async function handler(req, res) {
@@ -52,6 +53,26 @@ async function handler(req, res) {
     return res.status(400).json({ error: 'Maximum 10 fișiere per postare', errorKey: 'errMaxFiles' })
   }
 
+  // (Sergiu 03.07 #3) In a multi-child album every post must be linked to at
+  // least one child, or it only ever shows under "all kids". The upload form
+  // enforces this too; this is the server-side guarantee.
+  try {
+    const { data: albumSettings } = await supabase
+      .from('album_settings')
+      .select('is_multi_child')
+      .eq('family_id', familyId)
+      .maybeSingle()
+    if (albumSettings?.is_multi_child && (!Array.isArray(selectedChildren) || selectedChildren.length === 0)) {
+      return res.status(400).json({
+        error: 'Selectează cel puțin un copil pentru această postare',
+        errorKey: 'selectAtLeastOneChild',
+      })
+    }
+  } catch (settingsErr) {
+    console.error('album_settings lookup failed (create-multi):', settingsErr)
+    // Fail open — the client already enforces it.
+  }
+
   // Determine the overall type of the post (text | video > audio > document > image).
   const hasVideo = imageUrls.some(url => isVideoUrl(url))
   const postFileType = isTextPost ? 'text' : detectPostType(imageUrls)
@@ -77,9 +98,12 @@ async function handler(req, res) {
         const dur = videoDurations[i]
         if (!url || !isVideoUrl(url)) continue
         if (typeof dur !== 'number') continue
-        if (dur > limit) {
+        // Whole-second comparison, same as the client (a "1:00" phone clip is
+        // 60.x seconds and must be accepted on the 60s plan).
+        if (Math.floor(dur) > limit) {
           return res.status(413).json({
-            error: `Video-urile mai lungi de ${limit} secunde nu sunt disponibile pentru pachetul ${pkg === 'premium' ? 'Premium' : 'Free'}.`,
+            error: `Video-urile mai lungi de ${limit} secunde nu sunt disponibile pentru pachetul ${getTier(pkg).label}.`,
+            errorKey: 'errVideoTooLongForPlan',
             code: 'VIDEO_TOO_LONG',
             maxVideoSeconds: limit,
             package: pkg

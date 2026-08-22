@@ -1,4 +1,5 @@
 import { supabase } from '../../../lib/supabaseClient'
+import { isValidPhone, normalizePhone, phoneLookupVariants } from '../../../lib/phone'
 import rateLimiter from '../../../lib/rateLimiter'
 import { issueFamilyToken } from '../../../lib/authMiddleware'
 import { verifyOtp } from '../../../lib/otpStore'
@@ -38,6 +39,7 @@ export default async function handler(req, res) {
     
     return res.status(429).json({ 
       error: `Prea multe încercări. ${level} cooldown activ.`,
+      errorKey: 'errRateLimited',
       rateLimited: true,
       level: blockStatus.level,
       timeRemaining: timeRemaining,
@@ -49,14 +51,11 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'PIN-ul trebuie să aibă 4 sau 8 cifre', errorKey: 'authErrPinFormat' })
   }
 
-  // Validate phone number format (Romanian format: 068327082 or 68327082).
-  // Only enforced when caller supplied a phone (email-only login is allowed
-  // for 2FA-enabled families).
-  if (cleanPhone) {
-    const phoneRegex = /^(0)?[67][0-9]{7}$/
-    if (!phoneRegex.test(cleanPhone)) {
-      return res.status(400).json({ error: 'Numărul de telefon nu este valid (format: 061234567 sau 61234567)', errorKey: 'authErrPhoneInvalid' })
-    }
+  // Phone in any spelling — national "069010712" or international
+  // "+37369010712" (lib/phone.js). Only enforced when the caller supplied a
+  // phone (email-only login is allowed for 2FA-enabled families).
+  if (cleanPhone && !isValidPhone(cleanPhone)) {
+    return res.status(400).json({ error: 'Numărul de telefon nu este valid (ex. 069010712 sau +37369010712)', errorKey: 'authErrPhoneInvalid' })
   }
 
   if (cleanEmail) {
@@ -79,7 +78,8 @@ export default async function handler(req, res) {
     // so login still works if the migration hasn't been run.
     const buildQuery = (cols) => {
       let q = supabase.from('families').select(cols).eq(pinColumn, cleanPin)
-      if (cleanPhone) q = q.eq('phone_number', cleanPhone)
+      // Stored numbers may be national ("069…") or E.164 ("+373…") — match both.
+      if (cleanPhone) q = q.in('phone_number', phoneLookupVariants(cleanPhone)).limit(1)
       else if (cleanEmail) q = q.ilike('email', cleanEmail)
       return q
     }
@@ -155,7 +155,8 @@ export default async function handler(req, res) {
           deliveryHint: cleanEmail ? 'email' : 'phone',
         })
       }
-      const otpContactValue = cleanEmail || cleanPhone
+      // Must equal what request-otp stored: lowercase email, or E.164 phone.
+      const otpContactValue = cleanEmail || normalizePhone(cleanPhone)
       const otpResult = await verifyOtp({
         familyId: family.id,
         contactValue: otpContactValue,

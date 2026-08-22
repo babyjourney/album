@@ -41,10 +41,26 @@ BEGIN;
 -- So: add it empty, backfill it, and only then attach the default for new rows.
 ALTER TABLE photos ADD COLUMN IF NOT EXISTS uploaded_at TIMESTAMPTZ;
 
--- Backfill. `updated_at` defaulted to NOW() at insert and is only touched on
--- edit, so it's the closest available proxy for the true upload moment (an
--- edited post reads as its edit time — still real activity, unlike a backdated
--- created_at).
+-- Backfill, best source first:
+--  1. The storage path. Every upload is stored as
+--       {familyId}/{Date.now()}-{index}-{random}.{ext}
+--     (components/UploadForm.js), so the 13-digit epoch-ms stamp in the file
+--     name IS the real upload time — exact, for every media post ever made.
+--  2. `updated_at`: DEFAULT NOW() at insert, only touched by a real edit.
+--     Covers text posts, which have no file.
+--  3. `created_at` as a last resort.
+-- (lib/postTimestamps.js applies the same rule at read time, which is why the
+-- dashboard is already correct before this runs.)
+UPDATE photos
+   SET uploaded_at = to_timestamp(
+         (regexp_match(
+            COALESCE(file_urls->>0, file_url),
+            '/(\d{13})-\d+(?:-[a-z]+)?-[a-z0-9]+\.[A-Za-z0-9]+'
+         ))[1]::bigint / 1000.0
+       )
+ WHERE uploaded_at IS NULL
+   AND COALESCE(file_urls->>0, file_url) ~ '/\d{13}-\d+(-[a-z]+)?-[a-z0-9]+\.[A-Za-z0-9]+';
+
 UPDATE photos
    SET uploaded_at = COALESCE(updated_at, created_at)
  WHERE uploaded_at IS NULL;
@@ -246,6 +262,8 @@ UPDATE photos SET category = 'everyday'   WHERE category = 'memories';
 -- ids and insert the missing new ones.
 DELETE FROM family_categories WHERE category_value IN ('memories', 'special', 'play', 'learning');
 
+-- (WHERE NOT EXISTS rather than ON CONFLICT so this never depends on the
+-- UNIQUE(family_id, category_value) constraint being present.)
 INSERT INTO family_categories (family_id, category_value, category_label, category_emoji)
 SELECT f.id, v.value, v.label, v.emoji
   FROM families f
@@ -257,7 +275,10 @@ SELECT f.id, v.value, v.label, v.emoji
    ('adventures', 'Adventures',    '🌍'),
    ('everyday',   'Everyday Life', '☀️')
  ) AS v(value, label, emoji)
- ON CONFLICT (family_id, category_value) DO NOTHING;
+ WHERE NOT EXISTS (
+   SELECT 1 FROM family_categories fc
+    WHERE fc.family_id = f.id AND fc.category_value = v.value
+ );
 
 COMMIT;
 

@@ -7,7 +7,7 @@ const FIELDS = ['height_cm', 'weight_kg', 'blood_type', 'allergies', 'pediatrici
 
 async function handler(req, res) {
   const familyId = resolveFamilyId(req)
-  if (!familyId) return res.status(400).json({ error: 'familyId lipsește' })
+  if (!familyId) return res.status(400).json({ error: 'familyId lipsește', errorKey: 'errFamilyIdRequired' })
 
   try {
     if (req.method === 'GET') {
@@ -16,7 +16,7 @@ async function handler(req, res) {
       return res.status(200).json({ success: true, health: row })
     }
     if (req.method === 'POST') {
-      if (!canWrite(req)) return res.status(403).json({ error: 'Necesită rol de editor' })
+      if (!canWrite(req)) return res.status(403).json({ error: 'Necesită rol de editor', errorKey: 'errEditorRole' })
       const childId = req.body?.childId || null
       const patch = {}
       for (const f of FIELDS) {
@@ -30,7 +30,7 @@ async function handler(req, res) {
     return res.status(405).json({ error: 'Metoda nu este permisă' })
   } catch (err) {
     console.error('health api error:', err)
-    return res.status(500).json({ error: err.message || 'Eroare internă' })
+    return res.status(500).json({ error: err.message || 'Eroare internă', errorKey: 'errServerInternal' })
   }
 }
 

@@ -56,11 +56,29 @@ export default async function handler(req, res) {
   if (blockStatus.blocked) {
     return res.status(429).json({
       error: `Prea multe încercări. Încearcă din nou în ${rateLimiter.formatTimeRemaining(blockStatus.timeRemaining)}.`,
+      errorKey: 'errRateLimited',
     })
   }
   rateLimiter.recordFailedAttempt(clientId, null, cleanEmail)
 
   try {
+    // Self-signup parks the pending registration in verification_codes.payload
+    // and needs family_id to be nullable — both come from sql/sergiu_batch2.sql.
+    // Until that has been run, issueOtp() would fail and the catch-all below
+    // would answer "code sent" while nothing was sent: a dead end for the
+    // visitor. Say plainly that sign-up isn't available yet instead.
+    const { error: schemaProbe } = await supabase
+      .from('verification_codes')
+      .select('payload')
+      .limit(1)
+    if (schemaProbe) {
+      console.error('[signup] verification_codes.payload missing — run sql/sergiu_batch2.sql. Refusing signup.')
+      return res.status(503).json({
+        error: 'Înregistrarea nu este disponibilă momentan. Te rugăm să încerci mai târziu.',
+        errorKey: 'signupUnavailable',
+      })
+    }
+
     // Is this email already taken? We must NOT say so — that would confirm the
     // address is registered. Return the same "code sent" shape and simply don't
     // send anything. The real owner can use "am uitat PIN-ul" instead.
@@ -110,7 +128,16 @@ export default async function handler(req, res) {
     // server console. In dev that's the intended workflow — surface the code so
     // signup is testable. NEVER in production, where it would hand out codes.
     const body = { ok: true, codeLength: 4 }
-    if (delivery?.mocked && process.env.NODE_ENV !== 'production') {
+    if (delivery?.mocked) {
+      if (process.env.NODE_ENV === 'production') {
+        // No RESEND_API_KEY on the server: the code went to a log nobody
+        // reads. "Code sent" would strand the visitor on the code screen.
+        console.error('[signup] email delivery is not configured (RESEND_API_KEY) — cannot send the signup code')
+        return res.status(503).json({
+          error: 'Înregistrarea nu este disponibilă momentan. Te rugăm să încerci mai târziu.',
+          errorKey: 'signupUnavailable',
+        })
+      }
       body.devCode = code
       body.devNote = 'Email nu este configurat (RESEND_API_KEY). Cod afișat doar în development.'
     }

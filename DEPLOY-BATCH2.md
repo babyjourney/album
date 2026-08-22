@@ -1,5 +1,9 @@
 # Deploy notes — Sergiu feedback batch 2 (10.07.2026)
 
+> **Start with [ACTIONS-REQUIRED.md](ACTIONS-REQUIRED.md)** — the short, ordered
+> checklist of everything still pending, and `npm run check:setup` to verify.
+> This file is the longer background for the batch-2 migration.
+
 Two things must be done by hand or several features silently stay broken.
 
 ---
@@ -31,12 +35,12 @@ so the 5-minute client-side category cache picks up the new set.
 
 ### ⚠ Also raise the PROJECT-WIDE upload limit
 
-The migration sets the `album_uploads` bucket to 100MB — but **Supabase clamps a
+The migration sets the `album_uploads` bucket to **200MB** — but **Supabase clamps a
 bucket's limit to the project's global upload limit**, which defaults to 50MB.
 If you leave the global at 50MB, the bucket is effectively still 50MB.
 
 Supabase Dashboard → **Settings → Storage → Upload file size limit** → set to at
-least **100 MB**, then re-run the migration (or just re-run the `UPDATE
+least **200 MB**, then re-run the migration (or just re-run the `UPDATE
 storage.buckets` line).
 
 `STORAGE_MAX_UPLOAD_MB` in `lib/tiers.js` must match this number — the upload

@@ -290,7 +290,7 @@ async function handler(req, res) {
 
   } catch (error) {
     console.error('Photos fetch error:', error)
-    return res.status(500).json({ error: 'Încărcarea fotografiilor a eșuat' })
+    return res.status(500).json({ error: 'Încărcarea fotografiilor a eșuat', errorKey: 'errPhotosLoadFailed' })
   }
 }
 

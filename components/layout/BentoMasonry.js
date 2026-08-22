@@ -152,6 +152,9 @@ export default function BentoMasonry({ familyId, searchQuery, refreshTrigger, on
         style={{
           gridColumn: slot.c,
           gridRow: slot.r,
+          // TimelineNav scrolls here with block:'start'; keep the card clear of
+          // the fixed header/dock.
+          scrollMarginTop: 96,
           minHeight: 0, minWidth: 0,
           position: 'relative',
           borderRadius: 24,

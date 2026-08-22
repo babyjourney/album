@@ -10,7 +10,7 @@ async function handler(req, res) {
   const familyId = req.auth.isAdmin ? rawFamilyId : req.auth.familyId
 
   if (!familyId || typeof isMultiChild !== 'boolean') {
-    return res.status(400).json({ error: 'Câmpuri obligatorii lipsă sau invalide' })
+    return res.status(400).json({ error: 'Câmpuri obligatorii lipsă sau invalide', errorKey: 'errRequiredFieldsInvalid' })
   }
 
   try {
@@ -58,7 +58,7 @@ async function handler(req, res) {
 
   } catch (error) {
     console.error('Album settings update error:', error)
-    return res.status(500).json({ error: `Actualizarea setărilor albumului a eșuat: ${error.message}` })
+    return res.status(500).json({ error: `Actualizarea setărilor albumului a eșuat: ${error.message}`, errorKey: 'errAlbumSettingsUpdateFailed' })
   }
 }
 

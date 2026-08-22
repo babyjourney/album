@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabaseClient'
 import imageCompression from 'browser-image-compression'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { isAdminAuthenticated, clearAdminSession, adminFetch, parseAdminResponse } from '../../lib/adminAuth'
+import { isValidPhone } from '../../lib/phone'
 import { TIER_ORDER, TIERS } from '../../lib/tiers'
 
 export default function AdminDashboard() {
@@ -393,10 +394,9 @@ export default function AdminDashboard() {
       return
     }
 
-    // Validate phone number format (Romanian format)
-    const phoneRegex = /^(0)?[67][0-9]{7}$/
-    if (!phoneRegex.test(phoneNumber.replace(/\s/g, ''))) {
-      setSetupError('Numărul de telefon nu este valid (format: 061234567 sau 61234567)')
+    // National ("069010712") or international ("+37369010712") — lib/phone.js
+    if (!isValidPhone(phoneNumber)) {
+      setSetupError('Numărul de telefon nu este valid (ex. 069010712 sau +37369010712)')
       return
     }
 
@@ -757,11 +757,11 @@ export default function AdminDashboard() {
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
                   className="input-glass"
-                  placeholder="Introduceți numărul de telefon (ex: 061234567)"
+                  placeholder="ex: 069010712 sau +37369010712"
                   required
                 />
                 <div className="text-tertiary" style={{ marginTop: '6px' }}>
-                  Format acceptat: 061234567 sau 61234567
+                  Format acceptat: 069010712 (Moldova) sau internațional cu prefix, ex. +40 7xx xxx xxx
                 </div>
               </div>
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import SideSheet from './SideSheet'
-import { useLanguage } from '../../contexts/LanguageContext'
+import { useLanguage, localeOf } from '../../contexts/LanguageContext'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useToast } from '../../contexts/ToastContext'
 import { getSession } from '../../lib/pinAuth'
@@ -38,6 +38,8 @@ export default function SettingsDrawer({ isOpen, onClose, onProfilePicture, onSi
         familyId: session.familyId,
         familyName: session.familyName,
         year: exportYear,
+        t,
+        locale: localeOf(language),
         onProgress: (stage, done, total) => setExportStatus({ stage, done, total }),
       })
       showSuccess(t('exportArchiveSuccess', { files: result.files, posts: result.posts }))

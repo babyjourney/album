@@ -396,7 +396,11 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
           continue
         }
         videoDurationSec = await probeVideoDuration(selectedFile)
-        if (videoDurationSec !== null && videoDurationSec > maxVideoSeconds) {
+        // (Sergiu 29.07 #3) Compare whole seconds. Phone cameras report a clip
+        // the gallery shows as "1:00" as 60.3–60.9s; the limit is "up to one
+        // minute", so 60.9s must pass and 61.0s must not — same rounding the
+        // phone itself uses.
+        if (videoDurationSec !== null && Math.floor(videoDurationSec) > maxVideoSeconds) {
           rejectedLongVideos += 1
           continue
         }
@@ -424,8 +428,20 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
 
           const poster = await captureVideoPoster(selectedFile)
 
+          // Bits per second × seconds must stay under the storage ceiling, or
+          // a 10-minute Family/Legacy clip encodes for ten real-time minutes
+          // and is then rejected. Cap the tier bitrate per file (10% margin,
+          // ~128 kbps reserved for audio).
+          const encodeOptions = { ...videoEncodeOptions }
+          if (videoDurationSec && videoDurationSec > 0) {
+            const maxVideoBps = Math.floor((STORAGE_MAX_UPLOAD_BYTES * 8 * 0.9) / videoDurationSec) - 128_000
+            if (maxVideoBps < encodeOptions.videoBitsPerSecond) {
+              encodeOptions.videoBitsPerSecond = Math.max(400_000, maxVideoBps)
+            }
+          }
+
           const { file: encoded, transcoded } = await transcodeVideo(selectedFile, {
-            ...videoEncodeOptions,
+            ...encodeOptions,
             onProgress: (p) =>
               setVideoProgress({ name: selectedFile.name, pct: Math.round(p * 100) }),
           })

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { useLanguage } from '../contexts/LanguageContext'
+import LanguagePicker from '../components/LanguagePicker'
 
 // PIN reset flow (Task #2). 3-step inline wizard:
 //   step 1: pick channel (email / phone) and enter the value
@@ -127,6 +128,10 @@ export default function ForgotPassword() {
       padding: 24,
       position: 'relative',
     }}>
+      {/* (Sergiu batch3 #6) Language switch on every entry screen. */}
+      <div style={{ position: 'absolute', top: 20, right: 20, zIndex: 2 }}>
+        <LanguagePicker />
+      </div>
       <div aria-hidden style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0 }}>
         <div style={{
           position: 'absolute', top: '-10%', left: '-8%',

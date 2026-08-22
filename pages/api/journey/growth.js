@@ -7,7 +7,7 @@ import { resolveFamilyId, canWrite } from '../../../lib/childRecord'
 
 async function handler(req, res) {
   const familyId = resolveFamilyId(req)
-  if (!familyId) return res.status(400).json({ error: 'familyId lipsește' })
+  if (!familyId) return res.status(400).json({ error: 'familyId lipsește', errorKey: 'errFamilyIdRequired' })
 
   try {
     if (req.method === 'GET') {
@@ -20,9 +20,9 @@ async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      if (!canWrite(req)) return res.status(403).json({ error: 'Necesită rol de editor' })
+      if (!canWrite(req)) return res.status(403).json({ error: 'Necesită rol de editor', errorKey: 'errEditorRole' })
       const { childId, measuredOn, heightCm, weightKg, note } = req.body || {}
-      if (!measuredOn) return res.status(400).json({ error: 'Data măsurării este obligatorie' })
+      if (!measuredOn) return res.status(400).json({ error: 'Data măsurării este obligatorie', errorKey: 'errMeasurementDateRequired' })
       const { data, error } = await supabase
         .from('growth_entries')
         .insert({
@@ -40,9 +40,9 @@ async function handler(req, res) {
     }
 
     if (req.method === 'DELETE') {
-      if (!canWrite(req)) return res.status(403).json({ error: 'Necesită rol de editor' })
+      if (!canWrite(req)) return res.status(403).json({ error: 'Necesită rol de editor', errorKey: 'errEditorRole' })
       const id = req.query.id || req.body?.id
-      if (!id) return res.status(400).json({ error: 'id lipsește' })
+      if (!id) return res.status(400).json({ error: 'id lipsește', errorKey: 'errIdRequired' })
       // Scope delete to this family so a foreign id can't be removed.
       const { error } = await supabase
         .from('growth_entries').delete().eq('id', id).eq('family_id', familyId)
@@ -53,7 +53,7 @@ async function handler(req, res) {
     return res.status(405).json({ error: 'Metoda nu este permisă' })
   } catch (err) {
     console.error('growth api error:', err)
-    return res.status(500).json({ error: err.message || 'Eroare internă' })
+    return res.status(500).json({ error: err.message || 'Eroare internă', errorKey: 'errServerInternal' })
   }
 }
 

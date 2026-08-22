@@ -19,6 +19,9 @@ export default function Skills() {
   // looking at; each child has their own progress on the same skill catalog.
   const [children, setChildren] = useState([])
   const [selectedChildId, setSelectedChildId] = useState(null)
+  // false when the server is still running family-wide skills (migration not
+  // applied) — the child selector is then informational only.
+  const [childScoped, setChildScoped] = useState(true)
   const [childrenLoaded, setChildrenLoaded] = useState(false)
   const { showSuccess, showError } = useToast()
   const { t } = useLanguage()
@@ -104,6 +107,7 @@ export default function Skills() {
         progressMap[skill.skill_id] = skill
       })
 
+      if (typeof result.childScoped === 'boolean') setChildScoped(result.childScoped)
       setSkillsProgress(progressMap)
 
       // Cache the result
@@ -515,6 +519,11 @@ export default function Skills() {
                 )
               })}
             </div>
+          )}
+          {children.length > 1 && !childScoped && (
+            <p className="text-subtle" style={{ margin: '-8px 0 18px', fontSize: 13 }}>
+              ⚠️ {t('skillsFamilyWideNotice')}
+            </p>
           )}
 
           {/* Overall progress card */}

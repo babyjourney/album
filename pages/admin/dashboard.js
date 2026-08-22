@@ -32,11 +32,26 @@ export default function AdminDashboard() {
   const [exportProgress, setExportProgress] = useState(null) // { stage, done, total }
   // Collapsible "what each plan includes" reference panel.
   const [showTierGuide, setShowTierGuide] = useState(false)
+  // Deployment setup checks (SQL migration, storage limit, email/SMS keys).
+  // null = not loaded; rendered only when something is pending.
+  const [setupStatus, setSetupStatus] = useState(null)
+  const [showSetupDetails, setShowSetupDetails] = useState(false)
 
   useEffect(() => {
     checkAuth()
     fetchDashboardData()
+    fetchSetupStatus()
   }, [])
+
+  const fetchSetupStatus = async () => {
+    try {
+      const response = await adminFetch('/api/admin/setup-status')
+      const data = await response.json()
+      if (response.ok) setSetupStatus(data)
+    } catch (error) {
+      console.error('Error fetching setup status:', error)
+    }
+  }
 
   // Admin routes are pinned to dark by ThemeProvider.
 
@@ -475,6 +490,53 @@ export default function AdminDashboard() {
             </button>
           </div>
         </div>
+
+        {/* Setup checklist — only when something on this deployment is still
+            missing (SQL migration not run, storage limit, email/SMS keys). */}
+        {setupStatus && setupStatus.pendingCount > 0 && (
+          <div className="card-glass" style={{
+            padding: '16px 20px', marginBottom: '24px',
+            border: '1px solid rgba(245,158,11,0.45)',
+            background: 'rgba(245,158,11,0.08)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span aria-hidden="true" style={{ fontSize: 20 }}>⚠️</span>
+                <div>
+                  <p className="text-body" style={{ margin: 0, fontWeight: 600 }}>
+                    Configurare incompletă — {setupStatus.pendingCount} {setupStatus.pendingCount === 1 ? 'pas rămas' : 'pași rămași'}
+                  </p>
+                  <p className="text-subtle" style={{ margin: 0 }}>
+                    Până nu sunt făcuți, unele funcții rămân dezactivate. Pașii exacți sunt în <code>ACTIONS-REQUIRED.md</code>; verificare din terminal: <code>npm run check:setup</code>.
+                  </p>
+                </div>
+              </div>
+              <button className="btn-glass" onClick={() => setShowSetupDetails(v => !v)}>
+                {showSetupDetails ? 'Ascunde' : 'Vezi pașii'}
+              </button>
+            </div>
+            {showSetupDetails && (
+              <ul style={{ margin: '14px 0 0', padding: 0, listStyle: 'none', display: 'grid', gap: 10 }}>
+                {setupStatus.checks.map((c) => (
+                  <li key={c.key} style={{
+                    display: 'grid', gridTemplateColumns: '22px 1fr', gap: 10,
+                    padding: '10px 12px', borderRadius: 12,
+                    background: c.ok ? 'rgba(16,185,129,0.08)' : 'rgba(248,113,113,0.08)'
+                  }}>
+                    <span aria-hidden="true">{c.ok ? '✅' : '❌'}</span>
+                    <div>
+                      <p className="text-body" style={{ margin: 0, fontWeight: 600 }}>{c.label}</p>
+                      <p className="text-subtle" style={{ margin: '2px 0 0' }}>{c.detail}</p>
+                      {!c.ok && (
+                        <p className="text-subtle" style={{ margin: '4px 0 0', color: 'var(--accent-amber, #f59e0b)' }}>→ {c.action}</p>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
 
         {/* Stats Cards */}
         <div style={{

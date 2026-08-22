@@ -12,6 +12,7 @@
 // new PIN.
 
 import { supabase } from '../../../lib/supabaseClient'
+import { normalizePhone, phoneLookupVariants } from '../../../lib/phone'
 import { issueOtp } from '../../../lib/otpStore'
 import { sendOtpEmail, sendOtpSms } from '../../../lib/notifications'
 
@@ -55,16 +56,21 @@ export default async function handler(req, res) {
         contactValue = cleanEmail
       }
     } else if (phoneNumber) {
-      const cleanPhone = String(phoneNumber).replace(/\s/g, '')
-      const { data } = await supabase
-        .from('families')
-        .select('id, name, email, phone_number, is_suspended')
-        .eq('phone_number', cleanPhone)
-        .maybeSingle()
-      if (data && !data.is_suspended) {
-        family = data
-        contactKind = 'phone'
-        contactValue = cleanPhone
+      // Any spelling in; E.164 out (what Twilio needs and what reset-pin will
+      // look the code up by). Match stored rows in either format.
+      const cleanPhone = normalizePhone(phoneNumber)
+      if (cleanPhone) {
+        const { data } = await supabase
+          .from('families')
+          .select('id, name, email, phone_number, is_suspended')
+          .in('phone_number', phoneLookupVariants(cleanPhone))
+          .limit(1)
+          .maybeSingle()
+        if (data && !data.is_suspended) {
+          family = data
+          contactKind = 'phone'
+          contactValue = cleanPhone
+        }
       }
     }
 
@@ -81,10 +87,20 @@ export default async function handler(req, res) {
       role: validRole,
     })
 
-    if (contactKind === 'email') {
-      await sendOtpEmail({ to: contactValue, code, purpose: 'reset_pin' })
-    } else {
-      await sendOtpSms({ to: contactValue, code, purpose: 'reset_pin' })
+    const delivery = contactKind === 'email'
+      ? await sendOtpEmail({ to: contactValue, code, purpose: 'reset_pin' })
+      : await sendOtpSms({ to: contactValue, code, purpose: 'reset_pin' })
+
+    // Unconfigured delivery in production means the code cannot reach anyone.
+    // A plain "not available" beats a "code sent" the user waits on forever —
+    // and it does not leak whether the account exists (we'd answer the same
+    // for any contact value on this channel).
+    if (delivery?.mocked && process.env.NODE_ENV === 'production') {
+      console.error(`[forgot-pin] ${contactKind} delivery is not configured (RESEND/TWILIO env)`)
+      return res.status(503).json({
+        error: 'Trimiterea codului nu este disponibilă momentan. Te rugăm să încerci mai târziu.',
+        errorKey: 'otpDeliveryUnavailable',
+      })
     }
 
     return okResponse(contactKind)

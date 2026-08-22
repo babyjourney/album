@@ -6,7 +6,7 @@ import { getChildRecord, upsertChildRecord, resolveFamilyId, canWrite } from '..
 
 async function handler(req, res) {
   const familyId = resolveFamilyId(req)
-  if (!familyId) return res.status(400).json({ error: 'familyId lipsește' })
+  if (!familyId) return res.status(400).json({ error: 'familyId lipsește', errorKey: 'errFamilyIdRequired' })
 
   try {
     if (req.method === 'GET') {
@@ -15,7 +15,7 @@ async function handler(req, res) {
       return res.status(200).json({ success: true, compare: row })
     }
     if (req.method === 'POST') {
-      if (!canWrite(req)) return res.status(403).json({ error: 'Necesită rol de editor' })
+      if (!canWrite(req)) return res.status(403).json({ error: 'Necesită rol de editor', errorKey: 'errEditorRole' })
       const childId = req.body?.childId || null
       const patch = {}
       if (req.body?.thenUrl !== undefined) patch.then_url = req.body.thenUrl || null
@@ -26,7 +26,7 @@ async function handler(req, res) {
     return res.status(405).json({ error: 'Metoda nu este permisă' })
   } catch (err) {
     console.error('growth-compare api error:', err)
-    return res.status(500).json({ error: err.message || 'Eroare internă' })
+    return res.status(500).json({ error: err.message || 'Eroare internă', errorKey: 'errServerInternal' })
   }
 }
 

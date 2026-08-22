@@ -177,8 +177,8 @@ export default function Login() {
             (BabyJourney_couple_with_little_boy.webp per public/img/SEO.md).
             Until then we point at the existing profile picture so the
             og:image link isn't broken (returns a real WebP, not a 404). */}
-        <title>Album familie — Intră în BabyJourney</title>
-        <meta name="description" content="Albumul tău privat de familie BabyJourney. Conectează-te cu numărul de telefon sau email-ul și PIN-ul de viewer sau editor pentru a vedea amintirile copiilor tăi." />
+        <title>{t('loginPageTitle')}</title>
+        <meta name="description" content={t('loginMetaDescription')} />
         <meta name="keywords" content="album familie, BabyJourney, jurnal bebe, amintiri copii, album privat, Chișinău, Moldova, foto familie, jurnal nou-nascut" />
         <meta property="og:type" content="website" />
         <meta property="og:title" content="BabyJourney — Album privat de familie" />

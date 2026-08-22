@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { useToast } from '../contexts/ToastContext'
-import { useLanguage } from '../contexts/LanguageContext'
+import { useLanguage, localeOf } from '../contexts/LanguageContext'
 import { useOnClickOutside } from '../hooks/useOnClickOutside'
 import { authenticatedFetch, isEditor } from '../lib/pinAuth'
 import { getCategories } from '../lib/categoriesData'
@@ -362,7 +362,7 @@ function PostModalInner({
   const [isInitializing, setIsInitializing] = useState(true)
   const [isProgrammaticScroll, setIsProgrammaticScroll] = useState(false)
   const { showSuccess, showError } = useToast()
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const modalRef = useRef(null)
   const scrollContainerRef = useRef(null)
   const scrollTimeoutRef = useRef(null)
@@ -428,38 +428,42 @@ function PostModalInner({
     } catch (e) { console.error('loadEditChildren failed', e) }
   }
 
+  // The photo order being edited: the user's reordering if any, else the
+  // post's current order. Both mutators below read it synchronously and set the
+  // two pieces of state separately — calling setEditCoverIndex from inside a
+  // setEditPhotoOrder updater ran twice under StrictMode and shifted the cover.
+  const currentEditOrder = () =>
+    (editPhotoOrder.length > 0 ? editPhotoOrder : (getMultiPhotoUrls(currentPost) || []))
+
   // (Item 12edit) remove one photo from a multi-photo post while editing.
   const removeEditPhoto = (index) => {
-    setEditPhotoOrder((prev) => {
-      const next = prev.filter((_, i) => i !== index)
-      const maxIdx = Math.max(0, next.length - 1)
-      setEditCoverIndex((ci) => {
-        let n = ci
-        if (index === ci) n = 0
-        else if (index < ci) n = ci - 1
-        // never point past the end of the shortened array
-        return Math.min(Math.max(0, n), maxIdx)
-      })
-      return next
-    })
+    const base = currentEditOrder()
+    if (index < 0 || index >= base.length) return
+    const next = base.filter((_, i) => i !== index)
+    const maxIdx = Math.max(0, next.length - 1)
+    let n = editCoverIndex
+    if (index === n) n = 0
+    else if (index < n) n = n - 1
+    // never point past the end of the shortened array
+    setEditCoverIndex(Math.min(Math.max(0, n), maxIdx))
+    setEditPhotoOrder(next)
   }
 
-  // (Item 14) touch-friendly reorder for the edit grids (mobile has no drag).
+  // (Item 14) reorder in the edit grids — used by the ‹ › buttons (mobile has
+  // no drag) AND by desktop drag-and-drop, so the cover marker always follows
+  // its photo.
   const moveEditPhoto = (from, to) => {
-    setEditPhotoOrder((prev) => {
-      const base = prev.length > 0 ? prev : (getMultiPhotoUrls(currentPost) || [])
-      if (to < 0 || to >= base.length || from === to) return prev.length > 0 ? prev : base
-      const next = [...base]
-      const [m] = next.splice(from, 1)
-      next.splice(to, 0, m)
-      setEditCoverIndex((ci) => {
-        if (ci === from) return to
-        if (from < ci && to >= ci) return ci - 1
-        if (from > ci && to <= ci) return ci + 1
-        return ci
-      })
-      return next
-    })
+    const base = currentEditOrder()
+    if (from < 0 || from >= base.length || to < 0 || to >= base.length || from === to) return
+    const next = [...base]
+    const [m] = next.splice(from, 1)
+    next.splice(to, 0, m)
+    let ci = editCoverIndex
+    if (ci === from) ci = to
+    else if (from < ci && to >= ci) ci = ci - 1
+    else if (from > ci && to <= ci) ci = ci + 1
+    setEditCoverIndex(ci)
+    setEditPhotoOrder(next)
   }
 
   const editReorderBtnStyle = (disabled) => ({
@@ -917,10 +921,7 @@ function PostModalInner({
   }
 
   const formatDate = (dateString) => {
-    const { language } = useLanguage()
-    const locale = language === 'ru' ? 'ru-RU' : 'ro-RO'
-    
-    return new Date(dateString).toLocaleDateString(locale, {
+    return new Date(dateString).toLocaleDateString(localeOf(language), {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
@@ -2563,12 +2564,8 @@ function PostModalInner({
                             onDrop={(e) => {
                               e.preventDefault()
                               const draggedIndex = parseInt(e.dataTransfer.getData('text/plain'))
-                              if (draggedIndex !== index) {
-                                const newOrder = [...multiUrls]
-                                const draggedItem = newOrder[draggedIndex]
-                                newOrder.splice(draggedIndex, 1)
-                                newOrder.splice(index, 0, draggedItem)
-                                setEditPhotoOrder(newOrder)
+                              if (Number.isInteger(draggedIndex) && draggedIndex !== index) {
+                                moveEditPhoto(draggedIndex, index)
                               }
                             }}
                             onClick={(e) => {

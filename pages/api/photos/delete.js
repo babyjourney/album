@@ -9,7 +9,7 @@ async function handler(req, res) {
   const { photoId, fileUrl } = req.body
 
   if (!photoId) {
-    return res.status(400).json({ error: 'ID-ul fotografiei este obligatoriu' })
+    return res.status(400).json({ error: 'ID-ul fotografiei este obligatoriu', errorKey: 'errPhotoIdRequired' })
   }
 
   try {
@@ -19,6 +19,7 @@ async function handler(req, res) {
     if (!ownershipCheck.isOwner) {
       return res.status(403).json({
         error: ownershipCheck.error || 'Nu aveți permisiunea să ștergeți această fotografie',
+        errorKey: ownershipCheck.errorKey || 'errPhotoDeleteForbidden',
         code: 'FORBIDDEN'
       })
     }
@@ -29,11 +30,21 @@ async function handler(req, res) {
     // the bucket forever, quietly costing storage.
     let ownedUrls = []
     try {
-      const { data: row } = await supabase
-        .from('photos')
-        .select('file_url, file_urls, poster_urls')
-        .eq('id', photoId)
-        .single()
+      // supabase-js returns {data:null, error} for a missing column — it does
+      // NOT throw — so drop poster_urls and retry when the schema predates it
+      // (sql/sergiu_batch2.sql). Otherwise every file but the one the client
+      // named would be orphaned in the bucket.
+      let row = null
+      for (const cols of ['file_url, file_urls, poster_urls', 'file_url, file_urls', 'file_url']) {
+        const { data, error } = await supabase
+          .from('photos')
+          .select(cols)
+          .eq('id', photoId)
+          .single()
+        if (!error) { row = data; break }
+        const missingColumn = error.code === '42703' || /column|does not exist/i.test(error.message || '')
+        if (!missingColumn) throw error
+      }
 
       const asArray = (v) => {
         if (Array.isArray(v)) return v
@@ -89,7 +100,7 @@ async function handler(req, res) {
 
   } catch (error) {
     console.error('Photo delete error:', error)
-    return res.status(500).json({ error: 'Ștergerea fotografiei a eșuat' })
+    return res.status(500).json({ error: 'Ștergerea fotografiei a eșuat', errorKey: 'errPhotoDeleteFailed' })
   }
 }
 

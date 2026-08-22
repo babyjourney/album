@@ -36,6 +36,7 @@ export default async function handler(req, res) {
   if (blockStatus.blocked) {
     return res.status(429).json({
       error: `Prea multe încercări. Încearcă din nou în ${rateLimiter.formatTimeRemaining(blockStatus.timeRemaining)}.`,
+      errorKey: 'errRateLimited',
     })
   }
 

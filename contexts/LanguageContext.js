@@ -812,8 +812,17 @@ const ALL = ['ro', 'ru', 'en'].reduce((acc, lang) => {
   return acc
 }, {})
 
+// BCP-47 locale for date/number formatting in the current UI language.
+export const localeOf = (lang) => ({ ro: 'ro-RO', ru: 'ru-RU', en: 'en-GB' }[lang] || 'ro-RO')
+
 export function LanguageProvider({ children }) {
   const [language, setLanguage] = useState('ro')
+
+  // Keep <html lang> in step with the UI language (screen readers, hyphenation,
+  // browser translate prompts). _document.js only knows the default.
+  useEffect(() => {
+    try { document.documentElement.lang = language } catch {}
+  }, [language])
 
   useEffect(() => {
     // An explicit choice always wins and is remembered.
@@ -861,7 +870,7 @@ export function LanguageProvider({ children }) {
 
   return (
     <LanguageContext.Provider value={{
-      language,
+      language, locale: localeOf(language),
       changeLanguage,
       t,
       translations: ALL[language]

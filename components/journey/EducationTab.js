@@ -83,7 +83,7 @@ export default function EducationTab({ familyId, childId }) {
         method: 'POST',
         body: JSON.stringify({ childId: childId || null, body }),
       })
-      if (!res.ok) throw new Error((await res.json()).error || t('error'))
+      if (!res.ok) { const body = await res.json(); throw new Error((body.errorKey ? t(body.errorKey) : body.error) || t('error')) }
       showSuccess(t('educationSaved'))
     } catch (e) { showError(e.message) } finally { setSaving(false) }
   }
@@ -96,10 +96,12 @@ export default function EducationTab({ familyId, childId }) {
         method: 'POST',
         body: JSON.stringify({ childId: childId || null, ...form }),
       })
-      if (!res.ok) throw new Error((await res.json()).error || t('error'))
+      const body = await res.json()
+      if (!res.ok) throw new Error((body.errorKey ? t(body.errorKey) : body.error) || t('error'))
       setForm(EMPTY_FORM)
       setShowForm(false)
-      showSuccess(t('chapterAdded'))
+      if (body.warning) showError(t(body.warning))
+      else showSuccess(t('chapterAdded'))
       loadChapters()
     } catch (e) { showError(e.message) } finally { setAdding(false) }
   }

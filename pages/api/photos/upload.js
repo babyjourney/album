@@ -13,7 +13,7 @@ async function handler(req, res) {
   const familyId = req.auth.familyId
 
   if (!familyId || !title || !fileUrl) {
-    return res.status(400).json({ error: 'Câmpuri obligatorii lipsă' })
+    return res.status(400).json({ error: 'Câmpuri obligatorii lipsă', errorKey: 'errRequiredFields' })
   }
 
   // Enforce the family's package video-duration limit. Photos are always
@@ -127,7 +127,7 @@ async function handler(req, res) {
 
   } catch (error) {
     console.error('Photo upload error:', error)
-    return res.status(500).json({ error: `Salvarea fotografiei a eșuat: ${error.message}` })
+    return res.status(500).json({ error: `Salvarea fotografiei a eșuat: ${error.message}`, errorKey: 'errPhotoSaveFailed' })
   }
 }
 

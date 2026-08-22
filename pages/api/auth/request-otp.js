@@ -16,6 +16,7 @@
 import { supabase } from '../../../lib/supabaseClient'
 import { issueOtp } from '../../../lib/otpStore'
 import { sendOtpEmail, sendOtpSms } from '../../../lib/notifications'
+import { normalizePhone, phoneLookupVariants } from '../../../lib/phone'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -44,7 +45,9 @@ export default async function handler(req, res) {
     const cols = 'id, name, email, phone_number, is_suspended, require_otp_login, self_registered'
     const build = (c) => {
       const q = supabase.from('families').select(c)
-      return column === 'email' ? q.ilike('email', value) : q.eq('phone_number', value)
+      return column === 'email'
+        ? q.ilike('email', value)
+        : q.in('phone_number', phoneLookupVariants(value)).limit(1)
     }
     let { data, error } = await build(cols).maybeSingle()
     if (error && /self_registered/i.test(error.message || '')) {
@@ -66,7 +69,11 @@ export default async function handler(req, res) {
         contactKind = 'email'
       }
     } else {
-      contactValue = String(phoneNumber).replace(/\s/g, '')
+      // E.164 — it's also what Twilio needs as the destination.
+      contactValue = normalizePhone(phoneNumber)
+      if (!contactValue) {
+        return res.status(400).json({ error: 'Numărul de telefon nu este valid', errorKey: 'authErrPhoneInvalid' })
+      }
       const data = await selectFamily('phone', contactValue)
       if (data && !data.is_suspended) {
         family = data
@@ -107,9 +114,18 @@ export default async function handler(req, res) {
       : await sendOtpSms({ to: contactValue, code, purpose: 'login_2fa' })
 
     // Mirrors signup-request: when delivery isn't configured, dev needs to see
-    // the code or login is untestable. Never in production.
+    // the code or login is untestable. Never in production — there, an
+    // unconfigured channel means the code can NOT reach the user, and "code
+    // sent" would be a dead end. Say so.
     const extra = {}
-    if (delivery?.mocked && process.env.NODE_ENV !== 'production') {
+    if (delivery?.mocked) {
+      if (process.env.NODE_ENV === 'production') {
+        console.error(`[request-otp] ${contactKind} delivery is not configured (RESEND/TWILIO env) — cannot send the login code`)
+        return res.status(503).json({
+          error: 'Trimiterea codului nu este disponibilă momentan. Te rugăm să încerci mai târziu.',
+          errorKey: 'otpDeliveryUnavailable',
+        })
+      }
       extra.devCode = code
     }
 

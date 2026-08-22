@@ -20,8 +20,8 @@
 import { supabase } from '../../../../lib/supabaseClient'
 import { requireAdmin } from '../../../../lib/authMiddleware'
 import { isValidPackage, normalizeTier } from '../../../../lib/tiers'
+import { normalizePhone } from '../../../../lib/phone'
 
-const PHONE_REGEX = /^(0)?[67][0-9]{7}$/
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 async function handler(req, res) {
@@ -55,9 +55,10 @@ async function handler(req, res) {
   }
 
   if (phoneNumber !== undefined) {
-    const cleanPhone = phoneNumber === null ? null : String(phoneNumber).replace(/\s/g, '')
-    if (cleanPhone && !PHONE_REGEX.test(cleanPhone)) {
-      return res.status(400).json({ error: 'Numărul de telefon nu este valid' })
+    const rawPhone = phoneNumber === null ? null : String(phoneNumber).replace(/\s/g, '')
+    const cleanPhone = rawPhone ? normalizePhone(rawPhone) : null
+    if (rawPhone && !cleanPhone) {
+      return res.status(400).json({ error: 'Numărul de telefon nu este valid (ex. 069010712 sau +37369010712)' })
     }
     patch.phone_number = cleanPhone || null
   }

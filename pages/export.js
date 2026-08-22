@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { getSession, isAuthenticated, authenticatedFetch } from '../lib/pinAuth'
 import { useTier } from '../hooks/useTier'
-import { useLanguage } from '../contexts/LanguageContext'
+import { useLanguage, localeOf } from '../contexts/LanguageContext'
 import FeatureGate from '../components/FeatureGate'
 import { detectFileTypeFromUrl, documentMeta } from '../lib/fileTypes'
 
@@ -15,7 +15,7 @@ export default function ExportTimeline() {
   const [posts, setPosts] = useState([])
   const [loading, setLoading] = useState(true)
   const { has } = useTier()
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
 
   useEffect(() => {
     if (!isAuthenticated()) { router.push('/login'); return }
@@ -36,7 +36,7 @@ export default function ExportTimeline() {
 
   if (!session) return null
 
-  const fmt = (s) => { try { return new Date(s).toLocaleDateString('ro-RO', { year: 'numeric', month: 'long', day: 'numeric' }) } catch { return '' } }
+  const fmt = (s) => { try { return new Date(s).toLocaleDateString(localeOf(language), { year: 'numeric', month: 'long', day: 'numeric' }) } catch { return '' } }
 
   return (
     <FeatureGate feature="pdfExport" title={t('exportGateTitle')}>

@@ -50,16 +50,20 @@ async function handler(req, res) {
         .from('life_chapters').insert(payload).select().single()
 
       // description/hashtags come from sql/sergiu_batch2.sql. On a deployment
-      // that hasn't run it, still save the event rather than failing outright.
+      // that hasn't run it, still save the event rather than failing outright —
+      // but TELL the client what was dropped, so the user isn't shown a clean
+      // success for an event that silently lost its text and tags.
+      let warning = null
       if (error && /description|hashtags/i.test(error.message || '')) {
         console.warn('life_chapters missing description/hashtags — run sql/sergiu_batch2.sql')
         const { description: _d, hashtags: _h, ...legacy } = payload
         ;({ data, error } = await supabase
           .from('life_chapters').insert(legacy).select().single())
+        if (!error && (payload.description || payload.hashtags)) warning = 'chapterFieldsDroppedWarning'
       }
 
       if (error) throw error
-      return res.status(200).json({ success: true, chapter: data })
+      return res.status(200).json({ success: true, chapter: data, warning })
     }
 
     if (req.method === 'DELETE') {
