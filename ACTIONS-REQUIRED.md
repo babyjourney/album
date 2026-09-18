@@ -1,4 +1,4 @@
-# Actions required (manual, one-time) — as of 2026-08-22
+# Actions required (manual, one-time) — as of 2026-09-18
 
 Everything the code can do by itself is done and deployed from `main`. The items
 below can only be done by a human with access to the **Supabase dashboard** and
@@ -55,7 +55,20 @@ any audio/PDF over 50 MB fails with "The object exceeded the maximum allowed siz
 
 ## 3. Email delivery (Resend) — codes for signup / 2FA / PIN reset
 
-Vercel → Project → **Settings → Environment Variables** (Production):
+**Findings 2026-09-18:** the domain's DNS already carries Resend records
+(`send` and `rsend` CNAMEs → `*.forge.rmta.net`), so a Resend account WAS
+connected at some point — but the Vercel project `album` has **zero
+environment variables**, so no `RESEND_API_KEY` ever reached production.
+That is exactly why "nu-mi vine emailul cu codul".
+
+To recover the Resend account: go to resend.com and try signing in with the
+Google account / email addresses you normally use — the right account shows
+**babyjourney.life** under *Domains*. If none of them has it, create a new
+account, add the domain again, replace the DNS records with the new values
+Resend shows, and wait for *Verified*.
+
+Then create an API key and set (Vercel → Project `album` → **Settings →
+Environment Variables**, Production):
 
 ```
 RESEND_API_KEY=re_…
@@ -63,8 +76,17 @@ RESEND_FROM_EMAIL=BabyJourney <noreply@babyjourney.life>
 ```
 
 then **Redeploy**. Full walkthrough (domain verification etc.) in `NOTIFICATIONS.md`.
-Without it, signup and "forgot PIN by email" now answer "temporarily
-unavailable" instead of pretending a code was sent.
+Without it, signup and "forgot PIN by email" answer "temporarily
+unavailable" instead of pretending a code was sent — and since 2026-09-18 the
+same honest answer is given when Resend is configured but *rejects* the send
+(unverified domain, sandbox sender): check the Vercel function logs for
+`Resend send failed` if codes stop arriving.
+
+> Note: production currently reads its config from the **committed
+> `.env.local`** (the Vercel project has no env vars at all — that file, which
+> also holds the Supabase service-role key, ships with the repo). Adding the
+> Resend key as a real Vercel env var works regardless; longer-term the
+> secrets should move out of git entirely.
 
 ## 4. SMS delivery (Twilio) — codes on the phone (Sergiu 29.07: "SMS nu vine")
 
@@ -94,7 +116,10 @@ Free tier pauses after ~7 days without traffic; the whole app then fails with
 
 ### Not blocked — already live on `main`
 Dashboard activity stats (upload time from the storage path), new categories,
-video ≤ 60 s accepted on every plan (60.9 s counts as 60), phone in any format
+video capped at 60 s on every plan (60.9 s counts as 60; longer is rejected
+client- and server-side — Sergiu 18.09), full country/dial-code list in the
+signup picker, categories translated with the site language in search/filters,
+create forms, cards and the post view, phone in any format
 (`069…` or `+373…`) on login / forgot-PIN / admin, language picker + auto-detect
 on login / signup / forgot-PIN, translated server errors, export archive in the
 UI language, desktop edit drag keeps the cover photo, deleted photos are removed

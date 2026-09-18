@@ -124,6 +124,20 @@ export default async function handler(req, res) {
 
     const delivery = await sendOtpEmail({ to: cleanEmail, code, purpose: 'signup' })
 
+    // (Sergiu 18.09 — "nu-mi vine emailul cu codul") A REAL send failure —
+    // Resend configured but refusing the send (unverified domain, sandbox
+    // sender restricted to the account owner, bad key) — used to fall through
+    // to "code sent", stranding the visitor on the code screen forever. Same
+    // honest answer as the unconfigured case; operators see the Resend
+    // response in the logs (lib/notifications.js prints it).
+    if (delivery && delivery.ok === false) {
+      console.error('[signup] email send FAILED (see Resend error above) — refusing to claim "code sent"')
+      return res.status(503).json({
+        error: 'Înregistrarea nu este disponibilă momentan. Te rugăm să încerci mai târziu.',
+        errorKey: 'signupUnavailable',
+      })
+    }
+
     // When Resend isn't configured, lib/notifications quietly "sends" to the
     // server console. In dev that's the intended workflow — surface the code so
     // signup is testable. NEVER in production, where it would hand out codes.

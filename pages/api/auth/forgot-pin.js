@@ -103,6 +103,17 @@ export default async function handler(req, res) {
       })
     }
 
+    // (Sergiu 18.09) A real send failure (Resend/Twilio rejected the message)
+    // is a dead end just like the unconfigured case — don't claim "code sent".
+    // The channel being down is systemic, so this leaks nothing per-account.
+    if (delivery && delivery.ok === false) {
+      console.error(`[forgot-pin] ${contactKind} send FAILED — refusing to claim "code sent"`)
+      return res.status(503).json({
+        error: 'Trimiterea codului nu este disponibilă momentan. Te rugăm să încerci mai târziu.',
+        errorKey: 'otpDeliveryUnavailable',
+      })
+    }
+
     return okResponse(contactKind)
   } catch (error) {
     console.error('forgot-pin error:', error)

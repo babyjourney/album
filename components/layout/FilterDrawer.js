@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import SideSheet from './SideSheet'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { getCategories } from '../../lib/categoriesData'
+import { categoryDisplayLabel } from '../../lib/defaultCategories'
 import { authenticatedFetch } from '../../lib/pinAuth'
 
 export default function FilterDrawer({
@@ -100,7 +101,7 @@ export default function FilterDrawer({
                 onClick={() => update({ category: cat.value })}
                 className={`category-pill ${filters?.category === cat.value ? 'category-pill--selected' : ''}`}
               >
-                {cat.emoji ? `${cat.emoji} ` : ''}{cat.label}
+                {cat.emoji ? `${cat.emoji} ` : ''}{categoryDisplayLabel(cat, t)}
               </button>
             ))}
           </div>

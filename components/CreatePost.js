@@ -4,7 +4,7 @@ import { useLanguage } from '../contexts/LanguageContext'
 import DatePicker from './DatePicker'
 import { getCategories } from '../lib/categoriesData'
 import { authenticatedFetch } from '../lib/pinAuth'
-import { DEFAULT_CATEGORY_VALUE } from '../lib/defaultCategories'
+import { DEFAULT_CATEGORY_VALUE, categoryDisplayLabel } from '../lib/defaultCategories'
 
 export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVideoClick }) {
   const [postText, setPostText] = useState('')
@@ -166,7 +166,7 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
                     className={`category-pill ${category === cat.value ? 'category-pill--selected' : ''}`}
                   >
                     <span style={{ marginRight: '6px' }}>{cat.emoji}</span>
-                    {cat.label.replace(cat.emoji + ' ', '')}
+                    {categoryDisplayLabel(cat, t)}
                   </button>
                 ))}
               </div>

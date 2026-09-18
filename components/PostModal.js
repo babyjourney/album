@@ -9,7 +9,7 @@ import InstagramCarousel from './InstagramCarousel'
 import DatePicker from './DatePicker'
 import { detectFileTypeFromUrl, documentMeta } from '../lib/fileTypes'
 import { getCoverPoster as getPostPoster, getPosterForUrl } from '../lib/posters'
-import { DEFAULT_CATEGORIES } from '../lib/defaultCategories'
+import { DEFAULT_CATEGORIES, categoryDisplayLabel } from '../lib/defaultCategories'
 
 // Full-view renderer for audio + document posts (single-file). Audio gets a
 // native player; documents get an inline PDF preview (when possible) plus an
@@ -2209,9 +2209,9 @@ function PostModalInner({
                   {(() => {
                     const category = categories.find(cat => cat.value === currentPost.category)
                     if (category) {
-                      return `${category.emoji ? category.emoji + ' ' : ''}${category.label}`
+                      return `${category.emoji ? category.emoji + ' ' : ''}${categoryDisplayLabel(category, t)}`
                     }
-                    return currentPost.category.charAt(0).toUpperCase() + currentPost.category.slice(1)
+                    return categoryDisplayLabel(currentPost.category, t)
                   })()}
                 </span>
               </div>
@@ -2481,7 +2481,7 @@ function PostModalInner({
                       style={{ padding: '6px 12px', fontSize: '13px' }}
                     >
                       {cat.emoji ? <span style={{ marginRight: 6 }}>{cat.emoji}</span> : null}
-                      {cat.label}
+                      {categoryDisplayLabel(cat, t)}
                     </button>
                   )
                 })}

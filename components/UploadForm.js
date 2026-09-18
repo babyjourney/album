@@ -11,7 +11,7 @@ import { getPackageLimits, getImageCompressionOptions, getVideoLimits, getVideoE
 import { getTier } from '../lib/tiers'
 import { UPLOAD_ACCEPT, isAcceptedUploadFile } from '../lib/fileTypes'
 import { transcodeVideo, captureVideoPoster } from '../lib/videoCompress'
-import { DEFAULT_CATEGORY_VALUE } from '../lib/defaultCategories'
+import { DEFAULT_CATEGORY_VALUE, categoryDisplayLabel } from '../lib/defaultCategories'
 
 // Small round reorder button (‹ ›) used on file thumbnails — works on touch.
 const reorderBtnStyle = (disabled) => ({
@@ -1083,7 +1083,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                           onClick={() => setCategory(cat.value)}
                           className={`category-pill${category === cat.value ? ' category-pill--selected sheen' : ''}`}
                         >
-                          {cat.label}
+                          {categoryDisplayLabel(cat, t)}
                         </button>
                       ))}
                     </div>
@@ -1401,7 +1401,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                         onClick={() => setCategory(cat.value)}
                         className={`category-pill${category === cat.value ? ' category-pill--selected sheen' : ''}`}
                       >
-                        {cat.label}
+                        {categoryDisplayLabel(cat, t)}
                       </button>
                     ))}
                   </div>

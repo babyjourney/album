@@ -16,8 +16,9 @@ import journey from './journey'
 import auth from './auth'
 import media from './media'
 import errors from './errors'
+import categories from './categories'
 
-const MODULES = [dashboard, journey, auth, media, errors]
+const MODULES = [dashboard, journey, auth, media, errors, categories]
 const LANGS = ['ro', 'ru', 'en']
 
 // Merge every module into one dict per language.

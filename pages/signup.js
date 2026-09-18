@@ -10,11 +10,11 @@
 //   2. Enter the 4-digit code -> POST /api/auth/signup-verify   (creates the family)
 //   3. Show the PINs, which are emailed too.
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useLanguage } from '../contexts/LanguageContext'
-import { COUNTRIES, dialOf } from '../lib/phone'
+import { COUNTRIES, PINNED_COUNT, dialOf } from '../lib/phone'
 import LanguagePicker from '../components/LanguagePicker'
 
 // (Sergiu batch3 #5) Registration hard-coded the Moldovan "069…" format. The
@@ -22,10 +22,16 @@ import LanguagePicker from '../components/LanguagePicker'
 // and we store a full international (E.164) number. Moldova first — that's where
 // the clients are — then the countries the diaspora actually lives in.
 // Country list + dial codes live in lib/phone.js (shared with the server).
+//
+// (Sergiu 18.09) The list is now the full ITU set (~200 countries), so the
+// options carry a country NAME — nobody can find their country among 200
+// entries by dial code alone. Names come from Intl.DisplayNames in the UI
+// language, so we ship no name tables; the pinned diaspora countries stay on
+// top and the rest sort alphabetically in that language.
 
 export default function Signup() {
   const router = useRouter()
-  const { t } = useLanguage()
+  const { t, locale } = useLanguage()
   const [step, setStep] = useState('details') // details | code | done
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -39,6 +45,23 @@ export default function Signup() {
   // since the dial code replaces the national trunk "0"). E.g. MD + "069010712"
   // -> "+37369010712".
   const fullPhone = () => `${dialOf(country)}${phoneNumber.replace(/\D/g, '').replace(/^0+/, '')}`
+
+  // Localized country names + display order: pinned countries keep their
+  // curated order, everything after sorts by name in the UI language.
+  // Intl.DisplayNames can be missing (very old browsers) — fall back to the
+  // ISO code rather than crash the signup page.
+  const countryOptions = useMemo(() => {
+    let nameOf = (code) => code
+    try {
+      const dn = new Intl.DisplayNames([locale], { type: 'region' })
+      nameOf = (code) => dn.of(code) || code
+    } catch { /* keep the code-only fallback */ }
+    const withNames = COUNTRIES.map((c) => ({ ...c, name: nameOf(c.code) }))
+    return [
+      ...withNames.slice(0, PINNED_COUNT),
+      ...withNames.slice(PINNED_COUNT).sort((a, b) => a.name.localeCompare(b.name, locale)),
+    ]
+  }, [locale])
 
   const [code, setCode] = useState('')
   const [devCode, setDevCode] = useState('')
@@ -160,15 +183,17 @@ export default function Signup() {
             <div>
               <label className="text-eyebrow" style={{ display: 'block', marginBottom: 6 }}>{t('authPhoneShort')}</label>
               <div style={{ display: 'flex', gap: 8 }}>
+                {/* The closed control truncates long names — fine, because the
+                    chosen dial code is echoed in the hint right below. */}
                 <select
                   value={country}
                   onChange={(e) => setCountry(e.target.value)}
                   className="input-glass"
                   aria-label={t('signupCountryLabel')}
-                  style={{ flex: '0 0 auto', width: 116, paddingRight: 8 }}
+                  style={{ flex: '0 0 auto', width: 132, paddingRight: 8 }}
                 >
-                  {COUNTRIES.map((c) => (
-                    <option key={c.code} value={c.code}>{c.flag} {c.dial}</option>
+                  {countryOptions.map((c) => (
+                    <option key={c.code} value={c.code}>{c.flag} {c.name} ({c.dial})</option>
                   ))}
                 </select>
                 <input

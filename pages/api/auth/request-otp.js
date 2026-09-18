@@ -129,6 +129,16 @@ export default async function handler(req, res) {
       extra.devCode = code
     }
 
+    // (Sergiu 18.09) A real send failure (configured but rejected) must not be
+    // reported as "code sent" — the user would sit on the code screen forever.
+    if (delivery && delivery.ok === false) {
+      console.error(`[request-otp] ${contactKind} send FAILED — refusing to claim "code sent"`)
+      return res.status(503).json({
+        error: 'Trimiterea codului nu este disponibilă momentan. Te rugăm să încerci mai târziu.',
+        errorKey: 'otpDeliveryUnavailable',
+      })
+    }
+
     return ok(contactKind, true, extra)
   } catch (error) {
     console.error('request-otp error:', error)

@@ -6,7 +6,7 @@ import MediaThumbnail from '../MediaThumbnail'
 import MediaTypeCard from '../MediaTypeCard'
 import { detectFileTypeFromUrl } from '../../lib/fileTypes'
 import { getCoverPoster } from '../../lib/posters'
-import { categoryLabel } from '../../lib/defaultCategories'
+import { categoryDisplayLabel } from '../../lib/defaultCategories'
 
 // Multi-photo helpers (same logic as InstagramFeed but isolated here)
 const getMultiPhotoUrls = (post) => {
@@ -239,7 +239,7 @@ export default function BentoMasonry({ familyId, searchQuery, refreshTrigger, on
                 border: '1px solid rgba(255,255,255,0.20)',
                 letterSpacing: '0.02em',
               }}>
-                {categoryLabel(post.category)}
+                {categoryDisplayLabel(post.category, t)}
               </span>
             )}
             {post.is_private && (
