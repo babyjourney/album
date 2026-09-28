@@ -13,10 +13,7 @@ export default function Login() {
   const [phoneNumber, setPhoneNumber] = useState('')
   const [email, setEmail] = useState('')
   const [otpCode, setOtpCode] = useState('')
-  // 'phone' | 'email' — how the user wants to identify themselves
   const [channel, setChannel] = useState('phone')
-  // 2FA second step is only shown when the server tells us OTP is required.
-  // The login is a single submit unless the family has require_otp_login=true.
   const [otpStep, setOtpStep] = useState(false)
   const [otpDeliveryHint, setOtpDeliveryHint] = useState(null)
   const [resetSuccess, setResetSuccess] = useState(false)
@@ -29,7 +26,6 @@ export default function Login() {
     if (isAuthenticated()) router.push('/dashboard')
   }, [])
 
-  // Show a success banner when the user lands here from /forgot-password.
   useEffect(() => {
     if (router.query.reset === 'ok') setResetSuccess(true)
   }, [router.query.reset])
@@ -67,9 +63,6 @@ export default function Login() {
       : { phoneNumber: phoneNumber.trim() }
   )
 
-  // (Sergiu batch3 #8) Prefer the server's errorKey — localized here via t() —
-  // over its Romanian string, so EN/RU users see errors in their language. The
-  // "N attempts left" tail is appended in the active language too.
   const resolveError = (result) => {
     let msg = result.errorKey ? t(result.errorKey) : (result.error || '')
     if (!result.rateLimited && result.attemptsRemaining != null &&
@@ -79,9 +72,6 @@ export default function Login() {
     return msg
   }
 
-  // Single login submit. We first call /api/auth/request-otp to find out
-  // whether this family has 2FA enabled. If yes, we collect the OTP code
-  // before calling pin-login. If no, we go straight to pin-login.
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
@@ -105,9 +95,6 @@ export default function Login() {
 
     setLoading(true)
 
-    // If we're not already in the OTP step, ask the server whether 2FA
-    // is required for this contact. This is a non-leaking probe — the
-    // endpoint replies the same shape for found and not-found accounts.
     if (!otpStep) {
       const probe = await requestLoginOtp(contactPayload())
       if (probe.success && probe.otpRequired) {
@@ -116,9 +103,6 @@ export default function Login() {
         setLoading(false)
         return
       }
-      // Either probe.success === false (network error) or otpRequired === false.
-      // In either case, fall through to pin-login: it will return OTP_REQUIRED
-      // again if the server thinks 2FA is needed.
     }
 
     const result = await loginWithPin({
@@ -133,8 +117,6 @@ export default function Login() {
       return
     }
 
-    // Server told us OTP is required (covers the case where the probe
-    // missed — e.g. user changed phone after request-otp).
     if (result.otpRequired) {
       setOtpStep(true)
       setOtpDeliveryHint(result.deliveryHint || null)
@@ -172,11 +154,6 @@ export default function Login() {
   return (
     <>
       <Head>
-        {/* Task #13 — SEO + social-share metadata.
-            TODO: replace /img/pfp.webp with a proper 1200×630 hero card
-            (BabyJourney_couple_with_little_boy.webp per public/img/SEO.md).
-            Until then we point at the existing profile picture so the
-            og:image link isn't broken (returns a real WebP, not a 404). */}
         <title>{t('loginPageTitle')}</title>
         <meta name="description" content={t('loginMetaDescription')} />
         <meta name="keywords" content="album familie, BabyJourney, jurnal bebe, amintiri copii, album privat, Chișinău, Moldova, foto familie, jurnal nou-nascut" />
@@ -205,13 +182,10 @@ export default function Login() {
       padding: '24px',
       position: 'relative',
     }}>
-      {/* (Sergiu batch3 #6) Language switch on the entry screen itself — a
-          first-time EN/RU visitor never reaches the in-app header drawer. */}
       <div style={{ position: 'absolute', top: 20, right: 20, zIndex: 2 }}>
         <LanguagePicker />
       </div>
 
-      {/* Slow orbiting accent orbs (purely decorative) */}
       <div aria-hidden style={{
         position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0,
       }}>
@@ -237,7 +211,6 @@ export default function Login() {
 
       <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 440 }}
            className="animate-glass-in">
-        {/* Brand */}
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <div style={{
             width: 64, height: 64,
@@ -264,13 +237,11 @@ export default function Login() {
           </p>
         </div>
 
-        {/* Glass form card */}
         <form onSubmit={handleSubmit} autoComplete="on" className="modal-glass" style={{
           padding: '32px 28px',
           gap: 0,
           animationDelay: '60ms',
         }}>
-          {/* off-screen hidden username for password manager UX */}
           <input
             type="text" name="username" autoComplete="username"
             value="family-album-user" readOnly tabIndex="-1"
@@ -289,7 +260,6 @@ export default function Login() {
             </div>
           )}
 
-          {/* Contact channel selector — phone or email (Task #3) */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
             <button
               type="button"
@@ -360,7 +330,6 @@ export default function Login() {
             }}
           />
 
-          {/* OTP step — only rendered when the server says 2FA is required. */}
           {otpStep && (
             <>
               <label htmlFor="otp" className="text-eyebrow" style={{ display: 'block', marginBottom: 8, marginTop: 6 }}>
@@ -459,7 +428,6 @@ export default function Login() {
           </div>
         </form>
 
-        {/* Forgot password — opens email-based PIN reset flow */}
         <div style={{
           textAlign: 'center', marginTop: 18,
         }}>
@@ -476,7 +444,6 @@ export default function Login() {
           </Link>
         </div>
 
-        {/* (Item 14) Self-registration. /signup existed but nothing linked to it. */}
         <div style={{ textAlign: 'center', marginTop: 14, fontSize: 13, color: 'var(--ink-2)' }}>
           {t('loginNoAccount')}{' '}
           <Link href="/signup" legacyBehavior>
@@ -486,7 +453,6 @@ export default function Login() {
           </Link>
         </div>
 
-        {/* Tagline below */}
         <div style={{
           textAlign: 'center', marginTop: 22,
           fontSize: 12, color: 'var(--ink-3)',
@@ -495,7 +461,6 @@ export default function Login() {
           {t('loginTagline')}
         </div>
 
-        {/* Legal footer */}
         <div style={{
           textAlign: 'center', marginTop: 18,
           fontSize: 12, color: 'var(--ink-3)',

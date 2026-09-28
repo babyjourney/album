@@ -1,6 +1,3 @@
-// Admin/editor → update an existing child (name, birth date, profile picture,
-// display order). Used to backfill the first child's birth date and to add/edit
-// a child's photo after creation (items 1a/1b).
 import { supabase } from '../../../lib/supabaseClient'
 import { requireAuthOrAdmin } from '../../../lib/authMiddleware'
 
@@ -13,7 +10,6 @@ async function handler(req, res) {
   if (!id) return res.status(400).json({ error: 'ID-ul copilului este obligatoriu' })
 
   try {
-    // Ownership: the child must belong to the caller's family (admins bypass).
     const { data: child, error: fetchErr } = await supabase
       .from('children').select('id, family_id').eq('id', id).single()
     if (fetchErr || !child) return res.status(404).json({ error: 'Copilul nu a fost găsit' })

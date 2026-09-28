@@ -55,7 +55,6 @@ export default function ProfilePictureModal({
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Close button */}
         <button
           onClick={onClose}
           className="btn-icon"

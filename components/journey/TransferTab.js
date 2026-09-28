@@ -1,4 +1,3 @@
-// Ownership Transfer at 18 — reassign the album to the adult child.
 import { useState } from 'react'
 import { authenticatedFetch, isEditor } from '../../lib/pinAuth'
 import { useToast } from '../../contexts/ToastContext'

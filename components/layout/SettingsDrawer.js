@@ -13,10 +13,8 @@ export default function SettingsDrawer({ isOpen, onClose, onProfilePicture, onSi
   const { showError, showSuccess } = useToast()
   const router = useRouter()
 
-  // (Item 8) Export is a real .zip of the actual photos/videos/text, organized
-  // into year folders — not a JSON file of URLs that nobody can use.
   const [exporting, setExporting] = useState(false)
-  const [exportStatus, setExportStatus] = useState(null) // { stage, done, total }
+  const [exportStatus, setExportStatus] = useState(null)
   const [exportYear, setExportYear] = useState('all')
   const [years, setYears] = useState([])
 
@@ -211,9 +209,6 @@ export default function SettingsDrawer({ isOpen, onClose, onProfilePicture, onSi
           </div>
         </Section>
 
-        {/* (Item 8) Album download — a .zip with a folder per year, containing
-            the real photos/videos/text named
-            [an.luna.zi][copii]_[titlu]_[nr].ext */}
         <Section label={t('exportSectionLabel')}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <select

@@ -17,7 +17,6 @@ export default function FilterDrawer({
   useEffect(() => {
     if (!isOpen) return
     getCategories().then(setCategories).catch(() => setCategories([]))
-    // (Item 2) existing family hashtags for search suggestions
     authenticatedFetch('/api/hashtags/list')
       .then((r) => r.json())
       .then((d) => setExistingHashtags(d?.success ? (d.hashtags || []) : []))
@@ -60,7 +59,6 @@ export default function FilterDrawer({
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
-        {/* Search */}
         {onSearchChange && (
           <Section label={t('search')}>
             <div style={{ position: 'relative' }}>
@@ -84,7 +82,6 @@ export default function FilterDrawer({
           </Section>
         )}
 
-        {/* Category */}
         <Section label={t('categories')}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             <button
@@ -107,7 +104,6 @@ export default function FilterDrawer({
           </div>
         </Section>
 
-        {/* Hashtag */}
         <Section label={t('hashtag')}>
           <input
             type="text"
@@ -116,7 +112,6 @@ export default function FilterDrawer({
             placeholder={t('hashtagPlaceholder')}
             className="input-glass"
           />
-          {/* (Item 2) suggestions from previously-used hashtags */}
           {hashtagSuggestions.length > 0 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
               {hashtagSuggestions.map((h) => (
@@ -134,10 +129,6 @@ export default function FilterDrawer({
           )}
         </Section>
 
-        {/* Date — second-to-last, immediately above Sort.
-            Picking a date no longer filters to a ±5-day window; it anchors the
-            feed: the 3 posts before that day, everything posted on it, and the
-            3 posts after — however far apart those actually are. */}
         <Section label={t('date')}>
           <input
             type="date"
@@ -165,15 +156,11 @@ export default function FilterDrawer({
           ) : null}
         </Section>
 
-        {/* Sort */}
         <Section label={t('sorting')}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
             {[
               { value: 'newest', label: t('newest') },
               { value: 'oldest', label: t('oldest') },
-              // These MUST match the keys /api/photos/list switches on. They
-              // used to be titleAZ/titleZA, which matched nothing, so both
-              // pills silently fell through to "newest".
               { value: 'title_asc', label: t('titleAZ') },
               { value: 'title_desc', label: t('titleZA') },
             ].map((opt) => (

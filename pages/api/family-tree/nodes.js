@@ -1,6 +1,3 @@
-// Family tree nodes — GET list, POST create, PUT update, DELETE.
-// The BASIC tree is available to every tier but capped at the tier's
-// familyTreeMaxNodes (Starter = 20). The EXTENDED (unlimited) tree is Family+.
 import { supabase } from '../../../lib/supabaseClient'
 import { requireAuthOrAdmin } from '../../../lib/authMiddleware'
 import { resolveFamilyId, canWrite } from '../../../lib/childRecord'
@@ -24,7 +21,6 @@ async function handler(req, res) {
       const { name, relation, parentId, photoUrl, birthYear, notes, displayOrder } = req.body || {}
       if (!name || !name.trim()) return res.status(400).json({ error: 'Numele este obligatoriu', errorKey: 'errNameRequired' })
 
-      // Enforce the tier node cap (basic tree). Admins bypass.
       if (!req.auth.isAdmin) {
         const { data: fam } = await supabase
           .from('families').select('package').eq('id', familyId).single()

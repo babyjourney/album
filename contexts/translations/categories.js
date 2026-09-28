@@ -1,8 +1,3 @@
-// (Sergiu 18.09) Category names in the search/filter panel and the "+" create
-// forms lived their own life in English while the rest of the site followed the
-// global language. These are the display names for the six DEFAULT categories
-// (lib/defaultCategories.js) — custom categories keep whatever label the family
-// typed, see categoryDisplayLabel() there.
 const translations = {
   ro: {
     categoryMilestones: 'Repere',

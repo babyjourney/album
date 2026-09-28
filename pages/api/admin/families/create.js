@@ -1,27 +1,3 @@
-// Admin → create a new family.
-//
-// Why this endpoint exists: the `families` table is RLS-locked to service_role
-// only (see migration.sql §3 — strict RLS for vuln #12). Browsers, even when
-// signed in as admin, use the anon key — so direct supabase.from('families')
-// .insert(...) from the browser fails with "row violates row-level security".
-// All family writes MUST flow through admin API endpoints like this one, which
-// run server-side and use the service-role key (see lib/supabaseClient.js).
-//
-// Input (POST JSON):
-//   {
-//     name:                string  (required)
-//     phoneNumber?:        string  (optional but recommended — Romanian format)
-//     email?:              string  (optional — used for OTP delivery)
-//     profilePictureUrl?:  string  (optional — set after upload, see update.js)
-//     package?:            'free' | 'premium'   (default: 'free')
-//     requireOtpLogin?:    boolean              (default: false)
-//     viewerPin?:          string  (4 digits — auto-generated if absent)
-//     editorPin?:          string  (8 digits — auto-generated if absent)
-//   }
-//
-// Returns: { ok: true, family: { id, name, phone_number, email, viewer_pin,
-//           editor_pin, package, require_otp_login, ... } }
-
 import crypto from 'crypto'
 import { supabase, assertServerHasServiceRole } from '../../../../lib/supabaseClient'
 import { requireAdmin } from '../../../../lib/authMiddleware'
@@ -30,8 +6,6 @@ import { normalizePhone, phoneLookupVariants } from '../../../../lib/phone'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-// A "fetch failed" / network error means the server couldn't reach Supabase at
-// all (paused project, DNS, VPN/proxy/firewall) — NOT a missing key or RLS.
 function isNetworkError(err) {
   const m = String(err?.message || err || '').toLowerCase()
   return m.includes('fetch failed') || m.includes('econnrefused') ||
@@ -43,9 +17,6 @@ const NETWORK_HINT =
   'pus pe pauză (Dashboard → Restore), (2) repornește serverul după modificări ' +
   'în .env.local, (3) rețea/VPN/firewall care blochează conexiunile Node.'
 
-// Numeric PIN generator. Falls back to Math.random if crypto.randomInt is
-// somehow unavailable (older Node runtimes) — still uniform enough for an
-// account PIN, and we re-check uniqueness against the DB anyway.
 function randomPin(length) {
   const max = 10 ** length
   let n
@@ -60,9 +31,6 @@ function randomPin(length) {
 async function generateUniquePin(column, length) {
   for (let i = 0; i < 100; i++) {
     const pin = randomPin(length)
-    // .maybeSingle() — returns { data:null, error:null } when no row matches,
-    // which is the "this PIN is free" case. Using .limit(1) without
-    // .maybeSingle() returns an array, equally fine.
     const { data, error } = await supabase
       .from('families')
       .select('id')
@@ -70,8 +38,6 @@ async function generateUniquePin(column, length) {
       .limit(1)
 
     if (error) {
-      // Service-role queries should always succeed; if this fires we likely
-      // don't have SUPABASE_SERVICE_ROLE_KEY set. Bubble up a clear error.
       throw new Error(
         `Nu pot verifica unicitatea PIN-urilor (${error.code || 'unknown'}: ${error.message}). ` +
         `Verifică SUPABASE_SERVICE_ROLE_KEY în .env.local.`
@@ -83,24 +49,16 @@ async function generateUniquePin(column, length) {
 }
 
 async function handler(req, res) {
-  // Single try/catch around EVERYTHING so any thrown error becomes a JSON
-  // response instead of a Next.js HTML error page.
   try {
     if (req.method !== 'POST') {
       return res.status(405).json({ error: 'Method not allowed' })
     }
 
-    // Refuse to proceed without the elevated key — otherwise the insert
-    // would hit the RLS policy and return the confusing
-    //   "new row violates row-level security policy for table 'families'"
-    // error. This guard turns it into a clear, fixable config message.
     const configError = assertServerHasServiceRole()
     if (configError) {
       return res.status(500).json(configError)
     }
 
-    // Defensive: req.body may be undefined (missing Content-Type), a string
-    // (body parser disabled), or an object. Handle all three.
     let body = req.body
     if (typeof body === 'string') {
       try { body = JSON.parse(body) } catch { body = {} }
@@ -123,11 +81,9 @@ async function handler(req, res) {
     }
 
     const cleanName = name.trim()
-    // Any spelling accepted ("069010712", "+373 69 010 712"); stored as E.164.
     const rawPhone = phoneNumber ? String(phoneNumber).replace(/\s/g, '') : null
     const cleanPhone = rawPhone ? normalizePhone(rawPhone) : null
     const cleanEmail = email ? String(email).trim().toLowerCase() : null
-    // 3 tiers: starter | family | legacy. Accept legacy free/premium aliases.
     const finalPackage = normalizeTier(pkg)
     const finalRequireOtp = requireOtpLogin === true
 
@@ -147,7 +103,6 @@ async function handler(req, res) {
       return res.status(400).json({ error: 'PIN-ul de editor trebuie să aibă 8 cifre' })
     }
 
-    // Reject duplicate phone numbers — login keys on phone+PIN.
     if (cleanPhone) {
       const { data: existing, error: phoneErr } = await supabase
         .from('families').select('id').in('phone_number', phoneLookupVariants(cleanPhone)).limit(1)
@@ -200,8 +155,6 @@ async function handler(req, res) {
     if (cleanEmail) insertData.email = cleanEmail
     if (profilePictureUrl) insertData.profile_picture_url = profilePictureUrl
 
-    // Insert via service_role (RLS bypass). On column-missing errors we
-    // progressively strip non-essential fields and retry.
     const NON_ESSENTIAL = [
       'require_otp_login', 'package', 'email',
       'profile_picture_url', 'phone_number',
@@ -243,11 +196,6 @@ async function handler(req, res) {
     if (insertError) {
       console.error('admin/families/create insert failed:', insertError)
 
-      // The RLS error means the Supabase client is running as anon, not
-      // service_role. Either SUPABASE_SERVICE_ROLE_KEY is missing (caught
-      // by assertServerHasServiceRole above) or it's set to a wrong value
-      // (e.g. the user pasted the anon key by mistake). Surface a clear
-      // diagnosis instead of the raw postgres message.
       const msg = String(insertError.message || '')
       if (
         msg.includes('row-level security') ||

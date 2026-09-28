@@ -17,7 +17,7 @@ banner while anything is pending, and hides it once everything is green.
 
 ---
 
-## 1. Run the SQL migration  — `sql/sergiu_batch2.sql`
+## 1. Run the SQL migration  — `supabase-migration.sql`
 
 Supabase → **SQL Editor** → **New query** → paste the whole file → **Run**.
 Idempotent: safe to run twice. Takes a few seconds.

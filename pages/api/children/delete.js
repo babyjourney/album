@@ -13,7 +13,6 @@ async function handler(req, res) {
   }
 
   try {
-    // First check if the child exists and get family info
     const { data: childData, error: fetchError } = await supabase
       .from('children')
       .select('id, family_id, name')
@@ -24,17 +23,15 @@ async function handler(req, res) {
       return res.status(404).json({ error: 'Child not found' })
     }
 
-    // SECURITY: family sessions can only delete their own family's children
     if (!req.auth.isAdmin && childData.family_id !== req.auth.familyId) {
       return res.status(403).json({ error: 'Accesul la această resursă este interzis' })
     }
 
-    // Delete the child from the database
     const { error: deleteError } = await supabase
       .from('children')
       .delete()
       .eq('id', childId)
-      .eq('family_id', childData.family_id) // belt-and-suspenders
+      .eq('family_id', childData.family_id)
 
     if (deleteError) {
       console.error('Error deleting child:', deleteError)

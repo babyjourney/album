@@ -7,7 +7,6 @@ async function handler(req, res) {
   }
 
   try {
-    // Get all families with comprehensive data for export
     const { data: families, error: familiesError } = await supabase
       .from('families')
       .select(`
@@ -31,23 +30,17 @@ async function handler(req, res) {
     const exportData = await Promise.all(
       (families || []).map(async (family) => {
         try {
-          // Get children count and names
           const { data: children, error: childrenError } = await supabase
             .from('children')
             .select('name, birth_date')
             .eq('family_id', family.id)
             .order('name')
 
-          // Get photos count
           const { count: photosCount, error: photosCountError } = await supabase
             .from('photos')
             .select('*', { count: 'exact', head: true })
             .eq('family_id', family.id)
 
-          // Get latest photo upload date.
-          // uploaded_at, NOT created_at: created_at is the memory date the user
-          // chose and may be backdated years. Falls back if the migration
-          // (sql/sergiu_batch2.sql) hasn't been run.
           let { data: latestPhoto } = await supabase
             .from('photos')
             .select('uploaded_at')
@@ -66,7 +59,6 @@ async function handler(req, res) {
 
           const lastUploadAt = latestPhoto?.[0]?.uploaded_at || latestPhoto?.[0]?.created_at
 
-          // Format children names
           const childrenNames = children?.map(child => child.name).join(', ') || 'Fără copii'
           const childrenAges = children?.map(child => {
             if (!child.birth_date) return 'Necunoscut'
@@ -76,7 +68,6 @@ async function handler(req, res) {
             return `${age} ani`
           }).join(', ') || 'Necunoscut'
 
-          // Format dates for export
           const formatDate = (dateString) => {
             if (!dateString) return 'Nu este setat'
             return new Date(dateString).toLocaleDateString('ro-RO', {
@@ -88,7 +79,6 @@ async function handler(req, res) {
             })
           }
 
-          // Calculate days since last access
           let daysSinceLastAccess = 'Niciodată'
           if (family.last_accessed) {
             const lastAccess = new Date(family.last_accessed)
@@ -140,7 +130,6 @@ async function handler(req, res) {
       })
     )
 
-    // Add summary statistics at the end
     const summary = {
       'Nume Familie': '=== STATISTICI GENERALE ===',
       'Număr Telefon': `Total familii: ${families.length}`,

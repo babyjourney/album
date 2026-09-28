@@ -15,7 +15,6 @@ async function handler(req, res) {
   }
 
   try {
-    // Check if the category exists for this family
     const { data: existing } = await supabase
       .from('family_categories')
       .select('id')
@@ -27,7 +26,6 @@ async function handler(req, res) {
       return res.status(404).json({ error: 'Category not found' })
     }
 
-    // If value is changing, check if new value already exists
     if (oldValue !== value) {
       const { data: valueExists } = await supabase
         .from('family_categories')
@@ -41,7 +39,6 @@ async function handler(req, res) {
       }
     }
 
-    // Update category
     const { data: updatedCategory, error } = await supabase
       .from('family_categories')
       .update({

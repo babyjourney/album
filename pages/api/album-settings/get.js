@@ -20,11 +20,10 @@ async function handler(req, res) {
       .eq('family_id', familyId)
       .single()
 
-    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+    if (error && error.code !== 'PGRST116') {
       throw error
     }
 
-    // If no settings exist, create default settings
     if (!data) {
       const { data: newSettings, error: createError } = await supabase
         .from('album_settings')

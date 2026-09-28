@@ -11,9 +11,6 @@ import { detectFileTypeFromUrl, documentMeta } from '../lib/fileTypes'
 import { getCoverPoster as getPostPoster, getPosterForUrl } from '../lib/posters'
 import { DEFAULT_CATEGORIES, categoryDisplayLabel } from '../lib/defaultCategories'
 
-// Full-view renderer for audio + document posts (single-file). Audio gets a
-// native player; documents get an inline PDF preview (when possible) plus an
-// open/download link.
 function AudioDocView({ url, kind, title }) {
   const { t } = useLanguage()
   if (kind === 'audio') {
@@ -47,18 +44,14 @@ function AudioDocView({ url, kind, title }) {
   )
 }
 
-// Helper function to detect and extract multi-photo URLs with cover reordering
 const getMultiPhotoUrls = (post) => {
   let urls = null
   let coverIndex = 0
   
-  // Check for file_urls field (works for both 'multi-photo' and 'image' types with multiple files)
   if (post.file_urls) {
-    // If file_urls is already an array, use it
     if (Array.isArray(post.file_urls)) {
       urls = post.file_urls
     } else {
-      // If it's a string, try to parse it
       try {
         urls = JSON.parse(post.file_urls)
       } catch (e) {
@@ -66,13 +59,11 @@ const getMultiPhotoUrls = (post) => {
       }
     }
     
-    // Get cover index from post
     if (post.cover_index !== undefined) {
       coverIndex = post.cover_index || 0
     }
   }
   
-  // Fallback to old format in description (for compatibility with existing posts)
   if (!urls && post.description && post.description.includes('__MULTI_PHOTO_URLS__:')) {
     try {
       const marker = '__MULTI_PHOTO_URLS__:'
@@ -80,7 +71,6 @@ const getMultiPhotoUrls = (post) => {
       const urlsJson = post.description.substring(markerIndex + marker.length)
       urls = JSON.parse(urlsJson)
       
-      // Extract cover index from old format
       if (post.description.includes('__COVER_INDEX__:')) {
         const coverMatch = post.description.match(/__COVER_INDEX__:(\d+)/)
         if (coverMatch) {
@@ -92,9 +82,7 @@ const getMultiPhotoUrls = (post) => {
     }
   }
   
-  // Only process if there are actually multiple URLs
   if (urls && Array.isArray(urls) && urls.length > 1) {
-    // Reorder URLs to put the cover image first for carousel display
     if (coverIndex > 0 && coverIndex < urls.length) {
       console.log(`Reordering images for post modal: coverIndex=${coverIndex}, total=${urls.length}`)
       const reorderedUrls = [...urls]
@@ -112,16 +100,13 @@ const getMultiPhotoUrls = (post) => {
   return null
 }
 
-// Helper function to clean description from old multi-photo format
 const getCleanDescription = (post) => {
   if (!post.description) return ''
   
-  // If this is a new format multi-photo post, just return the description as-is
   if (post.file_urls && Array.isArray(post.file_urls) && post.file_urls.length > 1) {
     return post.description
   }
   
-  // Clean up old format descriptions that contain URLs
   if (post.description.includes('__MULTI_PHOTO_URLS__:')) {
     const marker = '__MULTI_PHOTO_URLS__:'
     const markerIndex = post.description.indexOf(marker)
@@ -131,9 +116,8 @@ const getCleanDescription = (post) => {
   return post.description
 }
 
-// Helper function to truncate description for Instagram-style "see more"
 const getTruncatedDescription = (description, isExpanded) => {
-  const MAX_LENGTH = 100 // Maximum characters to show before "see more"
+  const MAX_LENGTH = 100
   
   if (!description || description.length <= MAX_LENGTH) {
     return { text: description, needsTruncation: false }
@@ -143,14 +127,12 @@ const getTruncatedDescription = (description, isExpanded) => {
     return { text: description, needsTruncation: true }
   }
   
-  // Find the last space before the character limit to avoid cutting words
   const truncatePoint = description.lastIndexOf(' ', MAX_LENGTH)
   const truncatedText = truncatePoint > 0 ? description.substring(0, truncatePoint) : description.substring(0, MAX_LENGTH)
   
   return { text: truncatedText, needsTruncation: true }
 }
 
-// Mobile 3-dot menu component
 function MobileActionMenu({ currentPost, isTextPost, onDownload, onShare, onDelete, onEdit, isDescriptionExpanded }) {
   const [showMenu, setShowMenu] = useState(false)
   const menuRef = useRef(null)
@@ -307,16 +289,6 @@ function MobileActionMenu({ currentPost, isTextPost, onDownload, onShare, onDele
   )
 }
 
-// The modal is rendered into <body> rather than in place.
-//
-// Its root is a .modal-scrim (position: fixed), and CSS says a fixed element is
-// positioned against the viewport — UNLESS an ancestor has backdrop-filter,
-// filter or transform, which promotes that ancestor into the containing block.
-// Every one of our glass surfaces (.card-glass, .glass-soft) sets
-// backdrop-filter. So when the Journey tabs render a post from inside a chapter
-// card, the "full-screen" modal was being clipped to that little card — the
-// "posts open inside their own frame" bug. Portalling to <body> puts the scrim
-// back above everything, for every caller at once.
 export default function PostModal(props) {
   const [mounted, setMounted] = useState(false)
   useEffect(() => { setMounted(true) }, [])
@@ -348,7 +320,6 @@ function PostModalInner({
   const [editCoverIndex, setEditCoverIndex] = useState(0)
   const [editPhotoOrder, setEditPhotoOrder] = useState([])
   const [editIsPrivate, setEditIsPrivate] = useState(false)
-  // (Item 3b) child association editing
   const [editChildIds, setEditChildIds] = useState([])
   const [familyChildren, setFamilyChildren] = useState([])
   const [isMultiChildAlbum, setIsMultiChildAlbum] = useState(false)
@@ -368,15 +339,12 @@ function PostModalInner({
   const scrollTimeoutRef = useRef(null)
   const multiPhotoScrollRef = useRef(null)
 
-  // Handle click on overlay to close modal
   const handleOverlayClick = (e) => {
-    // Only close if clicking directly on the overlay, not on any child elements
     if (e.target === e.currentTarget) {
       onClose()
     }
   }
   
-  // Mobile detection
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth <= 768)
     checkMobile()
@@ -384,12 +352,10 @@ function PostModalInner({
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
-  // Debug editCoverIndex changes
   useEffect(() => {
     console.log('editCoverIndex changed to:', editCoverIndex)
   }, [editCoverIndex])
 
-  // Load categories
   useEffect(() => {
     const loadCategories = async () => {
       try {
@@ -397,16 +363,12 @@ function PostModalInner({
         setCategories(cats)
       } catch (error) {
         console.error('Error loading categories:', error)
-        // Fallback to default categories
         setCategories(DEFAULT_CATEGORIES)
       }
     }
     loadCategories()
   }, [])
 
-  // Edit functionality
-  // (Item 3b) load the album's children + this post's current associations so
-  // the edit form can show a child selector.
   const loadEditChildren = async () => {
     try {
       const famId = currentPost.family_id
@@ -428,14 +390,9 @@ function PostModalInner({
     } catch (e) { console.error('loadEditChildren failed', e) }
   }
 
-  // The photo order being edited: the user's reordering if any, else the
-  // post's current order. Both mutators below read it synchronously and set the
-  // two pieces of state separately — calling setEditCoverIndex from inside a
-  // setEditPhotoOrder updater ran twice under StrictMode and shifted the cover.
   const currentEditOrder = () =>
     (editPhotoOrder.length > 0 ? editPhotoOrder : (getMultiPhotoUrls(currentPost) || []))
 
-  // (Item 12edit) remove one photo from a multi-photo post while editing.
   const removeEditPhoto = (index) => {
     const base = currentEditOrder()
     if (index < 0 || index >= base.length) return
@@ -444,14 +401,10 @@ function PostModalInner({
     let n = editCoverIndex
     if (index === n) n = 0
     else if (index < n) n = n - 1
-    // never point past the end of the shortened array
     setEditCoverIndex(Math.min(Math.max(0, n), maxIdx))
     setEditPhotoOrder(next)
   }
 
-  // (Item 14) reorder in the edit grids — used by the ‹ › buttons (mobile has
-  // no drag) AND by desktop drag-and-drop, so the cover marker always follows
-  // its photo.
   const moveEditPhoto = (from, to) => {
     const base = currentEditOrder()
     if (from < 0 || from >= base.length || to < 0 || to >= base.length || from === to) return
@@ -474,7 +427,6 @@ function PostModalInner({
     fontWeight: 700, cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.35 : 1,
   })
 
-  // (Item 3b) child selector shared by the mobile + desktop edit forms.
   const renderEditChildSelector = () => {
     if (!isMultiChildAlbum || familyChildren.length === 0) return null
     const toggle = (id) => setEditChildIds((prev) =>
@@ -503,17 +455,14 @@ function PostModalInner({
     setEditTitle(currentPost.title || '')
     setEditDescription(getCleanDescription(currentPost) || '')
     
-    // Handle hashtags safely - they could be string, array, or null/undefined
     let hashtagsArray = []
     if (currentPost.hashtags) {
       if (typeof currentPost.hashtags === 'string') {
-        // String format: "#tag1 #tag2 #tag3"
         hashtagsArray = currentPost.hashtags
           .split(' ')
           .filter(tag => tag.startsWith('#'))
           .map(tag => tag.slice(1))
       } else if (Array.isArray(currentPost.hashtags)) {
-        // Array format: ["tag1", "tag2", "tag3"] or ["#tag1", "#tag2", "#tag3"]
         hashtagsArray = currentPost.hashtags.map(tag => 
           typeof tag === 'string' ? (tag.startsWith('#') ? tag.slice(1) : tag) : ''
         ).filter(tag => tag.length > 0)
@@ -526,12 +475,10 @@ function PostModalInner({
     setEditCategory(currentPost.category || '')
     setEditIsPrivate(currentPost.is_private === true)
     
-    // Set cover index for multi-photo posts
     let coverIndex = 0
     if (currentPost.cover_index !== undefined) {
       coverIndex = currentPost.cover_index
     } else if (currentPost.description && currentPost.description.includes('__COVER_INDEX__:')) {
-      // Parse from old format
       try {
         const coverMatch = currentPost.description.match(/__COVER_INDEX__:(\d+)/)
         if (coverMatch) {
@@ -543,7 +490,6 @@ function PostModalInner({
     }
     setEditCoverIndex(coverIndex)
     
-    // Initialize photo order
     const multiUrls = getMultiPhotoUrls(currentPost)
     if (multiUrls && multiUrls.length > 1) {
       setEditPhotoOrder([...multiUrls])
@@ -558,37 +504,30 @@ function PostModalInner({
     setEditLoading(true)
     try {
 
-      // Preserve existing file_urls for multi-photo posts
       const updateData = {
         postId: currentPost.id,
         title: editTitle,
         description: editDescription,
-        hashtags: editHashtags.map(tag => `#${tag}`), // Send as array, not joined string
+        hashtags: editHashtags.map(tag => `#${tag}`),
         customDate: editDate,
         coverIndex: editCoverIndex,
         category: editCategory,
         isPrivate: editIsPrivate
       }
 
-      // (Item 3b) persist child association changes for multi-child albums.
       if (isMultiChildAlbum) {
         updateData.childIds = editChildIds
       }
 
-      // CRITICAL: Use reordered photo URLs if available
-      // Check if this is ANY kind of multi-photo post
       const multiUrls = editPhotoOrder.length > 0 ? editPhotoOrder : getMultiPhotoUrls(currentPost)
       
-      // Always use reordered URLs if available, otherwise preserve original
       if (editPhotoOrder.length > 0) {
         updateData.file_urls = editPhotoOrder
       } else if (currentPost.file_urls !== undefined && currentPost.file_urls !== null) {
         updateData.file_urls = currentPost.file_urls
       } else if (multiUrls && multiUrls.length > 1) {
-        // If we detected multi-photo URLs from ANY source, preserve them
         updateData.file_urls = multiUrls
       } else if (currentPost.description && currentPost.description.includes('__MULTI_PHOTO_URLS__:')) {
-        // If description contains multi-photo data, don't modify it
         updateData.description = currentPost.description
       }
 
@@ -600,20 +539,18 @@ function PostModalInner({
       const result = await response.json()
 
       if (response.ok) {
-        // Use the response from the server to ensure we have the latest data
         const serverPost = result.post
         const updatedPost = {
           ...currentPost,
-          ...serverPost, // Use server response as base (already normalized)
+          ...serverPost,
           title: editTitle,
           description: editDescription,
-          hashtags: editHashtags, // bare tags — matches the server-normalized format
+          hashtags: editHashtags,
         }
         setCurrentPost(updatedPost)
         setShowEditModal(false)
         showSuccess(t('success'))
         
-        // Trigger refresh in parent component
         if (onUpdate && typeof onUpdate === 'function') {
           onUpdate(updatedPost)
         }
@@ -628,7 +565,6 @@ function PostModalInner({
     }
   }
 
-  // Handle hashtag input
   const handleHashtagKeyDown = (e) => {
     if (e.key === ' ' && editHashtagInput.trim()) {
       e.preventDefault()
@@ -646,7 +582,6 @@ function PostModalInner({
     setEditHashtags(editHashtags.filter(tag => tag !== tagToRemove))
   }
 
-  // Enhanced scroll handler with centering logic
   const handleScroll = useCallback((e) => {
     if (isInitializing) return
     
@@ -654,17 +589,14 @@ function PostModalInner({
     const postHeight = window.innerHeight
     const scrollIndex = Math.round(scrollTop / postHeight)
     
-    // Clear existing timeout
     if (scrollTimeoutRef.current) {
       clearTimeout(scrollTimeoutRef.current)
     }
     
-    // Debounced centering and post tracking
     scrollTimeoutRef.current = setTimeout(() => {
       const targetScrollTop = scrollIndex * postHeight
       const scrollDiff = Math.abs(scrollTop - targetScrollTop)
       
-      // Auto-center if off by more than 10px
       if (scrollDiff > 10) {
         e.target.scrollTo({
           top: targetScrollTop,
@@ -672,7 +604,6 @@ function PostModalInner({
         })
       }
       
-      // Update current post
       if (scrollIndex !== currentIdx && scrollIndex >= 0 && scrollIndex < allPosts.length) {
         setCurrentIdx(scrollIndex)
         setCurrentPost(allPosts[scrollIndex])
@@ -682,20 +613,16 @@ function PostModalInner({
     }, 100)
   }, [isInitializing, currentIdx, allPosts, onNavigate])
 
-  // Handle post/index changes
   useEffect(() => {
     setCurrentPost(selectedPost)
     setCurrentIdx(currentIndex)
-    setCurrentImageIndex(0) // Reset image index when post changes
-    setIsDescriptionExpanded(false) // Reset description expansion when changing posts
+    setCurrentImageIndex(0)
+    setIsDescriptionExpanded(false)
   }, [selectedPost, currentIndex])
 
-  // Handle mobile layout changes separately
   useEffect(() => {
-    // Scroll to correct position immediately
     if (isMobile) {
       setIsInitializing(true)
-      // Use multiple frames to ensure DOM is ready
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           const scrollContainer = document.querySelector('.mobile-scroll-container')
@@ -703,7 +630,6 @@ function PostModalInner({
             const targetTop = currentIdx * window.innerHeight
             scrollContainer.style.scrollBehavior = 'auto'
             scrollContainer.scrollTop = targetTop
-            // Re-enable smooth scrolling
             setTimeout(() => {
               scrollContainer.style.scrollBehavior = 'smooth'
               setIsInitializing(false)
@@ -718,7 +644,6 @@ function PostModalInner({
     }
   }, [isMobile, currentIdx])
 
-  // Direct scroll to image
   const scrollToImage = (index) => {
     if (multiPhotoScrollRef.current) {
       const imageWidth = multiPhotoScrollRef.current.offsetWidth
@@ -729,7 +654,6 @@ function PostModalInner({
     }
   }
 
-  // Sync scroll position when currentImageIndex changes
   useEffect(() => {
     scrollToImage(currentImageIndex)
   }, [currentImageIndex])
@@ -743,7 +667,6 @@ function PostModalInner({
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault()
         console.log('⬅️ LEFT ARROW pressed')
-        // Navigate to previous photo within the same post (only if multi-photo)
         if (multiPhotoUrls && multiPhotoUrls.length > 1) {
           console.log('⬅️ Multi-photo post: navigating to previous photo')
           navigateToImage('prev')
@@ -753,7 +676,6 @@ function PostModalInner({
       } else if (e.key === 'ArrowRight') {
         e.preventDefault()
         console.log('➡️ RIGHT ARROW pressed')
-        // Navigate to next photo within the same post (only if multi-photo)
         if (multiPhotoUrls && multiPhotoUrls.length > 1) {
           console.log('➡️ Multi-photo post: navigating to next photo')
           navigateToImage('next')
@@ -762,18 +684,15 @@ function PostModalInner({
         }
       } else if (e.key === 'ArrowUp') {
         e.preventDefault()
-        // Navigate to previous post (with wrapping)
         const newIdx = currentIdx > 0 ? currentIdx - 1 : allPosts.length - 1
         navigateToPost(newIdx)
       } else if (e.key === 'ArrowDown') {
         e.preventDefault()
-        // Navigate to next post (with wrapping)
         const newIdx = currentIdx < allPosts.length - 1 ? currentIdx + 1 : 0
         navigateToPost(newIdx)
       }
     }
     
-    // Prevent body scrolling when modal is open
     const originalOverflow = document.body.style.overflow
     const originalPosition = document.body.style.position
     const originalWidth = document.body.style.width
@@ -792,18 +711,16 @@ function PostModalInner({
   }, [currentIdx, allPosts, onNavigate, onClose, currentImageIndex])
 
 
-  // Navigation helper function
   const navigateToPost = (newIndex) => {
     if (newIndex >= 0 && newIndex < allPosts.length) {
       const newPost = allPosts[newIndex]
       setCurrentPost(newPost)
       setCurrentIdx(newIndex)
-      setCurrentImageIndex(0) // Reset image index when changing posts
+      setCurrentImageIndex(0)
       if (onNavigate) onNavigate(newPost, newIndex)
     }
   }
 
-  // Multi-photo navigation functions
   const getCurrentMultiPhotoUrls = () => {
     return getMultiPhotoUrls(currentPost)
   }
@@ -892,8 +809,6 @@ function PostModalInner({
     }
   }
 
-  // Share Photos & Videos (baseline). Uses the native share sheet when
-  // available; otherwise copies the media/post link to the clipboard.
   const handleShare = async () => {
     const shareUrl = currentPost.file_url || (typeof window !== 'undefined' ? window.location.href : '')
     const shareData = {
@@ -913,7 +828,6 @@ function PostModalInner({
       }
       showError(t('error'))
     } catch (err) {
-      // AbortError = user dismissed the share sheet; ignore quietly.
       if (err && err.name !== 'AbortError') {
         console.error('Share failed:', err)
       }
@@ -937,7 +851,6 @@ function PostModalInner({
   const isAudio = currentPost.file_type === 'audio' || currentPost.type === 'audio' || primaryKind === 'audio'
   const isDocument = currentPost.file_type === 'document' || currentPost.type === 'document' || primaryKind === 'document'
 
-  // Mobile: Instagram-style vertical scroll
   if (isMobile) {
     return (
       <div
@@ -999,7 +912,6 @@ function PostModalInner({
           {currentIdx + 1} / {allPosts.length}
         </div>
 
-        {/* Fixed scroll container with enhanced centering */}
         <div 
           className="mobile-scroll-container"
           style={{
@@ -1011,16 +923,13 @@ function PostModalInner({
             overflowY: 'auto',
             overflowX: 'hidden',
             zIndex: 10,
-            // Enhanced scroll snap for perfect centering
             scrollSnapType: 'y mandatory',
             scrollSnapStop: 'always',
             WebkitOverflowScrolling: 'touch',
             scrollbarWidth: 'none',
             msOverflowStyle: 'none',
-            // Force precise alignment
             scrollPadding: '0px',
             scrollMargin: '0px',
-            // Prevent scroll during horizontal swipes
             touchAction: 'pan-y'
           }}
           onScroll={handleScroll}
@@ -1075,7 +984,7 @@ function PostModalInner({
                         lineHeight: '1.55',
                         textShadow: '0 1px 2px rgba(0, 0, 0, 0.18)',
                         maxWidth: '400px',
-                        whiteSpace: 'pre-wrap'   // (item 4) keep the author's line breaks
+                        whiteSpace: 'pre-wrap'
                       }}>
                         {getCleanDescription(post) || t('textPostFallback')}
                       </p>
@@ -1095,7 +1004,6 @@ function PostModalInner({
                       const multiPhotoUrls = getMultiPhotoUrls(post)
                       
                       if (multiPhotoUrls && multiPhotoUrls.length > 1) {
-                        // Multi-photo post - Instagram-style carousel
                         return (
                           <InstagramCarousel 
                             images={multiPhotoUrls}
@@ -1110,13 +1018,7 @@ function PostModalInner({
                       } else if (postIsAudio || postIsDocument) {
                         return <AudioDocView url={post.file_url} kind={postIsAudio ? 'audio' : 'document'} title={post.title} />
                       } else {
-                        // Single image/video post or non-current multi-photo (show first image)
                         return postIsVideo ? (
-                          // iOS needs playsInline or it won't render inline at
-                          // all, and it blocks autoplay unless muted — between
-                          // them, this is why video "didn't load" on mobile.
-                          // `poster` shows the captured frame instead of black
-                          // while the video is still being fetched.
                           <video
                             src={post.file_url}
                             poster={getPostPoster(post) || undefined}
@@ -1156,7 +1058,6 @@ function PostModalInner({
           })}
         </div>
 
-        {/* Mobile action menu - only show if not readonly */}
         {!readOnly && (
           <MobileActionMenu
             currentPost={currentPost}
@@ -1179,8 +1080,6 @@ function PostModalInner({
             color: '#ffffff',
             padding: isDescriptionExpanded ? '18px 16px 20px' : '10px 16px 20px',
             maxHeight: isDescriptionExpanded ? '60vh' : '120px',
-            // Expanded used to be `visible`, so a long caption painted straight
-            // over the photo instead of staying in its box (item 15). Scroll it.
             overflowY: isDescriptionExpanded ? 'auto' : 'hidden',
             overflowX: 'hidden',
             WebkitOverflowScrolling: 'touch',
@@ -1216,7 +1115,7 @@ function PostModalInner({
                     display: isDescriptionExpanded ? 'block' : '-webkit-box',
                     WebkitLineClamp: isDescriptionExpanded ? 'none' : 2,
                     WebkitBoxOrient: 'vertical',
-                    whiteSpace: 'pre-wrap'   // (item 4) keep the author's line breaks
+                    whiteSpace: 'pre-wrap'
                   }}>
                     {text}
                     {needsTruncation && !isDescriptionExpanded && '...'}
@@ -1609,7 +1508,6 @@ function PostModalInner({
                                   ✓
                                 </div>
                               )}
-                              {/* (Item 12edit) delete this photo */}
                               <div
                                 role="button"
                                 onClick={(e) => { e.stopPropagation(); e.preventDefault(); removeEditPhoto(index) }}
@@ -1623,7 +1521,6 @@ function PostModalInner({
                                   cursor: 'pointer', zIndex: 2,
                                 }}
                               >×</div>
-                              {/* (Item 14) touch reorder ‹ › */}
                               {multiUrls.length > 1 && (
                                 <div style={{ position: 'absolute', bottom: '2px', left: '2px', right: '2px', display: 'flex', justifyContent: 'space-between', zIndex: 2 }}>
                                   <div role="button" onClick={(e) => { e.stopPropagation(); e.preventDefault(); moveEditPhoto(index, index - 1) }} style={editReorderBtnStyle(index === 0)}>‹</div>
@@ -1670,7 +1567,6 @@ function PostModalInner({
     )
   }
 
-  // Desktop: Modern layout with padding
   return (
     <div
       className="modal-scrim"
@@ -1783,7 +1679,6 @@ function PostModalInner({
           </button>
         )}
 
-        {/* (Item 9) delete post — was only reachable on mobile before */}
         {!readOnly && (
           <button
             onClick={handleDelete}
@@ -1879,7 +1774,7 @@ function PostModalInner({
                   lineHeight: '1.55',
                   textShadow: '0 1px 2px rgba(0, 0, 0, 0.18)',
                   maxWidth: '420px',
-                  whiteSpace: 'pre-wrap'   // (item 4) keep the author's line breaks
+                  whiteSpace: 'pre-wrap'
                 }}>
                   {getCleanDescription(currentPost) || t('textPostFallback')}
                 </p>
@@ -1898,7 +1793,6 @@ function PostModalInner({
                 const multiPhotoUrls = getCurrentMultiPhotoUrls()
                 
                 if (multiPhotoUrls && multiPhotoUrls.length > 1) {
-                  // Multi-photo post - modern horizontal scroll container with dots
                   return (
                     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
                       <div 
@@ -1940,14 +1834,10 @@ function PostModalInner({
                           msOverflowStyle: 'none',
                           WebkitOverflowScrolling: 'touch',
                           cursor: 'grab',
-                          // Enhanced CSS for better momentum scrolling
-                          transform: 'translateZ(0)', // Force hardware acceleration
+                          transform: 'translateZ(0)',
                           willChange: 'scroll-position',
-                          // Improved scroll snap properties
                           scrollSnapStop: 'always',
-                          // Better momentum on iOS
                           '-webkit-overflow-scrolling': 'touch',
-                          // Smooth transitions for scroll position
                           transition: 'scroll-left 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
                         }}
                         ref={multiPhotoScrollRef}
@@ -1960,9 +1850,6 @@ function PostModalInner({
                                          url.toLowerCase().includes('.ogg')
                           
                           return isVideo ? (
-                            // No crossOrigin: we only play this, never read its
-                            // pixels — and requesting CORS makes playback fail
-                            // outright if the storage response lacks the header.
                             <video
                               key={index}
                               src={url}
@@ -1985,7 +1872,6 @@ function PostModalInner({
                               onError={(e) => {
                                 console.error('Video failed to load:', url)
                                 console.error('Video error event:', e)
-                                // Show a fallback instead of hiding completely
                                 e.target.style.background = '#f0f0f0'
                                 e.target.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666; font-size: 24px;">⚠️ ${t('videoLoadFailed')}</div>`
                               }}
@@ -2122,7 +2008,6 @@ function PostModalInner({
                 } else if (isAudio || isDocument) {
                   return <AudioDocView url={currentPost.file_url} kind={isAudio ? 'audio' : 'document'} title={currentPost.title} />
                 } else {
-                  // Single image/video post
                   return isVideo ? (
                     <video
                       src={currentPost.file_url}
@@ -2240,7 +2125,7 @@ function PostModalInner({
                   borderRadius: '14px',
                   border: '1px solid var(--glass-hairline)',
                   borderLeft: '3px solid var(--accent-iris)',
-                  whiteSpace: 'pre-wrap'   // (item 4) keep the author's line breaks
+                  whiteSpace: 'pre-wrap'
                 }}>
                   {getCleanDescription(currentPost)}
                 </p>
@@ -2325,7 +2210,6 @@ function PostModalInner({
               {t('editPost')}
             </h3>
 
-            {/* (Item 13) title field — was missing on desktop */}
             <div style={{ marginBottom: '16px' }}>
               <label className="text-eyebrow" style={{ display: 'block', marginBottom: '8px' }}>
                 {t('title')}
@@ -2462,13 +2346,6 @@ function PostModalInner({
               <label className="text-eyebrow" style={{ display: 'block', marginBottom: '8px' }}>
                 {t('category')}
               </label>
-              {/* (Sergiu batch3 #2) Was a native <select>. On hover the OS
-                  repaints the option row and the author text color no longer
-                  contrasts with it — the category label went invisible exactly
-                  when you pointed at it. Native <option> hover styling isn't
-                  reliably controllable via CSS, so use the same pill picker the
-                  rest of the app uses (UploadForm/CreatePost). Click the active
-                  pill again to clear, matching the old empty option. */}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                 {categories.map((cat) => {
                   const on = editCategory === cat.value
@@ -2526,8 +2403,6 @@ function PostModalInner({
             )}
 
             {(() => {
-              // Use the edited order so drag-reorder / per-photo delete reflect
-              // in the desktop grid (matches the mobile edit form).
               const multiUrls = editPhotoOrder.length > 0 ? editPhotoOrder : getMultiPhotoUrls(currentPost)
               if (multiUrls && multiUrls.length > 1) {
                 return (
@@ -2629,7 +2504,6 @@ function PostModalInner({
                                 ✓
                               </div>
                             )}
-                            {/* (Item 12edit) delete this photo */}
                             <div
                               role="button"
                               onClick={(e) => { e.stopPropagation(); e.preventDefault(); removeEditPhoto(index) }}
@@ -2643,7 +2517,6 @@ function PostModalInner({
                                 cursor: 'pointer', zIndex: 2,
                               }}
                             >×</div>
-                            {/* (Item 14) reorder buttons (also work on touch) */}
                             {multiUrls.length > 1 && (
                               <div style={{ position: 'absolute', bottom: '4px', left: '4px', right: '4px', display: 'flex', justifyContent: 'space-between', zIndex: 2 }}>
                                 <div role="button" onClick={(e) => { e.stopPropagation(); e.preventDefault(); moveEditPhoto(index, index - 1) }} style={editReorderBtnStyle(index === 0)}>‹</div>

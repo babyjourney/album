@@ -2,8 +2,6 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { useLanguage } from '../contexts/LanguageContext'
 
-// Shared shell for the Terms / Privacy / Cookies pages. Keeps the visual
-// language consistent across legal surfaces and centralizes layout/footer.
 export default function LegalPage({ title, subtitle, lastUpdated, children }) {
   const { t } = useLanguage()
   return (

@@ -1,5 +1,3 @@
-// Age timelines + skills/achievements — each is a filtered view over existing
-// posts. Age windows use the child's birth_date (handled server-side).
 import { useState } from 'react'
 import { useLanguage } from '../../contexts/LanguageContext'
 import FilteredPosts from './FilteredPosts'

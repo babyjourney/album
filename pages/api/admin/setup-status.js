@@ -1,8 +1,6 @@
 import { requireAdmin } from '../../../lib/authMiddleware'
 import { getSetupStatus } from '../../../lib/setupStatus'
 
-// What's still missing on this deployment (SQL migration, storage limit, email/
-// SMS keys, 2FA bypass). Shown as a banner on the admin dashboard.
 async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' })
   try {

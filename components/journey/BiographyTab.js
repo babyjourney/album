@@ -1,5 +1,3 @@
-// Biography & Life Story — a rich free-text page per child, plus a glance at
-// recent posts the family can fold into the story.
 import { useState, useEffect } from 'react'
 import { authenticatedFetch, isEditor } from '../../lib/pinAuth'
 import { useToast } from '../../contexts/ToastContext'

@@ -9,29 +9,22 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Metoda nu este permisă' })
   }
 
-  // `email` and `otpCode` are optional. They're only required when the
-  // family has `require_otp_login = true` (Task #3 — 2FA login).
   const { pin, phoneNumber, email, otpCode } = req.body
 
   if (!pin) {
     return res.status(400).json({ error: 'PIN-ul este obligatoriu', errorKey: 'authErrPinRequired' })
   }
 
-  // Either phone OR email must be provided. Phone remains the primary path
-  // for backward compatibility; email is allowed for 2FA-enabled families.
   if (!phoneNumber && !email) {
     return res.status(400).json({ error: 'Numărul de telefon sau email-ul este obligatoriu', errorKey: 'authErrContactRequired' })
   }
 
-  // Remove any spaces and validate formats first
   const cleanPin = pin.toString().replace(/\s/g, '')
   const cleanPhone = phoneNumber ? phoneNumber.toString().replace(/\s/g, '') : ''
   const cleanEmail = email ? String(email).trim().toLowerCase() : ''
 
-  // Get client identifier for rate limiting (include phone or email for better tracking)
   const clientId = rateLimiter.getClientId(req, cleanPhone || cleanEmail)
   
-  // Check if client is currently blocked
   const blockStatus = rateLimiter.isBlocked(clientId)
   if (blockStatus.blocked) {
     const timeRemaining = rateLimiter.formatTimeRemaining(blockStatus.timeRemaining)
@@ -51,9 +44,6 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'PIN-ul trebuie să aibă 4 sau 8 cifre', errorKey: 'authErrPinFormat' })
   }
 
-  // Phone in any spelling — national "069010712" or international
-  // "+37369010712" (lib/phone.js). Only enforced when the caller supplied a
-  // phone (email-only login is allowed for 2FA-enabled families).
   if (cleanPhone && !isValidPhone(cleanPhone)) {
     return res.status(400).json({ error: 'Numărul de telefon nu este valid (ex. 069010712 sau +37369010712)', errorKey: 'authErrPhoneInvalid' })
   }
@@ -69,16 +59,11 @@ export default async function handler(req, res) {
     let family = null
     let role = null
 
-    // PIN + contact (phone OR email) must both match an existing family.
-    // We try the role implied by PIN length first.
     const pinColumn = cleanPin.length === 4 ? 'viewer_pin' : 'editor_pin'
     const roleForPin = cleanPin.length === 4 ? 'viewer' : 'editor'
 
-    // self_registered arrives with sql/sergiu_batch2.sql — select it defensively
-    // so login still works if the migration hasn't been run.
     const buildQuery = (cols) => {
       let q = supabase.from('families').select(cols).eq(pinColumn, cleanPin)
-      // Stored numbers may be national ("069…") or E.164 ("+373…") — match both.
       if (cleanPhone) q = q.in('phone_number', phoneLookupVariants(cleanPhone)).limit(1)
       else if (cleanEmail) q = q.ilike('email', cleanEmail)
       return q
@@ -97,9 +82,7 @@ export default async function handler(req, res) {
       role = roleForPin
     }
 
-    // If no family found with this PIN
     if (!family) {
-      // Record failed attempt for rate limiting (include phone number for analysis)
       const attemptResult = rateLimiter.recordFailedAttempt(clientId, cleanPin, cleanPhone)
       
       let errorMessage = 'Numărul de telefon sau PIN-ul sunt incorecte'
@@ -111,7 +94,6 @@ export default async function handler(req, res) {
         errorMessage = `Numărul de telefon sau PIN-ul sunt incorecte. Mai aveți ${attemptResult.attemptsRemaining} încercări înainte de cooldown.`
       }
       
-      // Get security analysis for logging
       const securityAnalysis = rateLimiter.getSecurityAnalysis(clientId)
       if (securityAnalysis?.isLikelyBruteForce) {
         console.warn(`🚨 Possible brute force attack detected from ${clientId.substring(0, 20)}... - ${securityAnalysis.uniquePins} unique PINs, ${securityAnalysis.uniquePhoneNumbers} unique phones tried`)
@@ -126,7 +108,6 @@ export default async function handler(req, res) {
       })
     }
 
-    // Check if album is suspended
     if (family.is_suspended) {
       return res.status(403).json({
         error: 'Acest album a fost suspendat. Contactați administratorul pentru mai multe informații.',
@@ -135,15 +116,6 @@ export default async function handler(req, res) {
       })
     }
 
-    // 2FA gate (Task #3): if this family requires OTP login, we need to
-    // verify the OTP code BEFORE issuing the session token. The OTP was
-    // requested earlier via /api/auth/request-otp.
-    //
-    // LOGIN_OTP_BYPASS is the temporary escape hatch from when Resend/Twilio
-    // weren't configured. It deliberately does NOT apply to self-registered
-    // families (item 14): they exist only because they received a signup code by
-    // email, so delivery demonstrably works for them, and they were promised a
-    // code on every login. Must stay in lockstep with request-otp.js.
     const otpBypass = process.env.LOGIN_OTP_BYPASS === 'true' && !family.self_registered
     if (family.require_otp_login && !otpBypass) {
       if (!otpCode) {
@@ -155,7 +127,6 @@ export default async function handler(req, res) {
           deliveryHint: cleanEmail ? 'email' : 'phone',
         })
       }
-      // Must equal what request-otp stored: lowercase email, or E.164 phone.
       const otpContactValue = cleanEmail || normalizePhone(cleanPhone)
       const otpResult = await verifyOtp({
         familyId: family.id,
@@ -173,11 +144,8 @@ export default async function handler(req, res) {
       }
     }
 
-    // Success! Clear any rate limiting for this client
     rateLimiter.recordSuccessfulAttempt(clientId)
 
-    // 5a: stamp last_accessed on EVERY successful login (both 4-digit viewer
-    // and 8-digit editor PINs). Best-effort — never block login if it fails.
     try {
       await supabase
         .from('families')
@@ -187,19 +155,14 @@ export default async function handler(req, res) {
       console.error('last_accessed update failed:', accessErr)
     }
 
-    // Issue a signed session token. Client stores it opaquely and sends it
-    // as a Bearer token; the signature prevents tampering with familyId/role.
     const token = issueFamilyToken({
       familyId: family.id,
       familyName: family.name,
       role
     })
 
-    // Default to 'free' for any legacy families where the column hasn't been
-    // backfilled (the migration adds DEFAULT 'free', but be defensive).
     const familyPackage = family.package || 'free'
 
-    // Return success with family info and role
     return res.status(200).json({
       success: true,
       token,

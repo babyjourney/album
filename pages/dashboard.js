@@ -33,7 +33,6 @@ export default function Dashboard() {
   const [familyProfilePicture, setFamilyProfilePicture] = useState('')
   const [feedColumns, setFeedColumns] = useState(3)
 
-  // Drawers
   const [showSettings, setShowSettings] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
@@ -42,12 +41,10 @@ export default function Dashboard() {
   const [showProfilePicture, setShowProfilePicture] = useState(false)
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false)
 
-  // Modal
   const [selectedPost, setSelectedPost] = useState(null)
   const [allPosts, setAllPosts] = useState([])
   const [currentPostIndex, setCurrentPostIndex] = useState(0)
 
-  // Slideshow
   const [showSlideshow, setShowSlideshow] = useState(false)
   const [slideshowMemories, setSlideshowMemories] = useState([])
   const [slideshowLoading, setSlideshowLoading] = useState(false)
@@ -100,9 +97,6 @@ export default function Dashboard() {
         }).catch(() => {})
     }
     if (!cachedPicture || !picAge || (now - picAge) > cacheAge) {
-      // Direct supabase.from('families') is RLS-blocked under the anon key
-      // (see migration.sql strict policy). Go through the family-scoped API
-      // which authenticates via the session token + service_role.
       authenticatedFetch(`/api/families/get?familyId=${familyId}`)
         .then(r => r.json())
         .then(({ family }) => {
@@ -142,10 +136,6 @@ export default function Dashboard() {
   const handleSearchChange = (q) => {
     setSearchQuery(q)
     if (q.trim()) {
-      // Searching clears the narrowing filters so results aren't hidden by a
-      // stale category/date — but it keeps the chosen sort, which is a display
-      // preference, not a filter. Resetting it made A-Z look broken again the
-      // moment you typed anything.
       setFilters((prev) => ({ date: '', category: 'all', hashtag: '', sort: prev.sort || 'newest' }))
       setSelectedChildId(null)
     }
@@ -187,14 +177,10 @@ export default function Dashboard() {
 
   const railChildren = isMultiChild ? children : []
   const actionItems = []
-  // (Item 11) The standalone "New text post" action was removed — a text post is
-  // now just the Upload form submitted with only a title + description (no media).
   const handleOpenSlideshow = async () => {
     if (!session?.familyId || slideshowLoading) return
     setSlideshowLoading(true)
     try {
-      // Mirror BentoMasonry.fetchPosts query serialization so the slideshow
-      // respects the user's active filters/search/childId.
       const params = new URLSearchParams({ familyId: session.familyId })
       if (searchQuery?.trim()) params.append('search', searchQuery.trim())
       if (filters) {
@@ -223,7 +209,6 @@ export default function Dashboard() {
     finally { setSlideshowLoading(false) }
   }
 
-  // Slideshow always available
   actionItems.push({
     tone: 'peach',
     label: t('slideshowAction'),
@@ -237,7 +222,6 @@ export default function Dashboard() {
     ),
   })
 
-  // Upload as primary (last so it's the rightmost in the dock)
   if (hasEditorAccess) {
     actionItems.push({
       tone: 'iris',
@@ -255,7 +239,6 @@ export default function Dashboard() {
 
   return (
     <div style={{ minHeight: '100vh', position: 'relative' }}>
-      {/* Top center: floating dock */}
       <FloatingDock
         albumTitle={albumTitle}
         onSearch={() => setShowFilters(true)}
@@ -266,17 +249,14 @@ export default function Dashboard() {
         onSelectChild={isMultiChild ? handleChildFilterChange : undefined}
       />
 
-      {/* Left: vertical rail (desktop only) */}
       <VerticalRail
         onFilters={() => setShowFilters(true)}
         onSearch={handleSearchChange}
         searchQuery={searchQuery}
       />
 
-      {/* Bottom right: action cluster */}
       <ActionCluster items={actionItems} />
 
-      {/* Main content */}
       <main style={{
         position: 'relative',
         zIndex: 1,
@@ -287,7 +267,6 @@ export default function Dashboard() {
         maxWidth: 1480,
         margin: '0 auto',
       }}>
-        {/* Hero greeting */}
         <header style={{ marginBottom: 32 }}>
           <p className="text-eyebrow" style={{ color: 'var(--accent-iris)', marginBottom: 10 }}>
             {t('dashboardEyebrow')}
@@ -322,10 +301,8 @@ export default function Dashboard() {
         />
       </main>
 
-      {/* Right-side timeline navigation (desktop only) */}
       <TimelineNav posts={feedPosts} />
 
-      {/* Drawers */}
       <SettingsDrawer
         isOpen={showSettings}
         onClose={() => setShowSettings(false)}
@@ -344,7 +321,6 @@ export default function Dashboard() {
         onSearchChange={handleSearchChange}
       />
 
-      {/* Post detail */}
       {selectedPost && (
         <PostModal
           selectedPost={selectedPost}
@@ -359,7 +335,6 @@ export default function Dashboard() {
         />
       )}
 
-      {/* Upload — centered modal (it has a 2-col grid that needs room) */}
       {hasEditorAccess && showUpload && (
         <div className="modal-scrim" style={{ zIndex: 1000 }} onClick={() => setShowUpload(false)}>
           <div
@@ -392,7 +367,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Text post — centered modal */}
       {hasEditorAccess && showTextPost && (
         <div className="modal-scrim" style={{ zIndex: 1000 }} onClick={() => setShowTextPost(false)}>
           <div
@@ -421,7 +395,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Profile picture */}
       <ProfilePictureModal
         isOpen={showProfilePicture}
         onClose={() => setShowProfilePicture(false)}
@@ -429,14 +402,12 @@ export default function Dashboard() {
         childImage={familyProfilePicture || '/api/placeholder/80/80'}
       />
 
-      {/* Slideshow */}
       <MemorySlideshow
         isOpen={showSlideshow}
         onClose={() => setShowSlideshow(false)}
         memories={slideshowMemories}
       />
 
-      {/* Sign out confirmation */}
       {showSignOutConfirm && (
         <div className="modal-scrim" style={{ zIndex: 10000 }} onClick={() => setShowSignOutConfirm(false)}>
           <div className="modal-glass" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 380, padding: 28, textAlign: 'center' }}>

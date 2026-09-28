@@ -15,17 +15,14 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
   const lastTouchTime = useRef(0)
   const lastTouchX = useRef(0)
 
-  // Simple animation constants
-  const SNAP_THRESHOLD = 0.3 // 30% of container width
-  const VELOCITY_THRESHOLD = 0.5 // minimum velocity for quick swipe
+  const SNAP_THRESHOLD = 0.3
+  const VELOCITY_THRESHOLD = 0.5
 
-  // Helper function to detect if URL is a video
   const isVideoUrl = (url) => {
     const videoExtensions = ['.mp4', '.mov', '.avi', '.webm', '.ogg']
     return videoExtensions.some(ext => url.toLowerCase().includes(ext))
   }
 
-  // Track viewport height changes for mobile browser UI
   useEffect(() => {
     const handleResize = () => {
       setViewportHeight(window.innerHeight)
@@ -40,7 +37,6 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
     }
   }, [])
 
-  // Update internal index and reset drag offset when prop changes
   useEffect(() => {
     if (currentIndex !== index) {
       setIndex(currentIndex)
@@ -49,7 +45,6 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
     }
   }, [currentIndex, index])
 
-  // Simple smooth animation to target index
   const animateToIndex = useCallback((targetIndex) => {
     const containerWidth = containerRef.current?.offsetWidth || window.innerWidth
     const targetOffset = -targetIndex * containerWidth
@@ -57,7 +52,6 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
     setIsDragging(false)
   }, [])
 
-  // Handle navigation with bounds checking
   const navigateToIndex = useCallback((newIndex) => {
     const clampedIndex = Math.max(0, Math.min(images.length - 1, newIndex))
     setIndex(clampedIndex)
@@ -65,7 +59,6 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
     animateToIndex(clampedIndex)
   }, [images.length, onIndexChange, animateToIndex])
 
-  // Touch event handlers optimized for mobile
   const handleTouchStart = useCallback((e) => {
     if (e.touches.length !== 1) return
     
@@ -82,7 +75,6 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
       cancelAnimationFrame(animationRef.current)
     }
     
-    // Prevent default but allow event bubbling for better mobile responsiveness
     e.preventDefault()
   }, [])
 
@@ -94,46 +86,38 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
     const deltaTime = currentTime - lastTouchTime.current
     const deltaX = touch.clientX - lastTouchX.current
     
-    // Calculate movement from start position
     const rawOffsetX = Math.abs(touch.clientX - startX)
     const rawOffsetY = Math.abs(touch.clientY - startY)
     
-    // Enhanced gesture detection to prevent vertical scroll conflicts
-    const horizontalGestureThreshold = 10 // Lower threshold for quicker detection
-    const verticalScrollAllowance = 2.0 // More strict about horizontal gestures
+    const horizontalGestureThreshold = 10
+    const verticalScrollAllowance = 2.0
     
-    // Determine if this is a horizontal swipe gesture
     const isHorizontalGesture = rawOffsetX > horizontalGestureThreshold && 
                                rawOffsetX > rawOffsetY * verticalScrollAllowance
     
-    // Aggressively prevent vertical scroll for horizontal gestures
     if (isHorizontalGesture) {
       e.preventDefault()
       e.stopPropagation()
-      // Also prevent on parent elements
       const modalContainer = document.querySelector('.mobile-scroll-container')
       if (modalContainer) {
         modalContainer.style.touchAction = 'none'
       }
     }
 
-    // Calculate velocity for momentum (improved for mobile)
-    if (deltaTime > 0 && deltaTime < 100) { // Only calculate velocity for smooth movements
+    if (deltaTime > 0 && deltaTime < 100) {
       setVelocityX(deltaX / deltaTime)
     }
 
     const containerWidth = containerRef.current?.offsetWidth || window.innerWidth
     const rawOffset = touch.clientX - startX
     
-    // Enhanced resistance calculation for better feel on mobile
     let offset = rawOffset
     const currentTargetOffset = -index * containerWidth
 
-    // Apply resistance if dragging beyond boundaries (more responsive)
     if (index === 0 && offset > 0) {
-      offset = offset * 0.3 // Slightly less resistance for better feel
+      offset = offset * 0.3
     } else if (index === images.length - 1 && offset < 0) {
-      offset = offset * 0.3 // Slightly less resistance for better feel
+      offset = offset * 0.3
     }
 
     setDragOffset(currentTargetOffset + offset)
@@ -151,14 +135,11 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
 
     setIsDragging(false)
 
-    // Enhanced mobile gesture recognition
     let newIndex = index
     
-    // Mobile-optimized thresholds
-    const mobileVelocityThreshold = 0.3 // Lower threshold for mobile
-    const mobileSnapThreshold = 0.25 // Lower snap threshold (25% instead of 30%)
+    const mobileVelocityThreshold = 0.3
+    const mobileSnapThreshold = 0.25
     
-    // Use velocity for quick swipes (more sensitive on mobile)
     if (absVelocity > mobileVelocityThreshold) {
       if (velocityX < -mobileVelocityThreshold && index < images.length - 1) {
         newIndex = index + 1
@@ -166,7 +147,6 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
         newIndex = index - 1
       }
     }
-    // Use distance for slow drags (more sensitive threshold)
     else if (Math.abs(deltaX) > containerWidth * mobileSnapThreshold) {
       if (deltaX < 0 && index < images.length - 1) {
         newIndex = index + 1
@@ -177,19 +157,16 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
 
     navigateToIndex(newIndex)
     
-    // Re-enable touch action after gesture completes
     if (containerRef.current) {
       containerRef.current.style.touchAction = 'auto'
     }
     
-    // Re-enable vertical scroll on modal container
     const modalContainer = document.querySelector('.mobile-scroll-container')
     if (modalContainer) {
       modalContainer.style.touchAction = 'pan-y'
     }
   }, [isDragging, dragOffset, index, startTime, velocityX, images.length, navigateToIndex])
 
-  // Mouse events for desktop
   const handleMouseDown = useCallback((e) => {
     e.preventDefault()
     setIsDragging(true)
@@ -208,7 +185,6 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
     const deltaTime = currentTime - lastTouchTime.current
     const deltaX = e.clientX - lastTouchX.current
 
-    // Calculate velocity for momentum
     if (deltaTime > 0) {
       setVelocityX(deltaX / deltaTime)
     }
@@ -217,12 +193,11 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
     const rawOffset = e.clientX - startX
     const currentTargetOffset = -index * containerWidth
 
-    // Add resistance at boundaries (rubber band effect)
     let offset = rawOffset
     if (index === 0 && offset > 0) {
-      offset = offset * 0.2 // More resistance when at first image
+      offset = offset * 0.2
     } else if (index === images.length - 1 && offset < 0) {
-      offset = offset * 0.2 // More resistance when at last image
+      offset = offset * 0.2
     }
 
     setDragOffset(currentTargetOffset + offset)
@@ -241,10 +216,8 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
 
     setIsDragging(false)
 
-    // Determine if we should change slides
     let newIndex = index
     
-    // Use velocity for quick swipes/drags
     if (absVelocity > VELOCITY_THRESHOLD) {
       if (velocityX < -VELOCITY_THRESHOLD && index < images.length - 1) {
         newIndex = index + 1
@@ -252,7 +225,6 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
         newIndex = index - 1
       }
     }
-    // Use distance for slow drags
     else if (Math.abs(deltaX) > containerWidth * SNAP_THRESHOLD) {
       if (deltaX < 0 && index < images.length - 1) {
         newIndex = index + 1
@@ -264,7 +236,6 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
     navigateToIndex(newIndex)
   }, [isDragging, dragOffset, index, startTime, velocityX, images.length, navigateToIndex])
 
-  // Add global mouse event listeners for desktop dragging
   useEffect(() => {
     if (isDragging) {
       const handleGlobalMouseMove = (e) => handleMouseMove(e)
@@ -280,7 +251,6 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
     }
   }, [isDragging, handleMouseMove, handleMouseUp])
 
-  // Cleanup animation on unmount
   useEffect(() => {
     return () => {
       if (animationRef.current) {
@@ -289,7 +259,6 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
     }
   }, [])
 
-  // Calculate transform with hardware acceleration
   const transform = `translate3d(${dragOffset}px, 0, 0)`
 
   return (
@@ -304,8 +273,7 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
         touchAction: 'auto',
         WebkitUserSelect: 'none',
         userSelect: 'none',
-        // Enhanced mobile performance
-        transform: 'translateZ(0)', // Force hardware acceleration
+        transform: 'translateZ(0)',
         willChange: 'auto',
         WebkitOverflowScrolling: 'touch',
         WebkitTransform: 'translateZ(0)',
@@ -342,13 +310,6 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
             }}
           >
 {isVideoUrl(url) ? (
-              // No crossOrigin here: we only play the video, we never read its
-              // pixels. Requesting CORS made playback fail outright whenever the
-              // storage response lacked an Access-Control-Allow-Origin header —
-              // a prime suspect for "video won't load" on mobile.
-              //
-              // `poster` is the frame captured at upload, so the slide shows the
-              // real content instead of a black box while the video loads.
               <video
                 src={url}
                 poster={getPosterForUrl(post, url) || undefined}
@@ -362,7 +323,6 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
                   objectFit: 'contain',
                   transform: 'translateZ(0)',
                   backfaceVisibility: 'hidden',
-                  // Clean simple appearance
                   ...(isDragging && imgIndex !== index && {
                     opacity: '0.9'
                   })
@@ -380,7 +340,6 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
                   objectFit: 'contain',
                   transform: 'translateZ(0)',
                   backfaceVisibility: 'hidden',
-                  // Clean simple appearance
                   ...(isDragging && imgIndex !== index && {
                     opacity: '0.9'
                   })
@@ -392,10 +351,8 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
         ))}
       </div>
 
-      {/* Navigation arrows for desktop */}
       {images.length > 1 && (
         <>
-          {/* Previous arrow */}
           {index > 0 && (
             <button
               onClick={(e) => {
@@ -415,7 +372,6 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
             </button>
           )}
 
-          {/* Next arrow */}
           {index < images.length - 1 && (
             <button
               onClick={(e) => {
@@ -437,7 +393,6 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
         </>
       )}
 
-      {/* Glass progress indicators */}
       {images.length > 1 && (() => {
         return (
           <div
@@ -458,12 +413,10 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
               fontWeight: '500'
             }}
           >
-          {/* Photo count text */}
           <span style={{ marginRight: '6px' }}>
             {index + 1}/{images.length}
           </span>
 
-          {/* Compact dots */}
           {images.map((_, dotIndex) => (
             <div
               key={dotIndex}

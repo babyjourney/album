@@ -1,15 +1,3 @@
-// Education & Life Chapters (item 11).
-//
-// Chapters used to be its own tab. Its event-entry UX was the good part — a
-// dated, coloured segment that pulls in the posts belonging to it — so it was
-// folded in here rather than kept as a separate tab the user had to remember.
-//
-// An entry now carries:
-//   • a multi-line description (a <textarea>, so Enter / Shift+Enter both start
-//     a new line — the old chapter form was a single-line <input>)
-//   • its own hashtags, so posts sync into the entry by tag as well as by date
-//     range. A christening two years after the "First year" chapter still shows
-//     up under it if it's tagged.
 import { useState, useEffect } from 'react'
 import { authenticatedFetch, isEditor } from '../../lib/pinAuth'
 import { useToast } from '../../contexts/ToastContext'
@@ -28,12 +16,10 @@ const EMPTY_FORM = {
 }
 
 export default function EducationTab({ familyId, childId }) {
-  // Narrative
   const [body, setBody] = useState('')
   const [loaded, setLoaded] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  // Chapters / events
   const [chapters, setChapters] = useState([])
   const [chaptersLoaded, setChaptersLoaded] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
@@ -74,7 +60,7 @@ export default function EducationTab({ familyId, childId }) {
       setChaptersLoaded(true)
     }
   }
-  useEffect(() => { if (familyId) loadChapters() /* eslint-disable-next-line */ }, [familyId, childId])
+  useEffect(() => { if (familyId) loadChapters()  }, [familyId, childId])
 
   const save = async () => {
     setSaving(true)
@@ -114,10 +100,6 @@ export default function EducationTab({ familyId, childId }) {
     } catch (e) { showError(e.message) }
   }
 
-  // Which posts belong to an entry: those inside its date range, PLUS anything
-  // carrying one of its hashtags — matchMode 'any' makes the API OR the two
-  // rather than intersect them, so a tagged post from outside the range still
-  // shows up. An entry with neither is just a note.
   const paramsForChapter = (c) => {
     const params = { sort: 'oldest', matchMode: 'any' }
     if (c.start_date || c.end_date) {
@@ -160,7 +142,6 @@ export default function EducationTab({ familyId, childId }) {
         )}
       </section>
 
-      {/* Chapters / events — merged in from the old Capitole tab. */}
       <section className="card-glass" style={{ padding: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 4 }}>
           <h3 className="text-section-title" style={{ margin: 0, fontSize: 18 }}>{t('chaptersTitle')}</h3>
@@ -201,8 +182,6 @@ export default function EducationTab({ familyId, childId }) {
               />
             </div>
 
-            {/* A textarea, not an input — this is the field that needed to
-                accept line breaks (item 11). */}
             <div style={{ gridColumn: '1 / -1' }}>
               <label className="text-eyebrow" style={{ display: 'block', marginBottom: 6 }}>{t('description')}</label>
               <textarea
@@ -275,7 +254,6 @@ export default function EducationTab({ familyId, childId }) {
                       {c.start_date || '—'}{c.end_date ? ` → ${c.end_date}` : ''}
                     </div>
                     {c.description && (
-                      // pre-wrap so the line breaks the author typed survive.
                       <p style={{
                         margin: '8px 0 0',
                         fontSize: 13.5,

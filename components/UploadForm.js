@@ -13,7 +13,6 @@ import { UPLOAD_ACCEPT, isAcceptedUploadFile } from '../lib/fileTypes'
 import { transcodeVideo, captureVideoPoster } from '../lib/videoCompress'
 import { DEFAULT_CATEGORY_VALUE, categoryDisplayLabel } from '../lib/defaultCategories'
 
-// Small round reorder button (‹ ›) used on file thumbnails — works on touch.
 const reorderBtnStyle = (disabled) => ({
   width: 22, height: 22, borderRadius: '999px',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -43,53 +42,29 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
   const [coverIndex, setCoverIndex] = useState(0)
   const [dragOver, setDragOver] = useState(false)
   const [isPrivate, setIsPrivate] = useState(false)
-  // Family's package tier — drives client-side video duration limits.
-  // Seeded synchronously from the cached session, then refreshed from
-  // /api/families/get on mount so a server-side change takes effect on next
-  // upload attempt without forcing the family to log out.
   const [currentPackage, setCurrentPackage] = useState(() => {
     if (typeof window === 'undefined') return 'free'
     try { return getFamilyPackage() } catch { return 'free' }
   })
-  // Per-file duration (seconds) for video files. Aligned by index with
-  // `files`; entries are `null` for images. Sent to the server so it can
-  // re-validate even if the client lied.
   const [videoDurations, setVideoDurations] = useState([])
-  // Poster frames for video files, index-aligned with `files` (null for
-  // non-videos). Captured at upload time so the feed never has to decode a
-  // video just to show a thumbnail — that's what produced black tiles.
   const [posters, setPosters] = useState([])
-  // Live progress while a video is being re-encoded. Encoding runs in real time
-  // (a 60s clip takes ~60s), so without this the UI looks frozen.
-  const [videoProgress, setVideoProgress] = useState(null) // { name, pct } | null
-  // (Item 2) existing family hashtags for autocomplete suggestions.
+  const [videoProgress, setVideoProgress] = useState(null)
   const [existingHashtags, setExistingHashtags] = useState([])
-  // (Item 14) index of the file currently being dragged for reorder.
   const [dragReorderIndex, setDragReorderIndex] = useState(null)
   const { showSuccess, showError } = useToast()
   const { t } = useLanguage()
   const modalRef = useRef(null)
-  // Tracks whether the user has explicitly changed the date via the picker.
-  // DatePicker auto-fills today's date on mount when value is null; we treat
-  // that as a non-user change so EXIF can still override it.
   const userTouchedDateRef = useRef(false)
   const customDateRef = useRef(customDate)
   customDateRef.current = customDate
 
   const handleCustomDateChange = (newValue) => {
-    // If we're going from null -> a value, that's DatePicker's auto-init to
-    // "today" — not a real user action. Any change after that (including
-    // changing day/month/year dropdowns) means the user has touched the date.
     if (customDateRef.current !== null) {
       userTouchedDateRef.current = true
     }
     setCustomDate(newValue)
   }
 
-  // Reads the duration of a video file (in seconds) using an off-DOM
-  // <video> element. Returns null if metadata can't be read — the server
-  // will catch oversize uploads anyway, so we fail open here rather than
-  // blocking the user on a browser quirk.
   const probeVideoDuration = (file) => {
     return new Promise((resolve) => {
       try {
@@ -109,8 +84,6 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
           finish(d)
         }
         video.onerror = () => finish(null)
-        // Safety timeout in case the browser never fires loadedmetadata
-        // (corrupted file, unsupported codec, etc.).
         setTimeout(() => finish(null), 10000)
         video.src = url
       } catch {
@@ -119,9 +92,6 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
     })
   }
 
-  // Extracts a Date from a single file. For images, tries EXIF
-  // (DateTimeOriginal then CreateDate). Falls back to file.lastModified for
-  // videos or images without EXIF. Returns null if no usable date is found.
   const extractDateFromFile = async (file) => {
     if (!file) return null
     try {
@@ -133,13 +103,11 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
             .map(v => (v instanceof Date ? v : (v ? new Date(v) : null)))
             .filter(d => d && !isNaN(d.getTime()))
           if (candidates.length > 0) {
-            // Use the earliest valid date.
             return new Date(Math.min(...candidates.map(d => d.getTime())))
           }
         }
       }
     } catch (err) {
-      // Silently ignore — never break upload flow on EXIF failure.
       console.warn('EXIF parse failed for', file?.name, err)
     }
     if (file.lastModified) {
@@ -179,15 +147,11 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
     }
   }
 
-  // (Item 2) hashtag suggestions filtered by current input, excluding ones
-  // already chosen. Show up to 8.
   const hashtagSuggestions = existingHashtags
     .filter((h) => !hashtags.includes(h))
     .filter((h) => !currentHashtagInput.trim() || h.includes(currentHashtagInput.trim().toLowerCase()))
     .slice(0, 8)
 
-  // (Item 14) reorder selected files via drag; keep videoDurations and the
-  // cover selection aligned with the moved item.
   const moveFile = (from, to) => {
     if (from === to || from == null || to == null) return
     setFiles((prev) => {
@@ -216,8 +180,6 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
     })
   }
 
-  // Refresh the family's package from the server on mount so changes made
-  // by the admin take effect on the next render — without forcing logout.
   useEffect(() => {
     let cancelled = false
     const refreshPackage = async () => {
@@ -229,7 +191,6 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
         const pkg = json?.family?.package
         if (!cancelled && pkg) setCurrentPackage(pkg)
       } catch {
-        // Non-fatal: cached package from session still applies.
       }
     }
     refreshPackage()
@@ -251,8 +212,6 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
 
             if (childrenResponse.ok) {
               setChildren(childrenResult.children)
-              // (Item 6) Pre-select the child currently filtered in the feed so
-              // new content lands on the right child by default. User can change it.
               if (selectedChildId && (childrenResult.children || []).some(c => c.id === selectedChildId)) {
                 setSelectedChildren([selectedChildId])
               }
@@ -269,7 +228,6 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
     }
   }, [familyId, selectedChildId])
 
-  // (Item 2) Load existing hashtags once for autocomplete suggestions.
   useEffect(() => {
     if (!familyId) return
     let cancelled = false
@@ -316,17 +274,11 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
       return
     }
 
-    // Kick off EXIF/metadata date extraction in the background using the
-    // ORIGINAL first file (before compression strips metadata). We don't
-    // await this here — it must not block file selection / compression.
-    // Only autofill if this is the first batch (no existing files) and the
-    // user hasn't already chosen a date manually.
     if (files.length === 0 && !userTouchedDateRef.current) {
       const firstFile = selectedFiles[0]
       extractDateFromFile(firstFile).then((extracted) => {
         if (!extracted) return
         if (userTouchedDateRef.current) return
-        // Set the date without flipping the user-touched flag.
         setCustomDate(extracted.toISOString())
       }).catch(() => {})
     }
@@ -334,7 +286,6 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
     const processedFiles = [...files]
     const processedDurations = [...videoDurations]
     const processedPosters = [...posters]
-    // Pad the parallel arrays if a previous render left them shorter than files.
     while (processedDurations.length < processedFiles.length) {
       processedDurations.push(null)
     }
@@ -349,10 +300,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
     const videoEncodeOptions = getVideoEncodeOptions(currentPackage)
     let rejectedLongVideos = 0
     let rejectedLargeVideos = 0
-    // Videos that are still over the storage limit even AFTER re-encoding —
-    // i.e. the browser couldn't compress them. See the guard below.
     let rejectedOversizeAfterCompression = 0
-    // Non-video files (audio, PDFs) that are simply too big for the bucket.
     let rejectedOversizeFiles = 0
 
     for (const selectedFile of selectedFiles) {
@@ -378,7 +326,6 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
         continue
       }
 
-      // Accept images, videos, audio and documents/PDFs (all tiers).
       if (!isAcceptedUploadFile(selectedFile)) {
         const errorMessage = t('invalidFileType', { fileName: selectedFile.name })
         setError(errorMessage)
@@ -386,20 +333,13 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
         continue
       }
 
-      // Probe video duration BEFORE compression / acceptance so we can
-      // reject over-limit files without wasting bandwidth on the upload.
       let videoDurationSec = null
       if (selectedFile.type.startsWith('video/')) {
-        // Tier-based byte cap (Task #15) — Premium gets larger video budget.
         if (selectedFile.size > maxVideoBytes) {
           rejectedLargeVideos += 1
           continue
         }
         videoDurationSec = await probeVideoDuration(selectedFile)
-        // (Sergiu 29.07 #3) Compare whole seconds. Phone cameras report a clip
-        // the gallery shows as "1:00" as 60.3–60.9s; the limit is "up to one
-        // minute", so 60.9s must pass and 61.0s must not — same rounding the
-        // phone itself uses.
         if (videoDurationSec !== null && Math.floor(videoDurationSec) > maxVideoSeconds) {
           rejectedLongVideos += 1
           continue
@@ -408,8 +348,6 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
 
       try {
         if (selectedFile.type.startsWith('image/')) {
-          // Tier-based compression (Task #15): Free uses tighter caps for
-          // SD quality, Premium uses higher caps for HD. See lib/packages.js.
           const options = {
             ...getImageCompressionOptions(currentPackage),
             fileType: selectedFile.type,
@@ -420,18 +358,10 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
           processedDurations.push(null)
           processedPosters.push(null)
         } else if (selectedFile.type.startsWith('video/')) {
-          // (Items 2, 3, 7) Grab a poster frame, then re-encode the clip down to
-          // the tier's resolution/bitrate. A 126MB phone video becomes ~12MB,
-          // which both fits the storage bucket and stops the storage bill from
-          // tracking the raw camera output.
           setVideoProgress({ name: selectedFile.name, pct: 0 })
 
           const poster = await captureVideoPoster(selectedFile)
 
-          // Bits per second × seconds must stay under the storage ceiling, or
-          // a 10-minute Family/Legacy clip encodes for ten real-time minutes
-          // and is then rejected. Cap the tier bitrate per file (10% margin,
-          // ~128 kbps reserved for audio).
           const encodeOptions = { ...videoEncodeOptions }
           if (videoDurationSec && videoDurationSec > 0) {
             const maxVideoBps = Math.floor((STORAGE_MAX_UPLOAD_BYTES * 8 * 0.9) / videoDurationSec) - 128_000
@@ -447,19 +377,11 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
           })
 
           if (!transcoded) {
-            // Browser couldn't re-encode (or the result was no smaller). The
-            // original still uploads — it just won't be shrunk.
             console.info('[upload] video not transcoded, using original:', selectedFile.name)
           }
 
           setVideoProgress(null)
 
-          // The size that matters is the size AFTER re-encoding, not before.
-          // If the browser couldn't transcode (no MediaRecorder, an encode
-          // error, or the tab was backgrounded), `encoded` IS the original — so
-          // a 126MB clip would go straight to Supabase and come back with
-          // "The object exceeded the maximum allowed size", which is exactly the
-          // bug we're supposed to be fixing. Refuse here, with an explanation.
           if (encoded.size > STORAGE_MAX_UPLOAD_BYTES) {
             rejectedOversizeAfterCompression += 1
             continue
@@ -469,8 +391,6 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
           processedDurations.push(videoDurationSec)
           processedPosters.push(poster)
         } else {
-          // Audio, documents — stored as-is, so nothing shrinks them. They hit
-          // the same bucket ceiling as an untranscodable video.
           if (selectedFile.size > STORAGE_MAX_UPLOAD_BYTES) {
             rejectedOversizeFiles += 1
             continue
@@ -504,9 +424,6 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
       setError(msg)
       showError(msg)
     }
-    // The browser couldn't re-encode the clip, and the original is over the
-    // storage ceiling. Say so plainly — otherwise Supabase returns the opaque
-    // "The object exceeded the maximum allowed size" that started all this.
     if (rejectedOversizeAfterCompression > 0) {
       const msg = t('videoCompressFailedTooLarge', {
         count: rejectedOversizeAfterCompression,
@@ -543,15 +460,11 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    // (Item 11) A post needs a title or a description; media is optional (a
-    // post with only title+description is a text post).
     if (!title.trim() && !description.trim()) {
       setError(t('titleOrDescriptionRequired'))
       return
     }
 
-    // (Item 3a) In multi-child albums, force choosing at least one child so the
-    // post is navigable per child (not only under "all kids").
     if (albumSettings?.is_multi_child && selectedChildren.length === 0) {
       setError(t('selectAtLeastOneChild'))
       return
@@ -562,9 +475,6 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
 
     try {
       const imageUrls = []
-      // Index-aligned with imageUrls: the poster URL for each video, null for
-      // everything else. Lets the feed render a real thumbnail without
-      // downloading the video (item 2).
       const posterUrls = []
 
       const uploadToStorage = async (fileToUpload, index, suffix = '') => {
@@ -593,8 +503,6 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
           try {
             posterUrls.push(await uploadToStorage(poster, index, '-poster'))
           } catch (posterErr) {
-            // A missing poster degrades to the old runtime-capture path; it is
-            // never worth failing the whole post over.
             console.warn('Poster upload failed:', posterErr)
             posterUrls.push(null)
           }
@@ -603,12 +511,8 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
         }
       }
 
-      // Mirror videoDurations to the upload's URL order. Align by index so
-      // the server can re-validate against the family's package limit.
       const durationsForUpload = files.map((_, i) => videoDurations[i] ?? null)
 
-      // (Item 7) Real byte sizes of what we actually stored — AFTER compression.
-      // The admin storage figure used to be a hardcoded 2MB-per-file guess.
       const fileSizes = files.map((f) => f.size)
 
       const requestData = {
@@ -639,10 +543,6 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
       if (!response.ok) {
         throw new Error((result.errorKey ? t(result.errorKey) : result.error) || t('error'))
       }
-
-      // Child associations are linked server-side by /api/posts/create-multi
-      // (from selectedChildren) — no separate child-posts/create call, which
-      // would create duplicate child_posts rows.
 
       const successMessage = t('success')
 
@@ -684,9 +584,6 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
 
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768
 
-  // Quality badge. This used to test `currentPackage === 'premium'` — a tier
-  // that no longer exists (they're starter/family/legacy now), so Family and
-  // Legacy families were shown "SD" and told their limits were the "Free" ones.
   const isHd = getPackageLimits(currentPackage).imageQuality === 'hd'
 
   const ease = 'cubic-bezier(0.22, 1, 0.36, 1)'
@@ -829,7 +726,6 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                   }
                 </p>
 
-                {/* Quality tier indicator (Task #15) */}
                 <div style={{ marginTop: 10, display: 'flex', justifyContent: 'center', gap: 6 }}>
                   <span className="glass-pill" style={{
                     padding: '3px 10px',
@@ -856,8 +752,6 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                 />
               </div>
 
-              {/* Video re-encode progress. Encoding is real-time, so a 1-minute
-                  clip takes ~1 minute — without this the form looks hung. */}
               {videoProgress && (
                 <div className="glass-soft" style={{
                   padding: isMobile ? '12px' : '14px',
@@ -955,7 +849,6 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                             }}
                           />
                         ) : posters[index] ? (
-                          // Real frame from the video, captured at selection time.
                           <img
                             src={URL.createObjectURL(posters[index])}
                             alt="Preview"
@@ -1041,8 +934,6 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                           </svg>
                         </div>
 
-                        {/* (Item 14) touch-friendly reorder — works on mobile
-                            where HTML5 drag does not. */}
                         {files.length > 1 && (
                           <div style={{
                             position: 'absolute', bottom: '4px', left: '4px', right: '4px',
@@ -1318,7 +1209,6 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                   />
                 </div>
 
-                {/* (Item 2) hashtag suggestions from previously-used tags */}
                 {hashtags.length < 10 && hashtagSuggestions.length > 0 && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
                     {hashtagSuggestions.map((h) => (
@@ -1336,7 +1226,6 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                 )}
               </div>
 
-              {/* Private content toggle */}
               <div style={{ marginBottom: '10px' }}>
                 <label
                   htmlFor="upload-private-toggle"

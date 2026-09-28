@@ -1,15 +1,3 @@
-// Self-registration (item 14).
-//
-// The previous version of this page called supabase.auth.signUp() — the Supabase
-// Auth system, which this app does not use for anything. It wrote to auth.users,
-// never created a `families` row, and the resulting "account" could not log in
-// via /login (which is PIN-based). It was also unreachable: nothing linked here.
-//
-// The real flow, matching the rest of the app's auth model:
-//   1. Name + email + phone   -> POST /api/auth/signup-request  (emails a 4-digit code)
-//   2. Enter the 4-digit code -> POST /api/auth/signup-verify   (creates the family)
-//   3. Show the PINs, which are emailed too.
-
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
@@ -17,45 +5,26 @@ import { useLanguage } from '../contexts/LanguageContext'
 import { COUNTRIES, PINNED_COUNT, dialOf } from '../lib/phone'
 import LanguagePicker from '../components/LanguagePicker'
 
-// (Sergiu batch3 #5) Registration hard-coded the Moldovan "069…" format. The
-// country picker supplies the dial code so the user types only the local number,
-// and we store a full international (E.164) number. Moldova first — that's where
-// the clients are — then the countries the diaspora actually lives in.
-// Country list + dial codes live in lib/phone.js (shared with the server).
-//
-// (Sergiu 18.09) The list is now the full ITU set (~200 countries), so the
-// options carry a country NAME — nobody can find their country among 200
-// entries by dial code alone. Names come from Intl.DisplayNames in the UI
-// language, so we ship no name tables; the pinned diaspora countries stay on
-// top and the rest sort alphabetically in that language.
-
 export default function Signup() {
   const router = useRouter()
   const { t, locale } = useLanguage()
-  const [step, setStep] = useState('details') // details | code | done
+  const [step, setStep] = useState('details')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   const [familyName, setFamilyName] = useState('')
   const [email, setEmail] = useState('')
   const [country, setCountry] = useState('MD')
-  const [phoneNumber, setPhoneNumber] = useState('') // local part only, digits
+  const [phoneNumber, setPhoneNumber] = useState('')
 
-  // Full international number: dial code + local digits (leading zeros dropped,
-  // since the dial code replaces the national trunk "0"). E.g. MD + "069010712"
-  // -> "+37369010712".
   const fullPhone = () => `${dialOf(country)}${phoneNumber.replace(/\D/g, '').replace(/^0+/, '')}`
 
-  // Localized country names + display order: pinned countries keep their
-  // curated order, everything after sorts by name in the UI language.
-  // Intl.DisplayNames can be missing (very old browsers) — fall back to the
-  // ISO code rather than crash the signup page.
   const countryOptions = useMemo(() => {
     let nameOf = (code) => code
     try {
       const dn = new Intl.DisplayNames([locale], { type: 'region' })
       nameOf = (code) => dn.of(code) || code
-    } catch { /* keep the code-only fallback */ }
+    } catch {  }
     const withNames = COUNTRIES.map((c) => ({ ...c, name: nameOf(c.code) }))
     return [
       ...withNames.slice(0, PINNED_COUNT),
@@ -66,7 +35,7 @@ export default function Signup() {
   const [code, setCode] = useState('')
   const [devCode, setDevCode] = useState('')
 
-  const [credentials, setCredentials] = useState(null) // { viewerPin, editorPin }
+  const [credentials, setCredentials] = useState(null)
 
   const submitDetails = async (e) => {
     e.preventDefault()
@@ -79,11 +48,8 @@ export default function Signup() {
         body: JSON.stringify({ familyName, email, phoneNumber: fullPhone() }),
       })
       const data = await res.json()
-      // Prefer the localized key (Sergiu batch3 #8); fall back to the server's
-      // Romanian string, then a generic message.
       if (!res.ok) throw new Error(data.errorKey ? t(data.errorKey) : (data.error || t('signupFailed')))
 
-      // Only present when email delivery isn't configured AND we're in dev.
       if (data.devCode) setDevCode(data.devCode)
       setStep('code')
     } catch (err) {
@@ -124,7 +90,6 @@ export default function Signup() {
       padding: 20,
       position: 'relative',
     }}>
-      {/* (Sergiu batch3 #6) Language switch on the entry screen itself. */}
       <div style={{ position: 'absolute', top: 20, right: 20, zIndex: 2 }}>
         <LanguagePicker />
       </div>
@@ -183,8 +148,6 @@ export default function Signup() {
             <div>
               <label className="text-eyebrow" style={{ display: 'block', marginBottom: 6 }}>{t('authPhoneShort')}</label>
               <div style={{ display: 'flex', gap: 8 }}>
-                {/* The closed control truncates long names — fine, because the
-                    chosen dial code is echoed in the hint right below. */}
                 <select
                   value={country}
                   onChange={(e) => setCountry(e.target.value)}

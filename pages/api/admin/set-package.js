@@ -19,7 +19,6 @@ async function handler(req, res) {
     })
   }
 
-  // Accept legacy aliases (free/premium) but always persist a current tier key.
   const pkg = normalizeTier(rawPkg)
 
   try {

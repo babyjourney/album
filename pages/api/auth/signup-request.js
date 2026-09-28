@@ -1,25 +1,9 @@
-// Self-registration, step 1 (item 14).
-//
-// Input:  { familyName, email, phoneNumber }
-// Output: { ok: true }  — always, so this can't be used to enumerate accounts.
-//
-// Emails a 4-digit code and parks the pending registration in the OTP row's
-// `payload`. NO family is created here: an unverified email must never be able
-// to create a row, or anyone could squat arbitrary addresses.
-//
-// The family is created in signup-verify.js, once the code comes back.
-
 import { supabase } from '../../../lib/supabaseClient'
 import { issueOtp } from '../../../lib/otpStore'
 import { sendOtpEmail } from '../../../lib/notifications'
 import rateLimiter from '../../../lib/rateLimiter'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
-// (Sergiu batch3 #5) Two accepted shapes:
-//   - International E.164 (what the country picker now sends): +373 69010712 ->
-//     "+37369010712". 7–15 digits after the "+".
-//   - Legacy Moldova/Romania mobile, optional leading 0 — kept so anything that
-//     still posts the old local format (and existing tests) keeps working.
 const PHONE_RE = /^(\+[1-9]\d{6,14}|(0)?[67][0-9]{7})$/
 
 export default async function handler(req, res) {
@@ -33,8 +17,6 @@ export default async function handler(req, res) {
   const cleanEmail = String(email || '').trim().toLowerCase()
   const cleanPhone = String(phoneNumber || '').replace(/[\s-]/g, '')
 
-  // errorKey lets the client render the message in the visitor's language via
-  // t(); error stays as a Romanian fallback for logs and older clients.
   if (!cleanName || cleanName.length < 2) {
     return res.status(400).json({ error: 'Introdu numele familiei', errorKey: 'signupErrNameRequired' })
   }
@@ -45,12 +27,6 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Numărul de telefon nu este valid (ex. 069123456)', errorKey: 'authErrPhoneInvalid' })
   }
 
-  // Throttle by client. Every request COUNTS — this endpoint sends an email to
-  // an address the caller merely claims to own, so it's a mail-bomb primitive if
-  // it's free to call. `recordFailedAttempt` is what actually arms the limiter
-  // (see lib/rateLimiter.js: nothing else creates a block), so it must be called
-  // on the success path too, not just on errors. Checking isBlocked() without
-  // ever recording anything, as this did, means the limiter can never trip.
   const clientId = rateLimiter.getClientId(req, cleanEmail)
   const blockStatus = rateLimiter.isBlocked(clientId)
   if (blockStatus.blocked) {
@@ -62,30 +38,18 @@ export default async function handler(req, res) {
   rateLimiter.recordFailedAttempt(clientId, null, cleanEmail)
 
   try {
-    // Self-signup parks the pending registration in verification_codes.payload
-    // and needs family_id to be nullable — both come from sql/sergiu_batch2.sql.
-    // Until that has been run, issueOtp() would fail and the catch-all below
-    // would answer "code sent" while nothing was sent: a dead end for the
-    // visitor. Say plainly that sign-up isn't available yet instead.
     const { error: schemaProbe } = await supabase
       .from('verification_codes')
       .select('payload')
       .limit(1)
     if (schemaProbe) {
-      console.error('[signup] verification_codes.payload missing — run sql/sergiu_batch2.sql. Refusing signup.')
+      console.error('[signup] verification_codes.payload missing — run supabase-migration.sql. Refusing signup.')
       return res.status(503).json({
         error: 'Înregistrarea nu este disponibilă momentan. Te rugăm să încerci mai târziu.',
         errorKey: 'signupUnavailable',
       })
     }
 
-    // Is this email already taken? We must NOT say so — that would confirm the
-    // address is registered. Return the same "code sent" shape and simply don't
-    // send anything. The real owner can use "am uitat PIN-ul" instead.
-    //
-    // Fail CLOSED: maybeSingle() returns data:null both when nothing matched and
-    // when the query errored (including "more than one row"), so ignoring the
-    // error would mail a code to an address that already has an account.
     const { data: existing, error: lookupError } = await supabase
       .from('families')
       .select('id')
@@ -103,13 +67,11 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, codeLength: 4 })
     }
 
-    // PINs are generated now and carried in the payload so they're identical to
-    // whatever we show the user after verification.
     const viewerPin = String(Math.floor(1000 + Math.random() * 9000))
     const editorPin = String(Math.floor(10000000 + Math.random() * 90000000))
 
     const { code } = await issueOtp({
-      familyId: null,             // no family yet — that's the point
+      familyId: null,
       contactKind: 'email',
       contactValue: cleanEmail,
       purpose: 'signup',
@@ -124,12 +86,6 @@ export default async function handler(req, res) {
 
     const delivery = await sendOtpEmail({ to: cleanEmail, code, purpose: 'signup' })
 
-    // (Sergiu 18.09 — "nu-mi vine emailul cu codul") A REAL send failure —
-    // Resend configured but refusing the send (unverified domain, sandbox
-    // sender restricted to the account owner, bad key) — used to fall through
-    // to "code sent", stranding the visitor on the code screen forever. Same
-    // honest answer as the unconfigured case; operators see the Resend
-    // response in the logs (lib/notifications.js prints it).
     if (delivery && delivery.ok === false) {
       console.error('[signup] email send FAILED (see Resend error above) — refusing to claim "code sent"')
       return res.status(503).json({
@@ -138,14 +94,9 @@ export default async function handler(req, res) {
       })
     }
 
-    // When Resend isn't configured, lib/notifications quietly "sends" to the
-    // server console. In dev that's the intended workflow — surface the code so
-    // signup is testable. NEVER in production, where it would hand out codes.
     const body = { ok: true, codeLength: 4 }
     if (delivery?.mocked) {
       if (process.env.NODE_ENV === 'production') {
-        // No RESEND_API_KEY on the server: the code went to a log nobody
-        // reads. "Code sent" would strand the visitor on the code screen.
         console.error('[signup] email delivery is not configured (RESEND_API_KEY) — cannot send the signup code')
         return res.status(503).json({
           error: 'Înregistrarea nu este disponibilă momentan. Te rugăm să încerci mai târziu.',
@@ -159,7 +110,6 @@ export default async function handler(req, res) {
     return res.status(200).json(body)
   } catch (error) {
     console.error('signup-request error:', error)
-    // Same shape on failure — no enumeration, no stack traces to the client.
     return res.status(200).json({ ok: true, codeLength: 4 })
   }
 }

@@ -1,7 +1,6 @@
 export default function handler(req, res) {
   const { params } = req.query
   
-  // Extract dimensions from params like [width, height] or just [size]
   let width = 80, height = 80
   
   if (params && params.length >= 1) {
@@ -9,7 +8,6 @@ export default function handler(req, res) {
     height = params.length >= 2 ? (parseInt(params[1]) || width) : width
   }
   
-  // Generate a simple SVG placeholder
   const svg = `
     <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
       <rect width="100%" height="100%" fill="#e5e7eb"/>

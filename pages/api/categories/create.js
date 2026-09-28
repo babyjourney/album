@@ -15,13 +15,11 @@ async function handler(req, res) {
   }
 
   try {
-    // Check if table exists first
     const { data: testData, error: testError } = await supabase
       .from('family_categories')
       .select('id')
       .limit(1)
 
-    // If table doesn't exist, return error with migration info
     if (testError && (testError.message.includes('does not exist') || testError.code === '42P01')) {
       return res.status(400).json({ 
         error: 'Categories system needs migration. Please run migration first.',
@@ -29,7 +27,6 @@ async function handler(req, res) {
       })
     }
 
-    // Check if category value already exists for this family
     const { data: existing } = await supabase
       .from('family_categories')
       .select('id')
@@ -41,7 +38,6 @@ async function handler(req, res) {
       return res.status(400).json({ error: 'Category with this value already exists' })
     }
 
-    // Create new category
     const { data: newCategory, error } = await supabase
       .from('family_categories')
       .insert({

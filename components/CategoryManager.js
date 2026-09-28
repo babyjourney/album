@@ -15,7 +15,6 @@ export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate })
   const { t } = useLanguage()
   const modalRef = useRef(null)
 
-  // Handle click outside to close modal
   useOnClickOutside(modalRef, onClose)
 
   useEffect(() => {
@@ -40,7 +39,6 @@ export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate })
       return
     }
 
-    // Check if value already exists
     if (categories.some(cat => cat.value === newCategory.value.trim())) {
       showError(t('error'))
       return
@@ -131,7 +129,6 @@ export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate })
           borderRadius: '24px'
         }}
       >
-        {/* Header */}
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
@@ -155,7 +152,6 @@ export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate })
           </button>
         </div>
 
-        {/* Reset Button */}
         <div style={{ marginBottom: '18px' }}>
           <button
             onClick={handleResetToDefaults}
@@ -174,7 +170,6 @@ export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate })
           </button>
         </div>
 
-        {/* Add New Category */}
         <div
           className="glass-soft"
           style={{
@@ -269,7 +264,6 @@ export default function CategoryManager({ isOpen, onClose, onCategoriesUpdate })
           )}
         </div>
 
-        {/* Categories List */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {categories.map((category) => (
             <div

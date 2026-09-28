@@ -1,6 +1,3 @@
-// Right-side vertical timeline navigation (desktop only). Builds a year -> month
-// index from the loaded posts and scrolls the feed to the first post of the
-// chosen period (BentoMasonry gives each card id="post-<id>").
 import { useEffect, useMemo, useState } from 'react'
 import { useLanguage } from '../../contexts/LanguageContext'
 
@@ -22,8 +19,6 @@ export default function TimelineNav({ posts = [] }) {
     return () => window.removeEventListener('resize', check)
   }, [])
 
-  // Group posts (already sorted newest-first from the feed) into
-  // years -> months, remembering the first post id of each bucket.
   const groups = useMemo(() => {
     const byYear = new Map()
     for (const p of posts) {

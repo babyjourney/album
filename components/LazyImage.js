@@ -24,7 +24,7 @@ export default function LazyImage({
       },
       {
         threshold: 0.1,
-        rootMargin: '200px' // Increased for earlier loading
+        rootMargin: '200px'
       }
     )
 
@@ -35,7 +35,6 @@ export default function LazyImage({
     return () => observer.disconnect()
   }, [])
 
-  // Preload images that are close to viewport
   useEffect(() => {
     if (isInView && src) {
       const img = new Image()
@@ -66,7 +65,6 @@ export default function LazyImage({
       className={className}
     >
       {!isInView ? (
-        // Placeholder while not in view
         <div
           className="shimmer"
           style={{
@@ -86,7 +84,6 @@ export default function LazyImage({
       ) : (
         <>
           {!isLoaded && !hasError && (
-            // Loading shimmer
             <div
               className="shimmer"
               style={{

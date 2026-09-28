@@ -4,21 +4,15 @@ import Link from 'next/link'
 import { useLanguage } from '../contexts/LanguageContext'
 import LanguagePicker from '../components/LanguagePicker'
 
-// PIN reset flow (Task #2). 3-step inline wizard:
-//   step 1: pick channel (email / phone) and enter the value
-//   step 2: enter the 6-digit OTP we just sent
-//   step 3: pick new PIN (4 digits = viewer, 8 = editor) and confirm
-// On success we redirect back to /login with a success toast in the URL.
-
 export default function ForgotPassword() {
   const router = useRouter()
   const { t } = useLanguage()
   const [step, setStep] = useState(1)
-  const [channel, setChannel] = useState('phone') // 'phone' | 'email'
+  const [channel, setChannel] = useState('phone')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [code, setCode] = useState('')
-  const [role, setRole] = useState('viewer') // 'viewer' (4d) | 'editor' (8d)
+  const [role, setRole] = useState('viewer')
   const [newPin, setNewPin] = useState('')
   const [confirmPin, setConfirmPin] = useState('')
   const [loading, setLoading] = useState(false)
@@ -52,9 +46,6 @@ export default function ForgotPassword() {
           role,
         }),
       })
-      // We always advance to step 2 even if the contact wasn't found
-      // (the API doesn't leak that information). The user finds out at
-      // step 3 if the code doesn't validate.
       setNotice(
         channel === 'email'
           ? t('forgotNoticeEmail')
@@ -128,7 +119,6 @@ export default function ForgotPassword() {
       padding: 24,
       position: 'relative',
     }}>
-      {/* (Sergiu batch3 #6) Language switch on every entry screen. */}
       <div style={{ position: 'absolute', top: 20, right: 20, zIndex: 2 }}>
         <LanguagePicker />
       </div>

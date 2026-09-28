@@ -1,4 +1,3 @@
-// Child biography / life story — GET (read) + POST (upsert). Family tier.
 import { requireAuthOrAdmin } from '../../../lib/authMiddleware'
 import { requireFeature } from '../../../lib/requireFeature'
 import { getChildRecord, upsertChildRecord, resolveFamilyId, canWrite } from '../../../lib/childRecord'

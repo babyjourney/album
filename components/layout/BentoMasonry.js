@@ -8,7 +8,6 @@ import { detectFileTypeFromUrl } from '../../lib/fileTypes'
 import { getCoverPoster } from '../../lib/posters'
 import { categoryDisplayLabel } from '../../lib/defaultCategories'
 
-// Multi-photo helpers (same logic as InstagramFeed but isolated here)
 const getMultiPhotoUrls = (post) => {
   let urls = null
   let coverIndex = 0
@@ -55,20 +54,18 @@ const getCoverUrl = (post) => {
   return post.file_url
 }
 
-// Bento sizing patterns — one entry per card position, repeating.
-// Pattern is selected based on column count.
 const BENTO_PATTERN_3 = [
-  { c: 'span 2', r: 'span 2' },  // hero
+  { c: 'span 2', r: 'span 2' },
   { c: 'span 1', r: 'span 1' },
   { c: 'span 1', r: 'span 1' },
-  { c: 'span 1', r: 'span 2' },  // tall
-  { c: 'span 2', r: 'span 1' },  // wide
+  { c: 'span 1', r: 'span 2' },
+  { c: 'span 2', r: 'span 1' },
   { c: 'span 1', r: 'span 1' },
   { c: 'span 1', r: 'span 1' },
 ]
 
 const BENTO_PATTERN_2 = [
-  { c: 'span 2', r: 'span 2' },  // hero (full width)
+  { c: 'span 2', r: 'span 2' },
   { c: 'span 1', r: 'span 1' },
   { c: 'span 1', r: 'span 1' },
   { c: 'span 1', r: 'span 1' },
@@ -100,10 +97,6 @@ export default function BentoMasonry({ familyId, searchQuery, refreshTrigger, on
       if (filters) {
         if (filters.category && filters.category !== 'all') params.append('category', filters.category)
         if (filters.hashtag?.trim()) params.append('hashtag', filters.hashtag.trim())
-        // The API anchors on this date: 3 posts before, the whole day, 3 after.
-        // tzOffset lets the server work out which UTC instants make up *your*
-        // calendar day — otherwise a post made just after midnight lands on the
-        // previous day server-side.
         if (filters.date) {
           params.append('dateAnchor', filters.date)
           params.append('tzOffset', String(new Date().getTimezoneOffset()))
@@ -152,8 +145,6 @@ export default function BentoMasonry({ familyId, searchQuery, refreshTrigger, on
         style={{
           gridColumn: slot.c,
           gridRow: slot.r,
-          // TimelineNav scrolls here with block:'start'; keep the card clear of
-          // the fixed header/dock.
           scrollMarginTop: 96,
           minHeight: 0, minWidth: 0,
           position: 'relative',
@@ -176,7 +167,6 @@ export default function BentoMasonry({ familyId, searchQuery, refreshTrigger, on
           e.currentTarget.style.boxShadow = '0 12px 40px -12px rgba(15,15,30,0.20), inset 0 1px 0 0 var(--glass-hairline-strong)'
         }}
       >
-        {/* Media area */}
         {isTextPost ? (
           <div className="bento-text-card" style={{
             position: 'absolute', inset: 0,
@@ -189,10 +179,6 @@ export default function BentoMasonry({ familyId, searchQuery, refreshTrigger, on
               background: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.18) 0%, transparent 50%)',
               pointerEvents: 'none',
             }} />
-            {/* Font size and clamp are set in CSS so they can shrink with the
-                card. A fixed 18px in a 140px-tall phone tile rendered ~3 lines
-                and clipped the rest at both ends (item 15).
-                whiteSpace: pre-wrap keeps the author's line breaks (item 4). */}
             <p className="bento-text-body" style={{
               position: 'relative', zIndex: 1,
               color: '#fff', fontWeight: 500,
@@ -225,7 +211,6 @@ export default function BentoMasonry({ familyId, searchQuery, refreshTrigger, on
           />
         )}
 
-        {/* Top-left badges */}
         <div style={{
           position: 'absolute', top: 12, left: 12, right: 12,
           display: 'flex', justifyContent: 'space-between', gap: 8, zIndex: 2,
@@ -280,7 +265,6 @@ export default function BentoMasonry({ familyId, searchQuery, refreshTrigger, on
           )}
         </div>
 
-        {/* Bottom info — only on hover or always for text/long-card */}
         {(post.title || desc) && !isTextPost && (
           <div className="card-bottom-info" style={{
             position: 'absolute', left: 0, right: 0, bottom: 0,

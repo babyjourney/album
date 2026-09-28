@@ -1,130 +1,64 @@
-# Multi-Tenant Family Photo Album
+# BabyJourney — album foto de familie
 
-A secure, multi-tenant photo album application built with Next.js and Supabase. Each family gets their own private, isolated space to upload photos and track life skills progress.
+Aplicație Next.js (Pages Router) + Supabase (Postgres + Storage). Fiecare familie are albumul ei, accesat cu PIN (viewer 4 cifre / editor 8 cifre), opțional cu OTP pe email/SMS. Există un panou de admin pentru gestionarea familiilor și a pachetelor (starter / family / legacy — vezi `lib/tiers.js`).
 
-## Features
+## Stack
 
-- 🔐 **Multi-tenant Architecture**: Complete data isolation between families
-- 📸 **Photo Upload & Management**: Upload photos/videos with titles and descriptions
-- 🎯 **Skills Tracking**: Monitor progress on important life skills (0-100%)
-- 🔒 **Secure Authentication**: Email/password auth with automatic family creation
-- 📱 **Responsive Design**: Works perfectly on mobile and desktop
-- ⚡ **Real-time Updates**: Instant updates across the application
+- Next.js 14, React 18, Tailwind CSS
+- Supabase: toate interogările trec prin rutele API (`pages/api`) cu cheia `service_role`; RLS este activ pe toate tabelele fără politici publice
+- Storage: bucket public `album_uploads` (upload direct din browser)
+- Email: Resend, SMS: Twilio (opționale)
+- Deploy: Vercel (proiectul `album`, deploy automat din `main`)
 
-## Technology Stack
+## Bază de date
 
-- **Frontend**: Next.js (Pages Router) with React
-- **Styling**: Tailwind CSS
-- **Backend**: Supabase (PostgreSQL + Authentication + Storage)
-- **Security**: Row Level Security (RLS) for multi-tenancy
+Toată schema este în **`supabase-migration.sql`**: tabele, indecși, constrângeri, RLS, bucket-ul de storage și politicile lui. Fișierul este idempotent — merge atât pe un proiect Supabase nou, cât și peste baza existentă.
 
-## Setup Instructions
+Supabase → SQL Editor → New query → lipești fișierul → Run.
 
-### 1. Supabase Setup
+Separat, din dashboard: Settings → Storage → Upload file size limit → **200 MB** (trebuie să corespundă cu `STORAGE_MAX_UPLOAD_MB` din `lib/tiers.js`). Rulează migrarea după această setare.
 
-1. Create a new project at [supabase.com](https://supabase.com)
-2. Go to SQL Editor and run the complete SQL script from `supabase-schema.sql`
-3. Create a storage bucket:
-   - Go to Storage in your Supabase dashboard
-   - Create a new public bucket named `album_uploads`
-4. Get your project credentials:
-   - Go to Settings → API
-   - Copy your Project URL and anon public key
+## Variabile de mediu
 
-### 2. Environment Configuration
+```
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+SESSION_SECRET=            # openssl rand -hex 32
+ADMIN_USERNAME=
+ADMIN_PASSWORD=
 
-1. Copy `.env.local.example` to `.env.local`
-2. Fill in your Supabase credentials:
-   ```
-   NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-   ```
+RESEND_API_KEY=            # opțional — OTP pe email
+RESEND_FROM_EMAIL=
+ADMIN_NOTIFY_EMAIL=
+TWILIO_ACCOUNT_SID=        # opțional — OTP pe SMS
+TWILIO_AUTH_TOKEN=
+TWILIO_FROM_NUMBER=
+LOGIN_OTP_BYPASS=true      # dezactivează 2FA la login până sunt configurate Resend/Twilio
+```
 
-### 3. Installation
+## Pornire locală
 
-```bash
-# Install dependencies
+```
 npm install
-
-# Run development server
 npm run dev
-
-# Build for production
-npm run build
-npm start
+npm run check:setup        # verifică migrarea, bucket-ul și env-urile
 ```
 
-## Database Schema
+Apoi: `/admin/login` → creezi o familie → `/login` cu PIN-ul de editor.
 
-### Core Tables
-
-- **families**: Each family is a separate tenant
-- **profiles**: Links users to their families
-- **photos**: Stores photo metadata with family isolation
-- **skills**: Tracks life skills progress per family
-
-### Security Model
-
-Row Level Security (RLS) ensures that:
-- Users can only see data from their own family
-- All operations are automatically scoped to the user's family
-- Complete isolation between different families
-
-## Usage
-
-1. **Sign Up**: Create a new family account (automatically creates a family)
-2. **Upload Photos**: Add photos with titles and descriptions
-3. **View Gallery**: Browse photos in a responsive grid layout
-4. **Track Skills**: Add life skills and update progress (0-100%)
-5. **Multi-Family**: Each family sees only their own data
-
-## File Structure
+## Structură
 
 ```
-├── components/
-│   ├── Header.js          # Navigation with sign-out
-│   ├── UploadForm.js      # Photo upload component
-│   ├── PhotoGallery.js    # Photo grid with modal view
-│   └── SkillsTracker.js   # Skills management
-├── lib/
-│   ├── supabaseClient.js  # Supabase configuration
-│   └── auth.js            # Authentication helpers
-├── pages/
-│   ├── index.js           # Landing page
-│   ├── signup.js          # Family registration
-│   ├── login.js           # User authentication
-│   └── dashboard.js       # Main application
-├── styles/
-│   └── globals.css        # Tailwind + custom styles
-└── supabase-schema.sql    # Complete database setup
+pages/          pagini + rute API (pages/api)
+components/     componente UI (layout/, journey/, import/)
+contexts/       limbă, temă, toast; traduceri în contexts/translations
+hooks/          hook-uri React
+lib/            auth, OTP, notificări, pachete, utilitare
+public/         imagini statice (ilustrațiile pentru skills)
+scripts/        check-setup.js
 ```
 
-## Security Features
+## De făcut
 
-- **Row Level Security**: Database-level access control
-- **Automatic Family Creation**: New users get their own family
-- **File Upload Security**: Files are scoped to family folders
-- **Session Management**: Secure authentication with Supabase
-- **Input Validation**: Client and server-side validation
-
-## Deployment
-
-This app can be deployed to:
-- **Vercel** (recommended for Next.js)
-- **Netlify**
-- **Railway**
-- Any Node.js hosting platform
-
-Remember to set environment variables in your deployment platform.
-
-## Customization
-
-The app is built with modularity in mind:
-- Easy to add new features
-- Customizable styling with Tailwind
-- Extensible database schema
-- Component-based architecture
-
-## Support
-
-For issues or questions about this implementation, check the code comments and Supabase documentation.
+Vezi `ACTIONS-REQUIRED.md` (pași manuali în Supabase/Vercel: email Resend, SMS Twilio, limita de upload) și `NOTIFICATIONS.md` (configurarea notificărilor).

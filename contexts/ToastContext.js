@@ -56,7 +56,6 @@ export const ToastProvider = ({ children }) => {
     <ToastContext.Provider value={value}>
       {children}
       
-      {/* Toast Container */}
       <div className="fixed top-4 right-4 space-y-2 z-50 max-w-sm w-full">
         {toasts.map(toast => (
           <Toast

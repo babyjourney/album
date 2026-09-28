@@ -1,8 +1,3 @@
-// A self-contained grid of posts fetched from /api/photos/list with arbitrary
-// filter params (age window, category/hashtag "any" lists, etc.). Reused by the
-// Journey tabs (age timelines, Health, Education). Clicking a post opens the
-// shared PostModal in read-only mode.
-
 import { useState, useEffect } from 'react'
 import { authenticatedFetch } from '../../lib/pinAuth'
 import { detectFileTypeFromUrl } from '../../lib/fileTypes'
@@ -41,7 +36,6 @@ export default function FilteredPosts({ familyId, childId, params = {}, emptyTex
     }
     run()
     return () => { cancelled = true }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [familyId, childId, JSON.stringify(params)])
 
   if (loading) {
@@ -80,7 +74,7 @@ export default function FilteredPosts({ familyId, childId, params = {}, emptyTex
                   background: 'linear-gradient(135deg, #a78bfa, #7c3aed)',
                   color: '#fff', fontSize: 12, display: 'flex', alignItems: 'center',
                   justifyContent: 'center', textAlign: 'center', overflow: 'hidden',
-                  whiteSpace: 'pre-wrap',   // (item 4) keep the author's line breaks
+                  whiteSpace: 'pre-wrap',
                 }}>
                   {(post.description || post.title || t('textPost')).slice(0, 80)}
                 </div>

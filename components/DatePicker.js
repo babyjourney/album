@@ -14,12 +14,10 @@ export default function DatePicker({ value, onChange, label }) {
       setMonth(String(date.getMonth() + 1).padStart(2, '0'))
       setYear(String(date.getFullYear()))
     } else {
-      // Set to current date by default
       const now = new Date()
       setDay(String(now.getDate()).padStart(2, '0'))
       setMonth(String(now.getMonth() + 1).padStart(2, '0'))
       setYear(String(now.getFullYear()))
-      // Trigger onChange with current date
       onChange(now.toISOString())
     }
   }, [value])
@@ -46,7 +44,6 @@ export default function DatePicker({ value, onChange, label }) {
     handleDateChange(day, month, newYear)
   }
 
-  // Generate options
   const days = Array.from({ length: 31 }, (_, i) => i + 1)
   const months = Array.from({ length: 12 }, (_, i) => i + 1)
   const currentYear = new Date().getFullYear()
@@ -102,7 +99,6 @@ export default function DatePicker({ value, onChange, label }) {
         gap: '10px',
         alignItems: 'center'
       }}>
-        {/* Day Selector */}
         <div style={{ flex: 1 }}>
           <label style={subLabelStyle}>
             {t('day')}
@@ -121,7 +117,6 @@ export default function DatePicker({ value, onChange, label }) {
           </select>
         </div>
 
-        {/* Month Selector */}
         <div style={{ flex: 1 }}>
           <label style={subLabelStyle}>
             {t('month')}
@@ -140,7 +135,6 @@ export default function DatePicker({ value, onChange, label }) {
           </select>
         </div>
 
-        {/* Year Selector */}
         <div style={{ flex: 1 }}>
           <label style={subLabelStyle}>
             {t('year')}

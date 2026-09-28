@@ -1,7 +1,3 @@
-// Dependency-free importer: select many files (or a whole folder — e.g. an
-// extracted Google Takeout / Instagram export) and bring them into the album.
-// Each file is uploaded to storage and becomes its own post via the existing
-// /api/posts/create-multi endpoint. No OAuth, no zip library required.
 import { useRef, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { authenticatedFetch } from '../../lib/pinAuth'
@@ -44,8 +40,6 @@ export default function FileImporter({ familyId }) {
       try {
         const publicUrl = await uploadOne(file, i)
 
-        // (Item 2) Bulk-imported videos need a poster too — without one they'd
-        // be the only videos in the album still showing a black tile.
         let posterUrls = null
         if (file.type?.startsWith('video/')) {
           try {
@@ -87,7 +81,6 @@ export default function FileImporter({ familyId }) {
 
       <input ref={inputRef} type="file" multiple style={{ display: 'none' }}
         onChange={(e) => pick(e.target.files)} />
-      {/* webkitdirectory enables folder selection in Chromium/Safari */}
       <input ref={folderRef} type="file" multiple webkitdirectory="" directory="" style={{ display: 'none' }}
         onChange={(e) => pick(e.target.files)} />
 

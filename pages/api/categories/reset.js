@@ -10,13 +10,11 @@ async function handler(req, res) {
   const familyId = req.auth.familyId
 
   try {
-    // Delete all existing categories for this family
     await supabase
       .from('family_categories')
       .delete()
       .eq('family_id', familyId)
 
-    // Insert default categories
     const categoriesToInsert = DEFAULT_CATEGORIES.map(cat => ({
       family_id: familyId,
       category_value: cat.value,

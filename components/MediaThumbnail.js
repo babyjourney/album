@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react'
 import LazyImage from './LazyImage'
 import { useLanguage } from '../contexts/LanguageContext'
 
-// Helper function to detect video files
 const isVideoUrl = (url) => {
   if (!url) return false
   const videoExtensions = ['.mp4', '.mov', '.avi', '.webm', '.ogg', '.m4v']
@@ -10,9 +9,6 @@ const isVideoUrl = (url) => {
   return videoExtensions.some(ext => lowercaseUrl.includes(ext))
 }
 
-// Is the canvas (near-)uniformly black? A canvas with no decoded frame is
-// transparent, and transparent flattens to BLACK once encoded as JPEG — which
-// is exactly why "successful" thumbnails were coming out black.
 const isBlankCanvas = (canvas) => {
   try {
     const ctx = canvas.getContext('2d')
@@ -30,16 +26,10 @@ const isBlankCanvas = (canvas) => {
     }
     return sampled === 0 || lit / sampled < 0.02
   } catch {
-    return true // tainted canvas — treat as unusable
+    return true
   }
 }
 
-// Component to display media (image or video) as a thumbnail.
-//
-// `poster` is the frame captured at upload time (photos.poster_urls). When it's
-// present we just render it — no video is downloaded or decoded at all. The
-// runtime capture below is only a fallback for videos uploaded before posters
-// existed.
 export default function MediaThumbnail({
   src,
   alt,
@@ -67,18 +57,12 @@ export default function MediaThumbnail({
       return
     }
 
-    // Fast path: a poster was stored at upload time.
     if (poster) {
       setThumbnailSrc(poster)
       setThumbnailLoaded(true)
       return
     }
 
-    // Clear the previous media's thumbnail before decoding the new one.
-    // Without this, a component instance reused with a different `src` (a
-    // carousel, or a list keyed by index) keeps showing the OLD picture for as
-    // long as the capture takes — up to 15s — and an image→video swap renders
-    // the old photo with a ▶ badge stamped on it.
     setThumbnailSrc(null)
     setThumbnailLoaded(false)
 
@@ -87,13 +71,6 @@ export default function MediaThumbnail({
     return () => { cancelled = true }
   }, [src, poster])
 
-  // Legacy fallback: decode a frame in the browser.
-  //
-  // The old version drew on `seeked`, which fires before the frame is actually
-  // painted, so it captured an empty (=> black) canvas and then reported
-  // success. Now we wait for a real frame via requestVideoFrameCallback, and we
-  // verify the result isn't blank — retrying at a later timestamp if it is,
-  // since the first second of a clip is very often black.
   const generateVideoThumbnail = async (videoUrl, isCancelled) => {
     const video = document.createElement('video')
     video.crossOrigin = 'anonymous'
@@ -135,7 +112,6 @@ export default function MediaThumbnail({
           video.currentTime = Math.min(t, Math.max(0, duration - 0.05))
           await waitFor('seeked', 8000)
 
-          // Wait for a frame to actually exist before reading pixels.
           await new Promise((resolve) => {
             if (typeof video.requestVideoFrameCallback === 'function') {
               video.requestVideoFrameCallback(() => resolve())
@@ -148,14 +124,12 @@ export default function MediaThumbnail({
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
           if (!isBlankCanvas(canvas)) break
         } catch {
-          /* try the next timestamp */
         }
       }
 
       if (isCancelled()) return cleanup()
 
       if (isBlankCanvas(canvas)) {
-        // Never publish a black tile — show the 🎥 card instead.
         setThumbnailLoaded(false)
         return cleanup()
       }
@@ -191,7 +165,6 @@ export default function MediaThumbnail({
     zIndex: 1
   }
 
-  // If it's a video but thumbnail generation failed, show video placeholder
   if (isVideo && !thumbnailLoaded) {
     return (
       <div
@@ -220,7 +193,6 @@ export default function MediaThumbnail({
     )
   }
 
-  // For images or successfully generated video thumbnails
   return (
     <div style={{ position: 'relative', ...style }} className={className}>
       <LazyImage

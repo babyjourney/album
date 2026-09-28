@@ -3,18 +3,6 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { useLanguage } from '../contexts/LanguageContext'
 
-// Public-facing /demo route.
-//
-// Goal (per product brief): a static showcase users can visit before signing
-// up so they understand what BabyJourney's album feels like. No auth, no
-// data fetching — pure marketing surface with screenshots / sample feed.
-//
-// Real demo album content is not wired up; this page presents a curated
-// fake feed that mirrors the dashboard's layout so the visual language is
-// continuous between marketing and product.
-
-// The sample feed is translated like the rest of the UI, so it holds
-// translation keys rather than literals (see contexts/translations/auth.js).
 const SAMPLE_POSTS = [
   {
     id: 1,
@@ -84,10 +72,6 @@ export default function Demo() {
   return (
     <>
       <Head>
-        {/* TODO (Task #13): replace /img/pfp.webp with a proper 1200×630
-            screenshot card (BabyJourney_album_screenshot.webp per
-            public/img/SEO.md). For now we point at the only real image
-            so the link doesn't 404. */}
         <title>Demo · BabyJourney — Album privat de familie din Chișinău</title>
         <meta name="description" content="Vezi cum arată albumul BabyJourney înainte să-l încerci. Un tur al feed-ului, categoriilor și momentelor copilăriei — albumul privat de familie #1 din Moldova." />
         <meta name="keywords" content="album familie, BabyJourney, jurnal bebe, demo album, amintiri copii, Chișinău, Moldova" />
@@ -105,7 +89,6 @@ export default function Demo() {
       </Head>
 
       <div style={{ minHeight: '100vh', position: 'relative' }}>
-        {/* Decorative orbs */}
         <div aria-hidden style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0 }}>
           <div style={{
             position: 'absolute', top: '-10%', left: '-8%',
@@ -128,7 +111,6 @@ export default function Demo() {
           margin: '0 auto',
           padding: '48px 24px 80px',
         }}>
-          {/* Header */}
           <header style={{ textAlign: 'center', marginBottom: 48 }}>
             <span className="glass-pill" style={{ padding: '6px 14px', fontSize: 12, color: 'var(--accent-iris)', fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase' }}>
               {t('demoEyebrow')}
@@ -165,7 +147,6 @@ export default function Demo() {
             </div>
           </header>
 
-          {/* Category filter pills */}
           <div style={{
             display: 'flex',
             flexWrap: 'wrap',
@@ -185,7 +166,6 @@ export default function Demo() {
             ))}
           </div>
 
-          {/* Sample feed grid */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
@@ -227,7 +207,6 @@ export default function Demo() {
             ))}
           </div>
 
-          {/* CTA bottom */}
           <section className="card-glass" style={{
             marginTop: 56,
             padding: '36px 28px',
@@ -247,7 +226,6 @@ export default function Demo() {
             </Link>
           </section>
 
-          {/* Footer with legal links */}
           <footer style={{
             marginTop: 56,
             textAlign: 'center',

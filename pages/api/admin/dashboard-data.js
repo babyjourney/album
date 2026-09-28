@@ -2,20 +2,12 @@ import { supabase } from '../../../lib/supabaseClient'
 import { requireAdmin } from '../../../lib/authMiddleware'
 import { postedAt, lastTouchedAt, fileUrlsOf } from '../../../lib/postTimestamps'
 
-// Activity status thresholds (days since last post).
-// 🔥 very active  : posted within VERY_ACTIVE_DAYS
-// 🙂 active       : posted within ACTIVE_DAYS
-// 😴 sleeping     : no post in the last SLEEPING_DAYS
-// 💀 dead         : no post in the last DEAD_DAYS  (or no posts at all and the
-//                   account is older than DEAD_DAYS)
 const VERY_ACTIVE_DAYS = 7
 const ACTIVE_DAYS = 30
 const SLEEPING_DAYS = 30
 const DEAD_DAYS = 90
 
 function classifyActivity({ daysSinceLastPost, photosCount, accountAgeDays }) {
-  // Brand-new families (< 7d old) with no posts are "active" by default —
-  // they haven't had time to go silent yet.
   if (photosCount === 0) {
     if (accountAgeDays !== null && accountAgeDays < VERY_ACTIVE_DAYS) {
       return { emoji: '🙂', code: 'active', rank: 2 }
@@ -40,12 +32,6 @@ function classifyActivity({ daysSinceLastPost, photosCount, accountAgeDays }) {
   return { emoji: '💀', code: 'dead', rank: 0 }
 }
 
-// ─── "When was this actually posted?" ────────────────────────────────────────
-// See lib/postTimestamps.js: uploaded_at → storage-path epoch stamp →
-// updated_at → created_at. NEVER the bare memory date.
-
-// Which optional columns exist on this deployment. Probed once per request so
-// the dashboard keeps working where sql/sergiu_batch2.sql hasn't been run.
 async function probeOptionalColumns() {
   const probe = async (col) => {
     const { error } = await supabase.from('photos').select(col).limit(1)
@@ -55,8 +41,6 @@ async function probeOptionalColumns() {
   return { uploadedAt, fileSizes }
 }
 
-// PostgREST caps a single request at 1000 rows. Page through so a family with
-// a long history doesn't get silently truncated to its first thousand posts.
 async function fetchAllRows(buildQuery) {
   const PAGE = 1000
   const out = []
@@ -70,13 +54,8 @@ async function fetchAllRows(buildQuery) {
   return out
 }
 
-// (Item 7) Real per-file byte sizes, recorded at upload. Historical rows don't
-// have them, so those still fall back to the old flat estimate.
 const ESTIMATED_BYTES_PER_FILE = 2 * 1024 * 1024
 
-// Bytes a post occupies. Measured when we have the sizes; estimated when we
-// don't. NEVER a flat 2MB for a 12MB video — that's what made the admin storage
-// figure fiction.
 const bytesOfPost = (photo) => {
   const sizes = Array.isArray(photo.file_sizes)
     ? photo.file_sizes
@@ -85,7 +64,7 @@ const bytesOfPost = (photo) => {
         : null)
 
   const fileCount = fileUrlsOf(photo).length
-  if (!fileCount) return 0   // text post
+  if (!fileCount) return 0
 
   let total = 0
   for (let i = 0; i < fileCount; i++) {
@@ -120,11 +99,6 @@ async function handler(req, res) {
       cols.fileSizes ? 'file_sizes' : null,
     ].filter(Boolean).join(', ')
 
-    // ─── load everything once ────────────────────────────────────────────
-    // One paged scan of photos instead of N+1 per-family queries. Every metric
-    // below is derived in memory from this list, with the SAME timestamp rule,
-    // so "Ultima postare", "Postări 30 zile", the activity feed and the storage
-    // chart can never disagree with each other again.
     const [{ data: familiesList }, allPhotos, { count: totalChildren }] = await Promise.all([
       supabase
         .from('families')
@@ -149,7 +123,6 @@ async function handler(req, res) {
     const totalFamilies = (familiesList || []).length
     const totalPhotos = allPhotos.length
 
-    // ─── families list ────────────────────────────────────────────────────
     const familiesWithStats = (familiesList || []).map((family) => {
       const photosData = photosByFamily.get(family.id) || []
       const photosCount = photosData.length
@@ -158,16 +131,11 @@ async function handler(req, res) {
       let postsLast30Days = 0
       let photoFilesCount = 0
       let lastTouched = null
-      // (Sergiu batch3 #4) Years that actually contain posts, taken from the
-      // MEMORY date (created_at) the export groups by — often backdated years
-      // before the account existed. The export year dropdown was built from
-      // the account-creation year instead, so it only ever offered the current
-      // year. Deriving it here is free: we're already iterating every photo.
       const postYears = new Set()
 
       for (const photo of photosData) {
         storageUsed += bytesOfPost(photo)
-        photoFilesCount += fileUrlsOf(photo).length   // text posts add 0
+        photoFilesCount += fileUrlsOf(photo).length
         if (postedAt(photo) >= thirtyDaysAgo) postsLast30Days += 1
         const touched = lastTouchedAt(photo)
         if (!lastTouched || touched > lastTouched) lastTouched = touched
@@ -179,7 +147,6 @@ async function handler(req, res) {
 
       let daysSinceLastPost = null
       if (lastTouched) {
-        // Clamp to >= 0 so a clock skew never reads as a negative age.
         daysSinceLastPost = Math.max(0, Math.ceil((now - lastTouched) / (1000 * 60 * 60 * 24)))
       }
 
@@ -210,7 +177,6 @@ async function handler(req, res) {
       }
     })
 
-    // ─── recent activity feed ─────────────────────────────────────────────
     const familyNameById = new Map((familiesList || []).map(f => [f.id, f.name]))
     const formattedActivity = allPhotos
       .map(photo => ({ photo, at: postedAt(photo) }))
@@ -222,14 +188,9 @@ async function handler(req, res) {
         timestamp: at.toISOString(),
       }))
 
-    // 5b: sum the correctly-computed per-family storage (accounts for
-    // multi-photo posts) instead of totalPhotos * 2MB, which ignored them.
     const estimatedStorageUsed = familiesWithStats.reduce((s, f) => s + (f.storage_used || 0), 0)
-    // 5d: real photo count = sum of actual media files across all posts
-    // (multi-photo posts count each file; text posts count zero).
     const totalPhotoFiles = familiesWithStats.reduce((s, f) => s + (f.photo_files_count || 0), 0)
 
-    // ─── growth analytics ─────────────────────────────────────────────────
     const last30Keys = []
     for (let i = 29; i >= 0; i--) {
       const day = new Date(now)
@@ -238,7 +199,6 @@ async function handler(req, res) {
       last30Keys.push(day.toISOString().slice(0, 10))
     }
 
-    // New families per day for the last 30 days.
     const newFamiliesPerDay = []
     {
       const buckets = new Map(last30Keys.map(k => [k, 0]))
@@ -250,7 +210,6 @@ async function handler(req, res) {
       buckets.forEach((count, day) => newFamiliesPerDay.push({ day, count }))
     }
 
-    // Cumulative family count over the last 30 days (running total).
     const familyGrowth = []
     {
       const createdKeys = (familiesList || [])
@@ -261,9 +220,6 @@ async function handler(req, res) {
       }
     }
 
-    // Storage growth per day for the last 30 days: everything uploaded before
-    // the window is the baseline (real bytes where recorded), then each day adds
-    // what was uploaded that day.
     const storageGrowth = []
     {
       let baselineBytes = 0
@@ -285,31 +241,24 @@ async function handler(req, res) {
       }
     }
 
-    // Daily Active Users (DAU) — based on `last_accessed`. Counts how many
-    // families had any access activity per day in the last 30 days. Best
-    // effort: last_accessed is a single timestamp, so a family with multiple
-    // accesses is only counted for the LAST day. Acceptable for trend.
     const dailyActiveUsers = []
     {
       const dauBuckets = new Map(last30Keys.map(k => [k, 0]))
       ;(familiesList || []).forEach(f => {
         if (!f.last_accessed) return
-        if (f.last_accessed === f.created_at) return // never-accessed sentinel
+        if (f.last_accessed === f.created_at) return
         const key = new Date(f.last_accessed).toISOString().slice(0, 10)
         if (dauBuckets.has(key)) dauBuckets.set(key, dauBuckets.get(key) + 1)
       })
       dauBuckets.forEach((count, day) => dailyActiveUsers.push({ day, count }))
     }
 
-    // Retention rate (30d) — % of families that have created a post within
-    // the last 30 days. A blunt metric, but a useful trendline for now.
     let retentionRate = 0
     if (totalFamilies > 0) {
       const activeFamilies = familiesWithStats.filter(f => f.posts_last_30d > 0).length
       retentionRate = Math.round((activeFamilies / totalFamilies) * 100)
     }
 
-    // Totals for the analytics summary card
     const newFamiliesLast30d = newFamiliesPerDay.reduce((s, d) => s + d.count, 0)
     const newFamiliesLast7d = familiesWithStats.filter(f =>
       f.created_at && new Date(f.created_at) >= sevenDaysAgo
@@ -326,7 +275,6 @@ async function handler(req, res) {
       storageUsed: estimatedStorageUsed,
       familiesList: familiesWithStats,
       recentActivity: formattedActivity,
-      // Lets the admin UI say where the activity numbers come from.
       activitySource: cols.uploadedAt ? 'uploaded_at' : 'storage_path',
       analytics: {
         newFamiliesPerDay,

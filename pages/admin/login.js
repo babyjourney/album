@@ -9,9 +9,6 @@ export default function AdminLogin() {
   const [error, setError] = useState('')
   const router = useRouter()
 
-  // Admin routes are pinned to dark by ThemeProvider (contexts/ThemeContext.js).
-  // No per-page override needed.
-
   useEffect(() => {
     if (isAdminAuthenticated()) router.push('/admin/dashboard')
   }, [router])
@@ -46,7 +43,6 @@ export default function AdminLogin() {
       padding: 24,
       position: 'relative',
     }}>
-      {/* Decorative orbs over the dark aurora */}
       <div aria-hidden style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0 }}>
         <div style={{
           position: 'absolute', top: '-10%', right: '-8%',
@@ -63,7 +59,6 @@ export default function AdminLogin() {
       </div>
 
       <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 420 }}>
-        {/* Brand */}
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <div style={{
             width: 64, height: 64,

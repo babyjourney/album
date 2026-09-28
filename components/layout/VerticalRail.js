@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useLanguage } from '../../contexts/LanguageContext'
 
-// Left-edge floating glass rail. On desktop only.
-// Holds: search expand and filter chip. (Child switching moved to the top dock.)
 export default function VerticalRail({
   onSearch,
   onFilters,
@@ -35,7 +33,6 @@ export default function VerticalRail({
       gap: 14,
       alignItems: 'flex-start',
     }}>
-      {/* The rail itself */}
       <div style={{
         display: 'flex',
         flexDirection: 'column',
@@ -51,7 +48,6 @@ export default function VerticalRail({
           '0 18px 50px -16px rgba(15,15,30,0.30),' +
           ' inset 0 1px 0 0 var(--glass-hairline-strong)',
       }}>
-        {/* Search trigger */}
         {onSearch && (
           <RailButton
             active={searchOpen || !!searchQuery}
@@ -65,7 +61,6 @@ export default function VerticalRail({
           </RailButton>
         )}
 
-        {/* Filter chip trigger */}
         {onFilters && (
           <RailButton onClick={onFilters} tooltip={t('filtersLabel')}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -77,7 +72,6 @@ export default function VerticalRail({
         )}
       </div>
 
-      {/* Search slide-out */}
       {searchOpen && onSearch && (
         <div style={{
           background: 'var(--glass-3)',

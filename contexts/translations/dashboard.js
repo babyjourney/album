@@ -1,12 +1,7 @@
-// Translations for the dashboard surface (item 13).
-// Every key must exist in all three languages. Keys must not collide with the
-// other modules in this folder or with the legacy dictionary in LanguageContext.
 const dashboard = {
   ro: {
-    // Filter drawer — calendar anchor (item 6)
     clear: 'Șterge',
     dateAnchorHint: '3 postări înainte · toată ziua aleasă · 3 postări după',
-    // Dashboard page
     loadingAlbum: 'Se încarcă albumul…',
     dashboardEyebrow: 'Amintiri de familie',
     memoryCountSingular: 'amintire',
@@ -18,7 +13,6 @@ const dashboard = {
     signOutStay: 'Rămân',
     signOutLeave: 'Ieși',
 
-    // Settings drawer
     settingsTitle: 'Setări',
     settingsContent: 'Conținut',
     settingsTools: 'Instrumente',
@@ -27,7 +21,6 @@ const dashboard = {
     profileSectionLabel: 'Profil',
     profilePictureAction: 'Poză de profil',
 
-    // Album export (.zip)
     exportSectionLabel: 'Descarcă albumul',
     exportDownloadAlbumZip: 'Descarcă albumul (.zip)',
     exportWholeAlbum: 'Tot albumul',
@@ -60,17 +53,14 @@ const dashboard = {
     exportHelpBefore: 'Arhivă .zip cu un folder pentru fiecare an: poze, video, audio și text, plus un tabel',
     exportHelpAfter: 'care se deschide în Excel. Descărcarea poate dura câteva minute.',
 
-    // Floating dock
     dockJourney: 'Parcurs',
     dockFamilyTree: 'Familie',
     dockLegacy: 'Legacy',
     switchChildAria: 'Schimbă copilul',
 
-    // Vertical rail
     filtersLabel: 'Filtre',
     searchMemoriesPlaceholder: 'Caută în amintiri...',
 
-    // Timeline navigation
     timelineAriaLabel: 'Cronologie',
     monthShortJan: 'Ian',
     monthShortFeb: 'Feb',
@@ -85,7 +75,6 @@ const dashboard = {
     monthShortNov: 'Noi',
     monthShortDec: 'Dec',
 
-    // Feed (bento masonry)
     postsLoadFailed: 'Încărcarea postărilor a eșuat',
     textPostFallback: 'Postare text',
     privateContentTooltip: 'Conținut privat — vizibil doar pentru editori',
@@ -96,7 +85,6 @@ const dashboard = {
     shareFirstMemory: 'Împărtășiți prima amintire',
     shareFirstMemoryHint: 'Apăsați butonul de upload din dreapta-jos pentru a începe.',
 
-    // Calendar page
     calendarEyebrow: '🗓️ Calendar',
     calendarViewTitle: 'Vedere calendar',
     calendarPostsFromDay: 'Postări din {date}',
@@ -120,7 +108,6 @@ const dashboard = {
     monthLongNov: 'Noiembrie',
     monthLongDec: 'Decembrie',
 
-    // On this day page
     onThisDayEyebrow: '📅 Acum, în anii trecuți',
     onThisDayTitle: 'În această zi',
     onThisDaySubtitle: 'Amintiri din {date}, din anii anteriori.',
@@ -129,7 +116,6 @@ const dashboard = {
   ru: {
     clear: 'Очистить',
     dateAnchorHint: '3 записи до · весь выбранный день · 3 записи после',
-    // Dashboard page
     loadingAlbum: 'Загрузка альбома…',
     dashboardEyebrow: 'Семейные воспоминания',
     memoryCountSingular: 'воспоминание',
@@ -141,7 +127,6 @@ const dashboard = {
     signOutStay: 'Остаться',
     signOutLeave: 'Выйти',
 
-    // Settings drawer
     settingsTitle: 'Настройки',
     settingsContent: 'Содержимое',
     settingsTools: 'Инструменты',
@@ -150,7 +135,6 @@ const dashboard = {
     profileSectionLabel: 'Профиль',
     profilePictureAction: 'Фото профиля',
 
-    // Album export (.zip)
     exportSectionLabel: 'Скачать альбом',
     exportDownloadAlbumZip: 'Скачать альбом (.zip)',
     exportWholeAlbum: 'Весь альбом',
@@ -183,17 +167,14 @@ const dashboard = {
     exportHelpBefore: 'Архив .zip с папкой на каждый год: фото, видео, аудио и текст, а также таблица',
     exportHelpAfter: 'которая открывается в Excel. Загрузка может занять несколько минут.',
 
-    // Floating dock
     dockJourney: 'Путь',
     dockFamilyTree: 'Семья',
     dockLegacy: 'Legacy',
     switchChildAria: 'Сменить ребёнка',
 
-    // Vertical rail
     filtersLabel: 'Фильтры',
     searchMemoriesPlaceholder: 'Поиск по воспоминаниям...',
 
-    // Timeline navigation
     timelineAriaLabel: 'Хронология',
     monthShortJan: 'Янв',
     monthShortFeb: 'Фев',
@@ -208,7 +189,6 @@ const dashboard = {
     monthShortNov: 'Ноя',
     monthShortDec: 'Дек',
 
-    // Feed (bento masonry)
     postsLoadFailed: 'Не удалось загрузить посты',
     textPostFallback: 'Текстовый пост',
     privateContentTooltip: 'Приватный контент — виден только редакторам',
@@ -219,7 +199,6 @@ const dashboard = {
     shareFirstMemory: 'Поделитесь первым воспоминанием',
     shareFirstMemoryHint: 'Нажмите кнопку загрузки в правом нижнем углу, чтобы начать.',
 
-    // Calendar page
     calendarEyebrow: '🗓️ Календарь',
     calendarViewTitle: 'Вид календаря',
     calendarPostsFromDay: 'Посты за {date}',
@@ -243,7 +222,6 @@ const dashboard = {
     monthLongNov: 'Ноябрь',
     monthLongDec: 'Декабрь',
 
-    // On this day page
     onThisDayEyebrow: '📅 Сегодня, в прошлые годы',
     onThisDayTitle: 'В этот день',
     onThisDaySubtitle: 'Воспоминания за {date} из прошлых лет.',
@@ -252,7 +230,6 @@ const dashboard = {
   en: {
     clear: 'Clear',
     dateAnchorHint: '3 posts before · that whole day · 3 posts after',
-    // Dashboard page
     loadingAlbum: 'Loading the album…',
     dashboardEyebrow: 'Family memories',
     memoryCountSingular: 'memory',
@@ -264,7 +241,6 @@ const dashboard = {
     signOutStay: 'Stay',
     signOutLeave: 'Leave',
 
-    // Settings drawer
     settingsTitle: 'Settings',
     settingsContent: 'Content',
     settingsTools: 'Tools',
@@ -273,7 +249,6 @@ const dashboard = {
     profileSectionLabel: 'Profile',
     profilePictureAction: 'Profile picture',
 
-    // Album export (.zip)
     exportSectionLabel: 'Download the album',
     exportDownloadAlbumZip: 'Download the album (.zip)',
     exportWholeAlbum: 'Entire album',
@@ -306,17 +281,14 @@ const dashboard = {
     exportHelpBefore: 'A .zip archive with one folder per year: photos, videos, audio and text, plus a',
     exportHelpAfter: 'table that opens in Excel. The download may take a few minutes.',
 
-    // Floating dock
     dockJourney: 'Journey',
     dockFamilyTree: 'Family',
     dockLegacy: 'Legacy',
     switchChildAria: 'Switch child',
 
-    // Vertical rail
     filtersLabel: 'Filters',
     searchMemoriesPlaceholder: 'Search memories...',
 
-    // Timeline navigation
     timelineAriaLabel: 'Timeline',
     monthShortJan: 'Jan',
     monthShortFeb: 'Feb',
@@ -331,7 +303,6 @@ const dashboard = {
     monthShortNov: 'Nov',
     monthShortDec: 'Dec',
 
-    // Feed (bento masonry)
     postsLoadFailed: 'Failed to load posts',
     textPostFallback: 'Text post',
     privateContentTooltip: 'Private content — visible only to editors',
@@ -342,7 +313,6 @@ const dashboard = {
     shareFirstMemory: 'Share your first memory',
     shareFirstMemoryHint: 'Tap the upload button at the bottom right to get started.',
 
-    // Calendar page
     calendarEyebrow: '🗓️ Calendar',
     calendarViewTitle: 'Calendar view',
     calendarPostsFromDay: 'Posts from {date}',
@@ -366,7 +336,6 @@ const dashboard = {
     monthLongNov: 'November',
     monthLongDec: 'December',
 
-    // On this day page
     onThisDayEyebrow: '📅 Today, in years past',
     onThisDayTitle: 'On this day',
     onThisDaySubtitle: 'Memories from {date}, in previous years.',

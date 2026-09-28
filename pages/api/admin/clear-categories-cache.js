@@ -1,4 +1,3 @@
-// Simple endpoint to trigger cache clearing and localStorage sync
 import { requireAdmin } from '../../../lib/authMiddleware'
 
 async function handler(req, res) {

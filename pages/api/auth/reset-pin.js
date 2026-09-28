@@ -1,17 +1,3 @@
-// Complete the PIN reset flow.
-//
-// Input: {
-//   phoneNumber?: string,
-//   email?: string,
-//   code: string,            // the 6-digit OTP delivered via email/SMS
-//   newPin: string,          // the new PIN — 4 digits = viewer, 8 = editor
-//   role: 'viewer' | 'editor'
-// }
-//
-// On success: updates the corresponding PIN column on the family row.
-// Returns 200 with { ok: true } so the UI can prompt the user to log in
-// with their new PIN.
-
 import { supabase } from '../../../lib/supabaseClient'
 import { normalizePhone, phoneLookupVariants } from '../../../lib/phone'
 import { verifyOtp } from '../../../lib/otpStore'
@@ -44,7 +30,7 @@ export default async function handler(req, res) {
     contactValue = String(email).trim().toLowerCase()
     lookupQuery = lookupQuery.ilike('email', contactValue)
   } else if (phoneNumber) {
-    contactValue = normalizePhone(phoneNumber)   // same value forgot-pin issued the code for
+    contactValue = normalizePhone(phoneNumber)
     if (!contactValue) {
       return res.status(400).json({ error: 'Numărul de telefon nu este valid', errorKey: 'authErrPhoneInvalid' })
     }
@@ -73,9 +59,6 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: result.error, errorKey: result.errorKey })
     }
 
-    // Ensure the new PIN doesn't collide with another family's PIN (we use
-    // PIN+phone as the login key, so a collision is recoverable, but we
-    // still discourage it to keep PIN entropy honest).
     const column = role === 'viewer' ? 'viewer_pin' : 'editor_pin'
     const { error: updateError } = await supabase
       .from('families')

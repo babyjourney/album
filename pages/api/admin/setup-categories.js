@@ -10,10 +10,6 @@ async function handler(req, res) {
   try {
     console.log('Setting up family categories system...')
 
-    // First, test if we can insert into family_categories table
-    // If it fails, the table doesn't exist and we'll need manual creation
-    
-    // Get a test family ID to work with
     const { data: families, error: familiesError } = await supabase
       .from('families')
       .select('id')
@@ -28,7 +24,6 @@ async function handler(req, res) {
 
     const testFamilyId = families[0].id
 
-    // Test insert to check if table exists
     const { data: testInsert, error: testError } = await supabase
       .from('family_categories')
       .insert([{
@@ -76,13 +71,11 @@ ALTER TABLE family_categories ENABLE ROW LEVEL SECURITY;
       }
     }
 
-    // If we got here, the table exists. Clean up test record
     await supabase
       .from('family_categories')
       .delete()
       .eq('category_value', 'test-setup')
 
-    // Now populate default categories for all families
     const { data: allFamilies, error: allFamiliesError } = await supabase
       .from('families')
       .select('id')
@@ -97,7 +90,6 @@ ALTER TABLE family_categories ENABLE ROW LEVEL SECURITY;
     const defaultCategories = DEFAULT_CATEGORIES
     let setupCount = 0
     for (const family of allFamilies) {
-      // Check if family already has categories
       const { data: existing, error: existingError } = await supabase
         .from('family_categories')
         .select('id')
@@ -109,7 +101,6 @@ ALTER TABLE family_categories ENABLE ROW LEVEL SECURITY;
         continue
       }
 
-      // Only add defaults if family has no categories
       if (!existing || existing.length === 0) {
         const categoriesToInsert = defaultCategories.map(cat => ({
           family_id: family.id,

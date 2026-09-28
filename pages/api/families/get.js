@@ -14,8 +14,6 @@ async function handler(req, res) {
   }
 
   try {
-    // SECURITY: admins get full record (they manage PINs);
-    // family sessions get a sanitized record with no PINs / phone number.
     const columns = req.auth.isAdmin
       ? '*'
       : 'id, name, profile_picture_url, email, created_at, updated_at, is_suspended, package'

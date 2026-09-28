@@ -1,22 +1,3 @@
-// Admin → update a family.
-//
-// Same RLS rationale as create.js: the families table is service_role-only,
-// so all writes must come through admin endpoints. Updates are partial —
-// only the fields included in the request body are mutated.
-//
-// Input (POST JSON):
-//   {
-//     id:                  string (required — UUID of the family)
-//     name?:               string
-//     phoneNumber?:        string  ('' clears the column)
-//     email?:              string  ('' clears the column)
-//     profilePictureUrl?:  string  ('' clears the column)
-//     package?:            'free' | 'premium'
-//     requireOtpLogin?:    boolean
-//     viewerPin?:          string (4 digits)
-//     editorPin?:          string (8 digits)
-//   }
-
 import { supabase } from '../../../../lib/supabaseClient'
 import { requireAdmin } from '../../../../lib/authMiddleware'
 import { isValidPackage, normalizeTier } from '../../../../lib/tiers'
@@ -91,7 +72,6 @@ async function handler(req, res) {
     if (!/^\d{4}$/.test(cleaned)) {
       return res.status(400).json({ error: 'PIN-ul de viewer trebuie să aibă 4 cifre' })
     }
-    // Reject if another family already uses this PIN.
     const { data: clash } = await supabase
       .from('families').select('id').eq('viewer_pin', cleaned).neq('id', id).limit(1)
     if (clash && clash.length > 0) {
@@ -117,8 +97,6 @@ async function handler(req, res) {
     return res.status(400).json({ error: 'Nimic de actualizat' })
   }
 
-  // Phone uniqueness — login keys on (phone, pin), so duplicates create
-  // ambiguity. Refuse to mutate into a duplicate.
   if (patch.phone_number) {
     const { data: clash } = await supabase
       .from('families').select('id').eq('phone_number', patch.phone_number).neq('id', id).limit(1)
@@ -137,7 +115,6 @@ async function handler(req, res) {
       .select()
       .single()
 
-    // Fallback for older deployed schemas missing `require_otp_login`.
     if (error && error.message && error.message.includes('require_otp_login')) {
       const { require_otp_login: _r, ...rest } = patch
       ;({ data, error } = await supabase

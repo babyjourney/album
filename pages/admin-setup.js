@@ -11,7 +11,6 @@ export default function AdminSetup() {
     setStatus('Creating family_categories table...')
 
     try {
-      // First, let's try to insert test data to see if table exists
       const { data: families, error: familiesError } = await supabase
         .from('families')
         .select('id')
@@ -25,7 +24,6 @@ export default function AdminSetup() {
 
       const testFamilyId = families[0].id
 
-      // Test if table exists by trying to insert
       const { error: testError } = await supabase
         .from('family_categories')
         .insert([{
@@ -47,7 +45,6 @@ export default function AdminSetup() {
         return
       }
 
-      // If we got here, table exists. Clean up test record
       await supabase
         .from('family_categories')
         .delete()
@@ -55,7 +52,6 @@ export default function AdminSetup() {
 
       setStatus('✅ Table already exists! Setting up default categories...')
 
-      // Set up default categories for all families
       if (!isAdminAuthenticated()) {
         setStatus('❌ Trebuie să fiți autentificat ca admin. Mergeți la /admin/login.')
         setIsLoading(false)

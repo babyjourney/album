@@ -15,13 +15,11 @@ async function handler(req, res) {
     return res.status(400).json({ error: 'Category value is required' })
   }
 
-  // Prevent deleting essential categories
   if (ESSENTIAL_CATEGORIES.includes(value)) {
     return res.status(400).json({ error: 'Cannot delete essential categories' })
   }
 
   try {
-    // Check if the category exists for this family
     const { data: existing } = await supabase
       .from('family_categories')
       .select('id')
@@ -33,7 +31,6 @@ async function handler(req, res) {
       return res.status(404).json({ error: 'Category not found' })
     }
 
-    // Delete category
     const { error } = await supabase
       .from('family_categories')
       .delete()

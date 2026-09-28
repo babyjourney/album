@@ -1,5 +1,3 @@
-// Growth "then vs now" photo comparison — GET (read) + POST (upsert two URLs).
-// Family tier (part of Growth Tracking).
 import { requireAuthOrAdmin } from '../../../lib/authMiddleware'
 import { requireFeature } from '../../../lib/requireFeature'
 import { getChildRecord, upsertChildRecord, resolveFamilyId, canWrite } from '../../../lib/childRecord'

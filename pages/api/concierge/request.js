@@ -1,6 +1,3 @@
-// Legacy concierge service requests (printed poster, yearbook, done-for-you,
-// content help, memory organization, data migration). These are human-fulfilled
-// services — the software part is recording the request and notifying the team.
 import { supabase } from '../../../lib/supabaseClient'
 import { requireAuthOrAdmin } from '../../../lib/authMiddleware'
 import { requireFeature } from '../../../lib/requireFeature'
@@ -54,5 +51,4 @@ async function handler(req, res) {
   }
 }
 
-// Any Legacy-only feature gates access (all concierge services are Legacy).
 export default requireAuthOrAdmin(requireFeature('memoryOrganization', handler))

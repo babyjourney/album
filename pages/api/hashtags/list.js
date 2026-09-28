@@ -1,5 +1,3 @@
-// List the distinct hashtags a family has already used, for autocomplete
-// suggestions in the upload form and search (item 2).
 import { supabase } from '../../../lib/supabaseClient'
 import { requireAuthOrAdmin } from '../../../lib/authMiddleware'
 
@@ -17,8 +15,6 @@ async function handler(req, res) {
       .not('hashtags', 'is', null)
     if (error) throw error
 
-    // Flatten + dedupe (case-insensitive), keep first-seen casing, sort by
-    // frequency so the most-used tags surface first.
     const counts = new Map()
     for (const row of data || []) {
       if (!Array.isArray(row.hashtags)) continue

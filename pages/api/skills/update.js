@@ -13,8 +13,6 @@ async function handler(req, res) {
   }
 
   try {
-    // SECURITY: scope update by family_id so a forged skillId from another
-    // family will simply not match and return no rows.
     const { data, error } = await supabase
       .from('skills')
       .update({

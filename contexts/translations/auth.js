@@ -1,21 +1,9 @@
-// Translations for the auth surface (item 13).
-// Every key must exist in all three languages. Keys must not collide with the
-// other modules in this folder or with the legacy dictionary in LanguageContext.
-//
-// Covers: /login, /signup, /forgot-password, /demo, /import, /export and
-// components/import/FileImporter.
-//
-// Not covered on purpose:
-//   - /terms, /privacy, /cookies — long-form legal prose, left in Romanian.
-//   - <Head> SEO/OpenGraph metadata — pinned to ro_RO, rendered before the
-//     client language preference is known.
 const auth = {
   ro: {
     legalLastUpdated: 'Ultima actualizare',
     legalTermsFull: 'Termeni și condiții',
     legalPrivacyFull: 'Politica de confidențialitate',
     legalCookiesFull: 'Politica de cookies',
-    // Shared auth fields (login + signup + forgot-password)
     authPhoneShort: 'Telefon',
     authEmailShort: 'Email',
     authPhoneLabel: 'Număr de telefon',
@@ -25,7 +13,6 @@ const auth = {
     authSending: 'Se trimite…',
     authSendCode: 'Trimite codul',
 
-    // Login
     loginTitle: 'Bine ai revenit',
     loginSubtitle: 'Albumul familiei te așteaptă',
     loginPinResetSuccess: 'PIN-ul a fost actualizat. Conectează-te cu noul PIN.',
@@ -50,13 +37,11 @@ const auth = {
     loginErrorOtpRequired: 'Introduceți codul de verificare primit',
     loginErrorResendFailed: 'Nu am putut retrimite codul.',
 
-    // Legal footer links
     footerTerms: 'Termeni',
     footerPrivacy: 'Confidențialitate',
     footerCookies: 'Cookies',
     footerDemo: 'Demo',
 
-    // Signup
     signupTitle: 'Creează albumul familiei',
     signupDoneTitle: 'Contul e gata 🎉',
     signupDetailsSubtitle: 'Îți trimitem un cod de 4 cifre pe email.',
@@ -79,8 +64,6 @@ const auth = {
     signupLoginLink: 'Autentifică-te',
     signupCountryLabel: 'Țară',
     signupPhoneHint: 'Alege țara, apoi scrie numărul fără prefix. Ex: {dial} 69123456',
-    // (Sergiu batch3 #8) Signup error messages — the API returns an errorKey so
-    // these show in the visitor's language instead of always Romanian.
     signupErrNameRequired: 'Introdu numele familiei',
     signupUnavailable: 'Înregistrarea nu este disponibilă momentan. Te rugăm să încerci mai târziu.',
     loginPageTitle: 'Album familie — Intră în BabyJourney',
@@ -92,7 +75,6 @@ const auth = {
     signupErrNotConfigured: 'Înregistrarea nu este configurată complet. Contactează suportul.',
     signupErrCreateFailed: 'Crearea contului a eșuat. Încearcă din nou.',
     signupErrEmailExists: 'Există deja un cont cu acest email. Folosește „Am uitat PIN-ul".',
-    // Login / shared auth error messages (localized via errorKey).
     authErrPinRequired: 'PIN-ul este obligatoriu',
     authErrContactRequired: 'Numărul de telefon sau email-ul este obligatoriu',
     authErrPinFormat: 'PIN-ul trebuie să aibă 4 sau 8 cifre',
@@ -110,7 +92,6 @@ const auth = {
     authErrServer: 'A apărut o eroare. Încearcă din nou.',
     loginAttemptsRemaining: 'Mai ai {n} încercări înainte de blocare.',
 
-    // Forgot PIN
     forgotTitle: 'Resetează PIN-ul',
     forgotStepIndicator: 'Pas {step} din 2 — {label}',
     forgotStep1Label: 'verificare contact',
@@ -137,7 +118,6 @@ const auth = {
     forgotErrorPinMismatch: 'Cele două PIN-uri nu coincid',
     forgotResetFailed: 'Nu am putut reseta PIN-ul.',
 
-    // Demo (public product tour)
     demoEyebrow: 'Demo · Tur de produs',
     demoHeading: 'Așa arată albumul familiei tale',
     demoIntro: 'Sub e o mostră de feed. Filtrele, categoriile și aspectul sunt identice cu albumul real. Nici un cont nu e necesar pentru a derula.',
@@ -171,7 +151,6 @@ const auth = {
     demoPost6Date: '1 Septembrie 2025',
     demoPost6Desc: 'A intrat singură. Eu am plâns în mașină.',
 
-    // Import page
     importTitle: 'Import',
     importSubtitle: 'Adu amintirile din alte servicii în album.',
     importGateTitle: 'Import — plan Legacy',
@@ -181,7 +160,6 @@ const auth = {
     importRequestMigration: 'Solicită migrare',
     importMigrationRequested: 'Cerere de migrare din {provider} trimisă.',
 
-    // File importer
     fileImporterTitle: 'Încarcă fișiere sau folder',
     fileImporterHelp: 'Selectează poze, video, audio sau documente. Pentru arhive (Google Takeout, export Instagram), dezarhivează-le întâi și alege folderul.',
     fileImporterChooseFolder: 'Alege folder',
@@ -194,7 +172,6 @@ const auth = {
     fileImporterImported: '{count} element(e) importate.',
     fileImporterFailed: '{count} element(e) au eșuat.',
 
-    // Export page
     exportGateTitle: 'Export PDF / Carte — plan Legacy',
     exportSaveAsPdf: 'Salvează ca PDF / Printează',
     exportCoverSubtitle: 'Cronologia vieții · BabyJourney',
@@ -208,7 +185,6 @@ const auth = {
     legalTermsFull: 'Условия использования',
     legalPrivacyFull: 'Политика конфиденциальности',
     legalCookiesFull: 'Политика использования cookie',
-    // Shared auth fields (login + signup + forgot-password)
     authPhoneShort: 'Телефон',
     authEmailShort: 'Email',
     authPhoneLabel: 'Номер телефона',
@@ -218,7 +194,6 @@ const auth = {
     authSending: 'Отправка…',
     authSendCode: 'Отправить код',
 
-    // Login
     loginTitle: 'С возвращением',
     loginSubtitle: 'Семейный альбом вас ждёт',
     loginPinResetSuccess: 'PIN-код обновлён. Войдите с новым PIN-кодом.',
@@ -243,13 +218,11 @@ const auth = {
     loginErrorOtpRequired: 'Введите полученный код подтверждения',
     loginErrorResendFailed: 'Не удалось отправить код повторно.',
 
-    // Legal footer links
     footerTerms: 'Условия',
     footerPrivacy: 'Конфиденциальность',
     footerCookies: 'Cookies',
     footerDemo: 'Демо',
 
-    // Signup
     signupTitle: 'Создайте семейный альбом',
     signupDoneTitle: 'Аккаунт готов 🎉',
     signupDetailsSubtitle: 'Мы отправим вам 4-значный код на почту.',
@@ -300,7 +273,6 @@ const auth = {
     authErrServer: 'Произошла ошибка. Попробуйте снова.',
     loginAttemptsRemaining: 'Осталось {n} попыток до блокировки.',
 
-    // Forgot PIN
     forgotTitle: 'Сброс PIN-кода',
     forgotStepIndicator: 'Шаг {step} из 2 — {label}',
     forgotStep1Label: 'проверка контакта',
@@ -327,7 +299,6 @@ const auth = {
     forgotErrorPinMismatch: 'PIN-коды не совпадают',
     forgotResetFailed: 'Не удалось сбросить PIN-код.',
 
-    // Demo (public product tour)
     demoEyebrow: 'Демо · Обзор продукта',
     demoHeading: 'Вот так выглядит альбом вашей семьи',
     demoIntro: 'Ниже — пример ленты. Фильтры, категории и оформление такие же, как в настоящем альбоме. Аккаунт для просмотра не нужен.',
@@ -361,7 +332,6 @@ const auth = {
     demoPost6Date: '1 сентября 2025',
     demoPost6Desc: 'Вошла сама. А я плакала в машине.',
 
-    // Import page
     importTitle: 'Импорт',
     importSubtitle: 'Перенесите воспоминания из других сервисов в альбом.',
     importGateTitle: 'Импорт — план Legacy',
@@ -371,7 +341,6 @@ const auth = {
     importRequestMigration: 'Запросить перенос',
     importMigrationRequested: 'Запрос на перенос из {provider} отправлен.',
 
-    // File importer
     fileImporterTitle: 'Загрузите файлы или папку',
     fileImporterHelp: 'Выберите фото, видео, аудио или документы. Для архивов (Google Takeout, экспорт Instagram) сначала распакуйте их и выберите папку.',
     fileImporterChooseFolder: 'Выбрать папку',
@@ -384,7 +353,6 @@ const auth = {
     fileImporterImported: 'Импортировано элементов: {count}.',
     fileImporterFailed: 'Не удалось импортировать элементов: {count}.',
 
-    // Export page
     exportGateTitle: 'Экспорт PDF / Книга — план Legacy',
     exportSaveAsPdf: 'Сохранить как PDF / Распечатать',
     exportCoverSubtitle: 'Хроника жизни · BabyJourney',
@@ -398,7 +366,6 @@ const auth = {
     legalTermsFull: 'Terms & Conditions',
     legalPrivacyFull: 'Privacy Policy',
     legalCookiesFull: 'Cookie Policy',
-    // Shared auth fields (login + signup + forgot-password)
     authPhoneShort: 'Phone',
     authEmailShort: 'Email',
     authPhoneLabel: 'Phone number',
@@ -408,7 +375,6 @@ const auth = {
     authSending: 'Sending…',
     authSendCode: 'Send the code',
 
-    // Login
     loginTitle: 'Welcome back',
     loginSubtitle: 'Your family album is waiting',
     loginPinResetSuccess: 'Your PIN has been updated. Sign in with the new PIN.',
@@ -433,13 +399,11 @@ const auth = {
     loginErrorOtpRequired: 'Enter the verification code you received',
     loginErrorResendFailed: 'We could not resend the code.',
 
-    // Legal footer links
     footerTerms: 'Terms',
     footerPrivacy: 'Privacy',
     footerCookies: 'Cookies',
     footerDemo: 'Demo',
 
-    // Signup
     signupTitle: 'Create your family album',
     signupDoneTitle: 'Your account is ready 🎉',
     signupDetailsSubtitle: 'We will email you a 4-digit code.',
@@ -490,7 +454,6 @@ const auth = {
     authErrServer: 'Something went wrong. Please try again.',
     loginAttemptsRemaining: 'You have {n} attempts left before lockout.',
 
-    // Forgot PIN
     forgotTitle: 'Reset your PIN',
     forgotStepIndicator: 'Step {step} of 2 — {label}',
     forgotStep1Label: 'contact verification',
@@ -517,7 +480,6 @@ const auth = {
     forgotErrorPinMismatch: 'The two PINs do not match',
     forgotResetFailed: 'We could not reset your PIN.',
 
-    // Demo (public product tour)
     demoEyebrow: 'Demo · Product tour',
     demoHeading: 'This is what your family album looks like',
     demoIntro: 'Below is a sample feed. The filters, the categories and the layout are identical to the real album. No account is needed to scroll through it.',
@@ -551,7 +513,6 @@ const auth = {
     demoPost6Date: '1 September 2025',
     demoPost6Desc: 'She walked in on her own. I cried in the car.',
 
-    // Import page
     importTitle: 'Import',
     importSubtitle: 'Bring memories from other services into the album.',
     importGateTitle: 'Import — Legacy plan',
@@ -561,7 +522,6 @@ const auth = {
     importRequestMigration: 'Request migration',
     importMigrationRequested: 'Migration request from {provider} sent.',
 
-    // File importer
     fileImporterTitle: 'Upload files or a folder',
     fileImporterHelp: 'Select photos, videos, audio or documents. For archives (Google Takeout, Instagram export), unzip them first and pick the folder.',
     fileImporterChooseFolder: 'Choose folder',
@@ -574,7 +534,6 @@ const auth = {
     fileImporterImported: '{count} item(s) imported.',
     fileImporterFailed: '{count} item(s) failed.',
 
-    // Export page
     exportGateTitle: 'PDF / Book export — Legacy plan',
     exportSaveAsPdf: 'Save as PDF / Print',
     exportCoverSubtitle: 'Life timeline · BabyJourney',

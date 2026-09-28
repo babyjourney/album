@@ -12,7 +12,6 @@ async function handler(req, res) {
     return res.status(400).json({ error: 'Post ID is required' })
   }
 
-  // Input validation
   if (title && title.length > 200) {
     return res.status(400).json({ error: 'Titlul nu poate depăși 200 de caractere', errorKey: 'errTitleTooLong' })
   }
@@ -22,7 +21,6 @@ async function handler(req, res) {
   }
 
   try {
-    // Verify the post belongs to the authenticated family
     const ownershipCheck = await verifyFamilyOwnership(req.auth.familyId, 'photos', postId)
     
     if (!ownershipCheck.isOwner) {
@@ -32,9 +30,6 @@ async function handler(req, res) {
       })
     }
 
-    // Normalize hashtags to the same format create-multi stores: a bare array
-    // without the leading '#', lowercased (the client may send '#tag' strings
-    // or a space-joined string). Prevents mixed formats across create vs edit.
     const normalizeHashtags = (h) => {
       if (h == null) return null
       const list = Array.isArray(h) ? h : String(h).split(/\s+/)
@@ -44,7 +39,6 @@ async function handler(req, res) {
       return clean
     }
 
-    // Prepare update data
     const updateData = {
       title: title || null,
       description: description || null,
@@ -52,38 +46,27 @@ async function handler(req, res) {
       updated_at: new Date().toISOString()
     }
 
-    // Handle cover index if provided
     if (coverIndex !== undefined) {
       updateData.cover_index = coverIndex
     }
 
-    // Handle private flag if provided (editor-only — middleware already enforces)
     if (isPrivate !== undefined) {
       updateData.is_private = isPrivate === true
     }
 
-    // Handle category if provided
     if (category !== undefined) {
       updateData.category = category || null
     }
 
-    // Handle custom date if provided
     if (customDate) {
       updateData.created_at = new Date(customDate).toISOString()
     }
 
-    // Storage objects to remove after a successful update (photos dropped in edit).
     const removedStorageUrls = []
 
-    // Get current post to check if it's multi-photo before updating
-    // Try with file_urls first, fallback to just type and description if column doesn't exist
     let currentPostData = null
     let fetchError = null
 
-    // Progressively drop the newest columns until the select works, so this
-    // keeps functioning on a schema that predates poster_urls / file_urls.
-    // NOTE: supabase-js returns {data, error} — a missing column does NOT throw,
-    // so this has to be driven off `error`, not a try/catch.
     for (const cols of [
       'type, file_urls, poster_urls, file_sizes, description',
       'type, file_urls, poster_urls, description',
@@ -114,19 +97,10 @@ async function handler(req, res) {
     
     console.log('Current post in database:', currentPostData)
 
-    // CRITICAL: Preserve file_urls for multi-photo posts
-    // First try to use new format, but fallback to old format if file_urls column doesn't exist
     if (file_urls !== undefined) {
       updateData.file_urls = file_urls
       console.log('Adding file_urls to update:', file_urls)
 
-      // (Item 2) poster_urls is INDEX-ALIGNED with file_urls. The edit UI can
-      // reorder photos and delete individual ones, so if we rewrite file_urls
-      // and leave poster_urls alone, the pairing shifts: a video ends up showing
-      // another clip's frame, or loses its poster entirely.
-      //
-      // Rebuild it by matching on URL — which survives any reordering — using the
-      // OLD pairing as the source of truth.
       const asArray = (v) => {
         if (Array.isArray(v)) return v
         if (typeof v === 'string') { try { const p = JSON.parse(v); return Array.isArray(p) ? p : null } catch { return null } }
@@ -135,17 +109,11 @@ async function handler(req, res) {
       const oldUrls = asArray(currentPostData?.file_urls)
       const oldPosters = asArray(currentPostData?.poster_urls)
 
-      // (Sergiu 03.07 #12) Keep the legacy single-file column in step. Several
-      // render paths (feed cover, slideshow) fall back to file_url when they
-      // can't pick from file_urls — after deleting photos in edit it could
-      // still point at the removed one.
       if (Array.isArray(file_urls) && file_urls.length > 0) {
         const ci = Number.isInteger(coverIndex) && coverIndex >= 0 && coverIndex < file_urls.length ? coverIndex : 0
         updateData.file_url = file_urls[ci] || file_urls[0]
       }
 
-      // Files the edit dropped (and their posters) are deleted from storage
-      // once the row update succeeds — otherwise they sit in the bucket forever.
       if (Array.isArray(file_urls) && oldUrls) {
         const keep = new Set(file_urls)
         oldUrls.forEach((url, i) => {
@@ -155,9 +123,6 @@ async function handler(req, res) {
         })
       }
 
-      // (Item 7) file_sizes is index-aligned with file_urls too; follow the
-      // same URL-keyed remap so storage accounting stays right after a delete
-      // or reorder in edit.
       const oldSizes = asArray(currentPostData?.file_sizes)
       if (oldSizes && oldSizes.length && oldUrls) {
         const sizeByUrl = new Map()
@@ -177,26 +142,20 @@ async function handler(req, res) {
         else updateData.poster_urls = null
       }
     } else if (currentPostData?.type === 'multi-photo' && currentPostData?.file_urls) {
-      // Safety backup: If no file_urls provided but this is a multi-photo post, preserve existing
       updateData.file_urls = currentPostData.file_urls
       console.log('SAFETY BACKUP: Preserving existing file_urls for multi-photo post:', currentPostData.file_urls)
     } else if (currentPostData?.description && currentPostData.description.includes('__MULTI_PHOTO_URLS__:')) {
-      // Check for old format multi-photo posts stored in description
       console.log('DETECTED OLD FORMAT MULTI-PHOTO POST - preserving in old format')
       
       if (file_urls !== undefined) {
-        // Convert new file_urls to old format in description
         const cleanDescription = description || ''
         updateData.description = cleanDescription + '\n__MULTI_PHOTO_URLS__:' + JSON.stringify(file_urls)
-        // Also append cover index in old format
         if (coverIndex !== undefined) {
           updateData.description += '\n__COVER_INDEX__:' + coverIndex
         }
-        // Remove file_urls from update since column doesn't exist
         delete updateData.file_urls
         console.log('Converting file_urls to old format in description')
       } else {
-        // Preserve existing description with URLs
         updateData.description = currentPostData.description
         console.log('Preserving existing old format description')
       }
@@ -206,8 +165,6 @@ async function handler(req, res) {
     
     console.log('Final update data being sent to Supabase:', updateData)
     
-    // Update the post in the database
-    // Try with new schema first, fallback to old schema if needed
     let data, error
     
     try {
@@ -221,10 +178,8 @@ async function handler(req, res) {
       data = result.data
       error = result.error
       
-      // poster_urls is the newest column — if it's missing, drop just that and
-      // retry, rather than falling all the way back to the legacy format.
       if (error && /poster_urls|file_sizes/i.test(error.message || '') && (updateData.poster_urls !== undefined || updateData.file_sizes !== undefined)) {
-        console.warn('poster_urls/file_sizes column missing — retrying without them. Run sql/sergiu_batch2.sql.')
+        console.warn('poster_urls/file_sizes column missing — retrying without them. Run supabase-migration.sql.')
         const { poster_urls: _drop, file_sizes: _drop2, ...withoutPosters } = updateData
         const retry = await supabase
           .from('photos')
@@ -236,17 +191,14 @@ async function handler(req, res) {
         error = retry.error
       }
 
-      // If error indicates file_urls column doesn't exist, retry with old format
       if (error && error.message && error.message.includes('file_urls')) {
         console.log('file_urls column not found, retrying with old format')
         
-        // Convert to old format if we have file_urls
         if (file_urls !== undefined) {
           const oldFormatUpdate = { ...updateData }
           delete oldFormatUpdate.file_urls
-          delete oldFormatUpdate.cover_index // Remove from update as it will be in description
+          delete oldFormatUpdate.cover_index
           oldFormatUpdate.description = (description || '') + '\n__MULTI_PHOTO_URLS__:' + JSON.stringify(file_urls)
-          // Add cover index in old format
           if (coverIndex !== undefined) {
             oldFormatUpdate.description += '\n__COVER_INDEX__:' + coverIndex
           }
@@ -280,9 +232,6 @@ async function handler(req, res) {
       return res.status(404).json({ error: 'Post not found', errorKey: 'errPostNotFound' })
     }
 
-    // (Item 3b) Rewrite child associations when childIds is provided. Delete the
-    // existing links for this post, then insert the new set (only children that
-    // belong to this family — prevents cross-family association).
     if (Array.isArray(childIds)) {
       try {
         await supabase.from('child_posts').delete().eq('photo_id', postId)
@@ -298,7 +247,6 @@ async function handler(req, res) {
         }
       } catch (childErr) {
         console.error('Error updating child associations:', childErr)
-        // Non-fatal: the post itself updated successfully.
       }
     }
 
@@ -323,5 +271,4 @@ async function handler(req, res) {
   }
 }
 
-// Export with authentication middleware
 export default requireEditor(handler)

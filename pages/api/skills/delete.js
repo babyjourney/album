@@ -13,7 +13,6 @@ async function handler(req, res) {
   }
 
   try {
-    // SECURITY: only allow deletion if skill belongs to caller's family
     const { error } = await supabase
       .from('skills')
       .delete()

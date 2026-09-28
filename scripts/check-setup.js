@@ -1,18 +1,3 @@
-#!/usr/bin/env node
-// Prints what is still missing on the LIVE Supabase project + env for this app
-// to be fully functional, and (with --fix) applies the parts that are plain
-// data changes. Run from the repo root:
-//
-//     npm run check:setup            # report only
-//     npm run check:setup -- --fix   # also migrate categories (DML only)
-//
-// Reads .env.local (URL + service role). Schema changes (new columns, bucket
-// limit) can NOT be applied from here — Supabase exposes no SQL over REST —
-// those stay manual: paste sql/sergiu_batch2.sql into the Supabase SQL editor.
-//
-// Mirrors lib/setupStatus.js (the admin-dashboard banner). Keep the two lists
-// in sync — this file is CommonJS because it runs outside Next.
-
 const fs = require('fs')
 const path = require('path')
 
@@ -39,8 +24,8 @@ if (!URL || !KEY) {
 }
 const sb = createClient(URL, KEY)
 
-const STORAGE_MAX_UPLOAD_MB = 200        // lib/tiers.js
-const SUPABASE_DEFAULT_UPLOAD_MB = 50    // Free-plan global default
+const STORAGE_MAX_UPLOAD_MB = 200
+const SUPABASE_DEFAULT_UPLOAD_MB = 50
 const RETIRED = { memories: 'everyday', special: 'milestones', play: 'adventures', learning: 'education' }
 const NEW_DEFAULTS = [
   ['milestones', 'Milestones', '🎯'], ['family', 'Family', '👨‍👩‍👧‍👦'], ['health', 'Health', '🏥'],
@@ -59,7 +44,6 @@ async function main() {
   console.log(`\nBabyJourney setup check — ${URL}\n`)
   let pending = 0
 
-  // 0. reachability
   const { error: ping } = await sb.from('families').select('id', { head: true, count: 'exact' })
   if (ping) {
     console.log(`❌ Supabase unreachable: ${ping.message}`)
@@ -68,19 +52,17 @@ async function main() {
   }
   console.log('✅ Supabase reachable')
 
-  // 1. schema
   const missing = []
   for (const [t, c] of REQUIRED_COLUMNS) {
     const { error } = await sb.from(t).select(c).limit(1)
     if (error) missing.push(`${t}.${c}`)
   }
-  console.log(`${ok(!missing.length)} SQL migration sql/sergiu_batch2.sql ${missing.length ? `— missing: ${missing.join(', ')}` : '— applied'}`)
+  console.log(`${ok(!missing.length)} SQL migration supabase-migration.sql ${missing.length ? `— missing: ${missing.join(', ')}` : '— applied'}`)
   if (missing.length) {
     pending++
-    console.log('   → Supabase → SQL Editor → New query → paste sql/sergiu_batch2.sql → Run  (idempotent, safe to re-run)')
+    console.log('   → Supabase → SQL Editor → New query → paste supabase-migration.sql → Run  (idempotent, safe to re-run)')
   }
 
-  // 2. categories
   const retired = Object.keys(RETIRED)
   const { count: retiredRows } = await sb.from('family_categories').select('*', { count: 'exact', head: true }).in('category_value', retired)
   const { count: retiredPosts } = await sb.from('photos').select('*', { count: 'exact', head: true }).in('category', retired)
@@ -106,7 +88,6 @@ async function main() {
   console.log(`${ok(catsOk)} New category set ${catsOk ? '— all families migrated' : `— ${retiredRows} old category rows, ${retiredPosts} posts on old ids (run with --fix, or let the app self-heal on next load)`}`)
   if (!catsOk) pending++
 
-  // 3. storage limit
   const { data: bucket, error: bErr } = await sb.storage.getBucket('album_uploads')
   const limitMB = bucket?.file_size_limit ? Math.round(bucket.file_size_limit / 1024 / 1024) : null
   const effective = limitMB || SUPABASE_DEFAULT_UPLOAD_MB
@@ -117,7 +98,6 @@ async function main() {
     console.log(`   → Supabase → Settings → Storage → Upload file size limit → ${STORAGE_MAX_UPLOAD_MB} MB, then run the SQL migration (it sets the bucket limit)`)
   }
 
-  // 4-6. env (checked in THIS shell/.env.local — on Vercel set the same vars)
   const email = !!(env.RESEND_API_KEY && env.RESEND_FROM_EMAIL)
   const sms = !!(env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN && env.TWILIO_FROM_NUMBER)
   const bypass = String(env.LOGIN_OTP_BYPASS || '').toLowerCase() === 'true'

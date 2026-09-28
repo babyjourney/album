@@ -1,5 +1,3 @@
-// Growth Tracking — height/weight entries over time + a "then vs now" photo
-// comparison.
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { authenticatedFetch, isEditor } from '../../lib/pinAuth'
@@ -27,17 +25,15 @@ export default function GrowthTab({ familyId, childId }) {
       const data = await res.json()
       setEntries(res.ok && data.success ? data.entries : [])
     } catch { setEntries([]) } finally { setLoaded(true) }
-    // Load persisted then/now comparison photos.
     try {
       const cres = await authenticatedFetch(`/api/journey/growth-compare?${qs}`)
       const cdata = await cres.json()
       setThenImg(cdata?.compare?.then_url || '')
       setNowImg(cdata?.compare?.now_url || '')
-    } catch { /* keep empty */ }
+    } catch {  }
   }
-  useEffect(() => { if (familyId) load() /* eslint-disable-next-line */ }, [familyId, childId])
+  useEffect(() => { if (familyId) load()  }, [familyId, childId])
 
-  // Upload a chosen photo to storage and persist it as the then/now slot.
   const pickCompare = (slot) => async (ev) => {
     const file = ev.target.files?.[0]
     if (!file) return

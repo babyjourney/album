@@ -3,9 +3,6 @@ import { useRouter } from 'next/router'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useTier } from '../../hooks/useTier'
 
-// Top-center floating dock — the only chrome on every page.
-// Contains: home, accentuated skills + family-tree pills, optional multi-child
-// switcher, title pill, search, settings, sign-out.
 export default function FloatingDock({
   albumTitle,
   onSearch,
@@ -21,8 +18,8 @@ export default function FloatingDock({
   const router = useRouter()
   const { t } = useLanguage()
   const { has: hasFeature } = useTier()
-  const showJourney = hasFeature('biography') // any Family-tier feature unlocks the hub
-  const showLegacy = hasFeature('pdfExport')  // Legacy-only feature
+  const showJourney = hasFeature('biography')
+  const showLegacy = hasFeature('pdfExport')
   const isSkillsPage = router.pathname === '/skills'
   const isFamilyTreePage = router.pathname === '/family-tree'
   const isJourneyPage = router.pathname === '/journey'
@@ -260,7 +257,6 @@ export default function FloatingDock({
           </div>
         )}
 
-        {/* Title pill — desktop only, hides on scroll */}
         {showTitle && (
           <div style={{
             padding: '0 12px',

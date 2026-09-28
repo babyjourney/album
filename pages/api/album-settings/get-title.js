@@ -14,7 +14,6 @@ async function handler(req, res) {
   }
 
   try {
-    // Get album settings
     const { data: settings, error: settingsError } = await supabase
       .from('album_settings')
       .select('*')
@@ -25,7 +24,6 @@ async function handler(req, res) {
       throw settingsError
     }
 
-    // Get children count
     const { data: children, error: childrenError } = await supabase
       .from('children')
       .select('name')
@@ -36,7 +34,6 @@ async function handler(req, res) {
       throw childrenError
     }
 
-    // Get family info
     const { data: family, error: familyError } = await supabase
       .from('families')
       .select('name')
@@ -47,18 +44,13 @@ async function handler(req, res) {
       throw familyError
     }
 
-    // Generate title based on logic
     let albumTitle = 'Family Album'
 
-    // New logic: 1 child = "Albumul lui Child", 2+ children = "Albumul familiei Family"
     if (!children || children.length === 0) {
-      // No children - use family name
       albumTitle = `Albumul familiei ${family.name}`
     } else if (children.length === 1) {
-      // One child - use child's name
       albumTitle = `Albumul lui ${children[0].name}`
     } else {
-      // Multiple children - use family name
       albumTitle = `Albumul familiei ${family.name}`
     }
 

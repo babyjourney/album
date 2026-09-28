@@ -1,6 +1,3 @@
-// Ownership Transfer at 18 — hand the album to the (now adult) child.
-// Reassigns the account contact email and issues a fresh editor PIN, emailed to
-// the new owner. Family tier. Editor-only.
 import crypto from 'crypto'
 import { supabase } from '../../../lib/supabaseClient'
 import { requireAuthOrAdmin } from '../../../lib/authMiddleware'
@@ -61,7 +58,6 @@ async function handler(req, res) {
       </div>`,
     })
 
-    // Return the new PIN so the current editor can confirm/hand it over too.
     return res.status(200).json({ success: true, newEditorPin: newPin, newEmail })
   } catch (err) {
     console.error('ownership-transfer error:', err)

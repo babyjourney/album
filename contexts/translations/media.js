@@ -1,17 +1,12 @@
-// Translations for the media surface (item 13).
-// Every key must exist in all three languages. Keys must not collide with the
-// other modules in this folder or with the legacy dictionary in LanguageContext.
 const media = {
   ro: {
     videoCompressFailedTooLarge: 'Browserul nu a putut comprima {count} video. Fișierul depășește {maxMB}MB. Încearcă din Chrome/Safari, sau folosește un clip mai scurt.',
     fileRejectedTooLargeForStorage: '{count} fișier(e) depășesc {maxMB}MB și nu pot fi încărcate.',
-    // Media kinds / fallback labels
     videoLabel: 'Video',
     audioLabel: 'Audio',
     documentLabel: 'Document',
     openFile: 'Deschide {name}',
 
-    // Post viewer
     postFallbackTitle: 'Postare',
     share: 'Distribuie',
     linkCopied: 'Link copiat',
@@ -22,7 +17,6 @@ const media = {
     nextImage: 'Imaginea următoare',
     removeTag: 'Elimină eticheta',
 
-    // Post editing
     childrenLabel: 'Copii',
     selectCategory: 'Selectează o categorie',
     coverThumbnail: 'Cover / Thumbnail',
@@ -30,11 +24,9 @@ const media = {
     coverHintMobile: 'Cover = apasă imaginea · × șterge · ‹ › schimbă ordinea.',
     coverHintDesktop: 'Click = cover · trage pentru reordine · × pentru a șterge o poză.',
 
-    // Private content toggle (upload + edit)
     privateContent: 'Conținut privat',
     privateContentHint: 'Vizibil doar pentru editori (părinți), nu și pentru vizualizatori.',
 
-    // Upload form
     hashtags: 'Hashtag-uri',
     compressingVideo: 'Se comprimă video-ul…',
     compressingVideoHint: 'Durează cât filmarea. Nu închide fereastra.',
@@ -47,7 +39,6 @@ const media = {
     fileSingular: 'fișier',
     filePlural: 'fișiere',
 
-    // Header island (compose bar / viewer welcome)
     postedSuccessfully: 'Postat cu succes!',
     postFailed: 'Postarea a eșuat',
     memorySingular: 'amintire',
@@ -62,11 +53,9 @@ const media = {
     welcomeToAlbum: 'Bun venit în {album}!',
     viewerWelcomeText: 'Vizionați amintiri prețioase. Pentru a adăuga fotografii noi și a crea postări, folosiți PIN-ul de editor când vă conectați.',
 
-    // Profile picture modal
     profilePictureOf: 'Poza de profil a lui {name}',
     pressEscToClose: 'Apăsați ESC sau faceți clic în afară pentru a închide',
 
-    // Category manager
     categoriesLoadError: 'Eroare la încărcarea categoriilor',
     categoriesMigrationNeeded: 'Sistemul de categorii necesită migrare. Contactează administratorul.',
     categoryNameEmpty: 'Numele categoriei nu poate fi gol',
@@ -75,20 +64,17 @@ const media = {
     emojiPlaceholder: 'emoji (ex: 🎨)',
     categoryNamePlaceholder: 'Numele categoriei',
 
-    // Memory slideshow
     shuffleOn: 'Activează shuffle',
     shuffleOff: 'Dezactivează shuffle',
   },
   ru: {
     videoCompressFailedTooLarge: 'Браузер не смог сжать {count} видео. Файл больше {maxMB}МБ. Попробуйте Chrome/Safari или более короткий ролик.',
     fileRejectedTooLargeForStorage: '{count} файл(ов) больше {maxMB}МБ — загрузка невозможна.',
-    // Media kinds / fallback labels
     videoLabel: 'Видео',
     audioLabel: 'Аудио',
     documentLabel: 'Документ',
     openFile: 'Открыть {name}',
 
-    // Post viewer
     postFallbackTitle: 'Пост',
     share: 'Поделиться',
     linkCopied: 'Ссылка скопирована',
@@ -99,7 +85,6 @@ const media = {
     nextImage: 'Следующее изображение',
     removeTag: 'Удалить тег',
 
-    // Post editing
     childrenLabel: 'Дети',
     selectCategory: 'Выберите категорию',
     coverThumbnail: 'Обложка / Миниатюра',
@@ -107,11 +92,9 @@ const media = {
     coverHintMobile: 'Обложка = нажмите на изображение · × удаляет · ‹ › меняет порядок.',
     coverHintDesktop: 'Клик = обложка · перетащите, чтобы изменить порядок · × чтобы удалить фото.',
 
-    // Private content toggle (upload + edit)
     privateContent: 'Приватный контент',
     privateContentHint: 'Виден только редакторам (родителям), но не зрителям.',
 
-    // Upload form
     hashtags: 'Хештеги',
     compressingVideo: 'Сжатие видео…',
     compressingVideoHint: 'Занимает столько же, сколько длится ролик. Не закрывайте окно.',
@@ -124,7 +107,6 @@ const media = {
     fileSingular: 'файл',
     filePlural: 'файлов',
 
-    // Header island (compose bar / viewer welcome)
     postedSuccessfully: 'Успешно опубликовано!',
     postFailed: 'Не удалось опубликовать',
     memorySingular: 'воспоминание',
@@ -139,11 +121,9 @@ const media = {
     welcomeToAlbum: 'Добро пожаловать в {album}!',
     viewerWelcomeText: 'Вы просматриваете дорогие сердцу воспоминания. Чтобы добавлять новые фотографии и создавать посты, используйте PIN редактора при входе.',
 
-    // Profile picture modal
     profilePictureOf: 'Фото профиля: {name}',
     pressEscToClose: 'Нажмите ESC или щёлкните снаружи, чтобы закрыть',
 
-    // Category manager
     categoriesLoadError: 'Ошибка при загрузке категорий',
     categoriesMigrationNeeded: 'Системе категорий требуется миграция. Свяжитесь с администратором.',
     categoryNameEmpty: 'Название категории не может быть пустым',
@@ -152,20 +132,17 @@ const media = {
     emojiPlaceholder: 'эмодзи (напр.: 🎨)',
     categoryNamePlaceholder: 'Название категории',
 
-    // Memory slideshow
     shuffleOn: 'Включить перемешивание',
     shuffleOff: 'Выключить перемешивание',
   },
   en: {
     videoCompressFailedTooLarge: 'Your browser could not compress {count} video(s). The file is over {maxMB}MB. Try Chrome/Safari, or use a shorter clip.',
     fileRejectedTooLargeForStorage: '{count} file(s) are over {maxMB}MB and cannot be uploaded.',
-    // Media kinds / fallback labels
     videoLabel: 'Video',
     audioLabel: 'Audio',
     documentLabel: 'Document',
     openFile: 'Open {name}',
 
-    // Post viewer
     postFallbackTitle: 'Post',
     share: 'Share',
     linkCopied: 'Link copied',
@@ -176,7 +153,6 @@ const media = {
     nextImage: 'Next image',
     removeTag: 'Remove tag',
 
-    // Post editing
     childrenLabel: 'Children',
     selectCategory: 'Select a category',
     coverThumbnail: 'Cover / Thumbnail',
@@ -184,11 +160,9 @@ const media = {
     coverHintMobile: 'Cover = tap the image · × deletes · ‹ › reorders.',
     coverHintDesktop: 'Click = cover · drag to reorder · × to delete a photo.',
 
-    // Private content toggle (upload + edit)
     privateContent: 'Private content',
     privateContentHint: 'Visible only to editors (parents), not to viewers.',
 
-    // Upload form
     hashtags: 'Hashtags',
     compressingVideo: 'Compressing video…',
     compressingVideoHint: 'It takes as long as the clip itself. Do not close this window.',
@@ -201,7 +175,6 @@ const media = {
     fileSingular: 'file',
     filePlural: 'files',
 
-    // Header island (compose bar / viewer welcome)
     postedSuccessfully: 'Posted successfully!',
     postFailed: 'Posting failed',
     memorySingular: 'memory',
@@ -216,11 +189,9 @@ const media = {
     welcomeToAlbum: 'Welcome to {album}!',
     viewerWelcomeText: 'You are viewing precious memories. To add new photos and create posts, use the editor PIN when you sign in.',
 
-    // Profile picture modal
     profilePictureOf: "{name}'s profile picture",
     pressEscToClose: 'Press ESC or click outside to close',
 
-    // Category manager
     categoriesLoadError: 'Error loading categories',
     categoriesMigrationNeeded: 'The category system needs a migration. Contact the administrator.',
     categoryNameEmpty: 'The category name cannot be empty',
@@ -229,7 +200,6 @@ const media = {
     emojiPlaceholder: 'emoji (e.g. 🎨)',
     categoryNamePlaceholder: 'Category name',
 
-    // Memory slideshow
     shuffleOn: 'Turn on shuffle',
     shuffleOff: 'Turn off shuffle',
   },

@@ -1,10 +1,5 @@
 import { Html, Head, Main, NextScript } from 'next/document'
 
-// Pre-hydration theme bootstrap — runs as the first thing in <head> so the
-// browser paints with the correct theme on the very first frame. Without
-// this, the document defaults to 'light' until React hydrates and the
-// ThemeProvider effect runs, which produces a visible flash of light theme
-// (white text on a light canvas — invisible) on admin routes.
 const themeBootstrapScript = `
 (function () {
   try {
@@ -32,24 +27,19 @@ export default function Document() {
   return (
     <Html lang="ro">
       <Head>
-        {/* PWA + mobile chrome */}
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="theme-color" content="#f4f5fb" />
         <meta name="msapplication-navbutton-color" content="#f4f5fb" />
 
-        {/* Don't autolink phone numbers (album content) */}
         <meta name="format-detection" content="telephone=no" />
 
-        {/* Theme bootstrap — must run BEFORE any stylesheet links / React */}
         <script dangerouslySetInnerHTML={{ __html: themeBootstrapScript }} />
 
-        {/* Preconnect to font CDN for faster paint */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
 
-        {/* Inline critical bits — safe area + iOS input zoom fix */}
         <style jsx global>{`
           :root {
             --safe-area-inset-top: env(safe-area-inset-top);

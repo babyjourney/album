@@ -1,8 +1,5 @@
 import { useState } from 'react'
 
-// Single glass pill at bottom-right containing all action icons.
-// Each item: { icon, label, onClick, tone? ('iris'|'aqua'|'peach'|'mint'|'amber') }
-// The tone colors only the icon stroke — the orb itself is unified glass.
 export default function ActionCluster({ items = [] }) {
   return (
     <div
@@ -44,8 +41,6 @@ function ActionButton({ icon, label, onClick, tone = 'iris', primary = false }) 
   const [hovered, setHovered] = useState(false)
   const ink = TONE_INK[tone] || TONE_INK.iris
 
-  // Primary action gets a tinted bg + matching glow on hover.
-  // Secondary actions are neutral and only color the icon.
   return (
     <button
       onClick={onClick}

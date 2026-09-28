@@ -8,7 +8,6 @@ async function handler(req, res) {
 
   const { type, title, description, fileUrl, category, hashtags, customDate, isPrivate, familyId: rawFamilyId } = req.body
 
-  // SECURITY: family editor session uses its own familyId; admin can target any
   const familyId = req.auth.isAdmin ? rawFamilyId : req.auth.familyId
 
   if (!familyId) {
@@ -19,7 +18,6 @@ async function handler(req, res) {
     return res.status(400).json({ error: 'Câmpuri obligatorii lipsă', errorKey: 'errRequiredFields' })
   }
 
-  // Input validation and sanitization
   if (title && title.length > 200) {
     return res.status(400).json({ error: 'Titlul nu poate depăși 200 de caractere', errorKey: 'errTitleTooLong' })
   }
@@ -28,30 +26,26 @@ async function handler(req, res) {
     return res.status(400).json({ error: 'Descrierea nu poate depăși 2000 de caractere', errorKey: 'errDescTooLong' })
   }
 
-  // Validate post type
   if (!['image', 'video', 'text'].includes(type)) {
     return res.status(400).json({ error: 'Tip de postare invalid', errorKey: 'errPostTypeInvalid' })
   }
 
   try {
-    // Parse hashtags from string to array
     const hashtagArray = hashtags ? 
       hashtags.split(/\s+/)
         .filter(tag => tag.startsWith('#'))
         .map(tag => tag.toLowerCase().replace('#', ''))
         .filter(tag => tag.length > 0) : []
 
-    // Prepare the insert object with base required fields only
     const insertData = {
       family_id: familyId,
       title: title || '',
       description: description?.trim() || '',
       file_url: fileUrl,
-      file_type: type, // Keep for backwards compatibility
+      file_type: type,
       is_private: isPrivate === true
     }
 
-    // Add optional fields only if they're provided (safely check if columns exist)
     try {
       if (type) {
         insertData.type = type
@@ -63,8 +57,6 @@ async function handler(req, res) {
         insertData.hashtags = hashtagArray
       }
       if (customDate) {
-        // (Item 7) Override created_at so the post is dated as chosen — the app
-        // sorts/filters by created_at, not a separate custom_date column.
         const d = new Date(customDate)
         if (!isNaN(d.getTime())) insertData.created_at = d.toISOString()
       }
@@ -72,7 +64,6 @@ async function handler(req, res) {
       console.log('Some optional columns may not exist yet:', schemaError.message)
     }
 
-    // Insert post into photos table (which now handles all post types)
     const { data, error } = await supabase
       .from('photos')
       .insert(insertData)
@@ -104,5 +95,4 @@ async function handler(req, res) {
   }
 }
 
-// Export with authentication middleware
 export default requireAuthOrAdmin(handler, { editorOnlyForFamily: true })

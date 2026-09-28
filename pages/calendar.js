@@ -1,5 +1,3 @@
-// Calendar View (baseline — all tiers). Month grid highlighting days with
-// posts; click a day to see that day's memories.
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/router'
 import { getSession, isAuthenticated, clearSession, authenticatedFetch } from '../lib/pinAuth'
@@ -23,8 +21,8 @@ export default function CalendarView() {
   const [session, setSession] = useState(null)
   const [showSettings, setShowSettings] = useState(false)
   const [counts, setCounts] = useState({})
-  const [cursor, setCursor] = useState(null) // {y, m}
-  const [selected, setSelected] = useState(null) // 'YYYY-MM-DD'
+  const [cursor, setCursor] = useState(null)
+  const [selected, setSelected] = useState(null)
 
   useEffect(() => {
     if (!isAuthenticated()) { router.push('/login'); return }
@@ -56,7 +54,7 @@ export default function CalendarView() {
   const grid = useMemo(() => {
     if (!cursor) return []
     const first = new Date(cursor.y, cursor.m, 1)
-    const startDow = (first.getDay() + 6) % 7 // Monday-first
+    const startDow = (first.getDay() + 6) % 7
     const daysInMonth = new Date(cursor.y, cursor.m + 1, 0).getDate()
     const cells = []
     for (let i = 0; i < startDow; i++) cells.push(null)

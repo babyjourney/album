@@ -1,15 +1,3 @@
-// Self-registration, step 2 (item 14).
-//
-// Input:  { email, code }
-// Output: { ok: true, family: { name }, viewerPin, editorPin }
-//
-// The code proves the person controls the mailbox, so this is the first point
-// at which it's safe to create the family. Everything needed was stashed in the
-// OTP row's payload by signup-request.js.
-//
-// The new family gets require_otp_login = true: they registered with a verified
-// email, so 2FA on login is exactly what item 14 asks for.
-
 import { supabase } from '../../../lib/supabaseClient'
 import { verifyOtp } from '../../../lib/otpStore'
 import { sendEmail } from '../../../lib/notifications'
@@ -29,8 +17,6 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Email și cod sunt obligatorii', errorKey: 'signupErrEmailCodeRequired' })
   }
 
-  // Brute-forcing a 4-digit code is only 10k guesses, so throttle hard here.
-  // (verifyOtp also burns the code after 5 wrong attempts.)
   const clientId = rateLimiter.getClientId(req, cleanEmail)
   const blockStatus = rateLimiter.isBlocked(clientId)
   if (blockStatus.blocked) {
@@ -42,7 +28,7 @@ export default async function handler(req, res) {
 
   try {
     const result = await verifyOtp({
-      familyId: null,          // signup codes aren't tied to a family yet
+      familyId: null,
       contactValue: cleanEmail,
       purpose: 'signup',
       code: cleanCode,
@@ -50,14 +36,6 @@ export default async function handler(req, res) {
 
     if (!result.ok) {
       rateLimiter.recordFailedAttempt(clientId, cleanCode, cleanEmail)
-      // ONE message, whatever went wrong.
-      //
-      // signup-request deliberately stays silent for an already-registered email
-      // so it can't be used to test whether an address has an account. Passing
-      // verifyOtp's own error through here would undo that: an already-registered
-      // address has no OTP row ("codul nu există"), while a fresh one does and
-      // reports "cod greșit, mai ai N încercări" — two distinct replies, and the
-      // enumeration is back.
       return res.status(401).json({ error: 'Codul este greșit sau a expirat. Cere unul nou.', errorKey: 'signupErrCodeWrong' })
     }
 
@@ -65,17 +43,10 @@ export default async function handler(req, res) {
 
     const payload = result.otpRow?.payload
     if (!payload || !payload.email) {
-      // The row verified but carries no payload — that means the `payload`
-      // column is missing, i.e. sql/sergiu_batch2.sql hasn't been run.
-      console.error('signup-verify: OTP row has no payload — run sql/sergiu_batch2.sql')
+      console.error('signup-verify: OTP row has no payload — run supabase-migration.sql')
       return res.status(500).json({ error: 'Înregistrarea nu este configurată complet. Contactează suportul.', errorKey: 'signupErrNotConfigured' })
     }
 
-    // Re-check for a race: two tabs could both verify before either inserted.
-    // Fail CLOSED — maybeSingle() reports data:null on error as well as on "no
-    // rows", so swallowing the error here would let the insert proceed.
-    // (The unique index on lower(email) from sql/sergiu_batch2.sql is the real
-    // backstop; this is the friendly path.)
     const { data: existing, error: lookupError } = await supabase
       .from('families')
       .select('id')
@@ -103,28 +74,24 @@ export default async function handler(req, res) {
         package: 'starter',
         email_verified: true,
         self_registered: true,
-        require_otp_login: true,   // item 14: 2FA on every login
+        require_otp_login: true,
       })
       .select('id, name, email')
       .single()
 
     if (insertError) {
-      // A unique-violation here means someone else won the race.
       if (insertError.code === '23505') {
         return res.status(409).json({ error: 'Există deja un cont cu acest email.', errorKey: 'signupErrEmailExists' })
       }
       throw insertError
     }
 
-    // Seed the default categories so the album isn't empty on first login.
     try {
       await ensureFamilyCategories(family.id)
     } catch (catErr) {
       console.warn('signup: category seed failed (non-fatal):', catErr)
     }
 
-    // Mail the PINs — they're the only credentials, and a PIN shown once on a
-    // screen and then lost is a support ticket.
     try {
       await sendEmail({
         to: payload.email,

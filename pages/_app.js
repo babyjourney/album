@@ -2,7 +2,7 @@ import '../styles/globals.css'
 import { ToastProvider } from '../contexts/ToastContext'
 import { LanguageProvider } from '../contexts/LanguageContext'
 import { ThemeProvider } from '../contexts/ThemeContext'
-import '../lib/cleanOldCategories' // Clean old global categories on app load
+import '../lib/cleanOldCategories'
 import Head from 'next/head'
 
 export default function App({ Component, pageProps }) {

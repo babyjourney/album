@@ -13,7 +13,6 @@ async function handler(req, res) {
   }
 
   try {
-    // Verify the photo belongs to the authenticated family
     const ownershipCheck = await verifyFamilyOwnership(req.auth.familyId, 'photos', photoId)
 
     if (!ownershipCheck.isOwner) {
@@ -24,16 +23,8 @@ async function handler(req, res) {
       })
     }
 
-    // Read every storage object this post owns BEFORE deleting the row —
-    // afterwards there's nothing left to tell us which files to clean up.
-    // Includes the video posters (item 2), which would otherwise be orphaned in
-    // the bucket forever, quietly costing storage.
     let ownedUrls = []
     try {
-      // supabase-js returns {data:null, error} for a missing column — it does
-      // NOT throw — so drop poster_urls and retry when the schema predates it
-      // (sql/sergiu_batch2.sql). Otherwise every file but the one the client
-      // named would be orphaned in the bucket.
       let row = null
       for (const cols of ['file_url, file_urls, poster_urls', 'file_url, file_urls', 'file_url']) {
         const { data, error } = await supabase
@@ -57,29 +48,22 @@ async function handler(req, res) {
         ...asArray(row?.poster_urls),
       ].filter(Boolean)
     } catch (lookupErr) {
-      // poster_urls may not exist yet (sql/sergiu_batch2.sql) — fall back to the
-      // single fileUrl the client sent, which is the old behaviour.
       console.warn('delete: could not read owned files:', lookupErr?.message)
     }
 
-    // Delete from database - now with family verification
     const { error: dbError } = await supabase
       .from('photos')
       .delete()
       .eq('id', photoId)
-      .eq('family_id', req.auth.familyId) // Double-check family ownership
+      .eq('family_id', req.auth.familyId)
 
     if (dbError) {
       throw dbError
     }
 
-    // Delete every object this post owned: all media plus their posters. Falls
-    // back to the single fileUrl the client sent if the lookup above failed.
     const urlsToRemove = ownedUrls.length ? ownedUrls : (fileUrl ? [fileUrl] : [])
     if (urlsToRemove.length) {
       try {
-        // Public URLs look like .../album_uploads/<familyId>/<file>; the storage
-        // path is the last two segments.
         const paths = [...new Set(
           urlsToRemove.map((url) => url.split('/').slice(-2).join('/'))
         )]
@@ -89,7 +73,6 @@ async function handler(req, res) {
           .remove(paths)
       } catch (storageError) {
         console.warn('Failed to delete files from storage:', storageError)
-        // Don't fail the entire operation if storage deletion fails
       }
     }
 
@@ -104,5 +87,4 @@ async function handler(req, res) {
   }
 }
 
-// Export with authentication middleware
 export default requireEditor(handler)

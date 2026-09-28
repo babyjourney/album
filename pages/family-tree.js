@@ -8,10 +8,6 @@ import { useTier } from '../hooks/useTier'
 import FloatingDock from '../components/layout/FloatingDock'
 import SettingsDrawer from '../components/layout/SettingsDrawer'
 
-// The `value` is what gets stored on the node row, so it stays the Romanian
-// canonical string that existing rows already carry — only the label shown to
-// the user is translated. relationLabelFor() falls back to the raw stored value
-// for anything not in this list.
 const RELATIONS = [
   { value: 'Mamă', key: 'relationMother' },
   { value: 'Tată', key: 'relationFather' },

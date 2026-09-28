@@ -1,15 +1,8 @@
-/* ==========================================================================
-   LIQUID GLASS — Design System
-   Inspired by Apple's Liquid Glass language: layered translucency,
-   specular edges, ambient gradient backdrops, and silky motion.
-   ========================================================================== */
-
 @import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ---------- Reset ---------- */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body {
@@ -23,7 +16,6 @@ html, body {
   background: var(--canvas);
 }
 
-/* The animated aurora backdrop lives behind everything */
 body {
   position: relative;
   overflow-x: hidden;
@@ -60,15 +52,12 @@ body::after {
   66%      { transform: translate(-2%, 2%) rotate(-15deg); }
 }
 
-/* ---------- Theme tokens (default = Light Aurora) ---------- */
 :root {
-  /* Canvas (soft tinted backdrop, the aurora paints on top of this) */
   --canvas: #f4f5fb;
-  --aurora-a: rgba(167, 139, 250, 0.55);  /* iris */
-  --aurora-b: rgba(125, 211, 252, 0.45);  /* aqua */
-  --aurora-c: rgba(251, 113, 133, 0.35);  /* peach */
+  --aurora-a: rgba(167, 139, 250, 0.55);
+  --aurora-b: rgba(125, 211, 252, 0.45);
+  --aurora-c: rgba(251, 113, 133, 0.35);
 
-  /* Glass surfaces — universal rgba whites */
   --glass-1: rgba(255, 255, 255, 0.42);
   --glass-2: rgba(255, 255, 255, 0.62);
   --glass-3: rgba(255, 255, 255, 0.85);
@@ -76,14 +65,12 @@ body::after {
   --glass-hairline-strong: rgba(255, 255, 255, 0.75);
   --glass-shadow-rim: rgba(15, 15, 30, 0.10);
 
-  /* Ink (text) */
   --ink-1: #0f0f1f;
   --ink-2: rgba(15, 15, 31, 0.66);
   --ink-3: rgba(15, 15, 31, 0.42);
   --ink-on-glass: #0f0f1f;
   --ink-on-accent: #ffffff;
 
-  /* Accents */
   --accent-iris: #7c3aed;
   --accent-iris-2: #6d28d9;
   --accent-aqua: #06b6d4;
@@ -92,17 +79,14 @@ body::after {
   --accent-amber: #f59e0b;
   --accent-red: #ef4444;
 
-  /* Semantic */
   --danger: #ef4444;
   --success: #10b981;
   --warning: #f59e0b;
   --info: #06b6d4;
 
-  /* Misc */
   --overlay-scrim: rgba(15, 15, 30, 0.45);
   --shadow-rim-rgb: 15, 15, 30;
 
-  /* Legacy aliases (so older code still works during transition) */
   --bg-primary: var(--canvas);
   --bg-secondary: var(--glass-2);
   --bg-gray: var(--glass-1);
@@ -124,7 +108,6 @@ body::after {
   --overlay: var(--overlay-scrim);
 }
 
-/* ---------- Theme: Dark (Liquid Night) ---------- */
 [data-theme='dark'] {
   --canvas: #07070d;
   --aurora-a: rgba(124, 58, 237, 0.55);
@@ -145,7 +128,6 @@ body::after {
   --overlay-scrim: rgba(0, 0, 0, 0.55);
 }
 
-/* ---------- Theme: Aqua (Sky) ---------- */
 [data-theme='blue'] {
   --canvas: #dde9f4;
   --aurora-a: rgba(56, 189, 248, 0.50);
@@ -153,7 +135,6 @@ body::after {
   --aurora-c: rgba(125, 211, 252, 0.45);
 }
 
-/* ---------- Theme: Blossom (Pink) ---------- */
 [data-theme='pink'] {
   --canvas: #faecf2;
   --aurora-a: rgba(251, 113, 133, 0.45);
@@ -161,7 +142,6 @@ body::after {
   --aurora-c: rgba(253, 186, 116, 0.35);
 }
 
-/* ---------- Touch / focus polish ---------- */
 button, [role="button"], a, input, select, textarea, label, [tabindex] {
   -webkit-tap-highlight-color: transparent;
 }
@@ -180,7 +160,6 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 
 ::selection { background: rgba(124, 58, 237, 0.35); color: var(--ink-1); }
 
-/* ---------- Scrollbars ---------- */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
@@ -191,11 +170,6 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 }
 ::-webkit-scrollbar-thumb:hover { background: var(--accent-iris); background-clip: padding-box; }
 
-/* ==========================================================================
-   GLASS UTILITIES — apply directly via className
-   ========================================================================== */
-
-/* Core glass surface */
 .glass {
   background: var(--glass-2);
   backdrop-filter: blur(24px) saturate(180%);
@@ -227,7 +201,6 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   border-radius: 24px;
 }
 
-/* Specular highlight overlay — use as ::after on hovered/important glass */
 .specular::after {
   content: '';
   position: absolute;
@@ -242,7 +215,6 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   opacity: 0.6;
 }
 
-/* Pill (compact glass element) */
 .glass-pill {
   background: var(--glass-2);
   backdrop-filter: blur(16px) saturate(160%);
@@ -252,7 +224,6 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   box-shadow: inset 0 1px 0 0 var(--glass-hairline-strong);
 }
 
-/* Button — Glass */
 .btn-glass {
   display: inline-flex;
   align-items: center;
@@ -285,7 +256,6 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 .btn-glass:active { transform: translateY(0) scale(0.98); }
 .btn-glass:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
-/* Button — Iris primary */
 .btn-iris {
   display: inline-flex;
   align-items: center;
@@ -321,7 +291,6 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   cursor: not-allowed;
 }
 
-/* Ghost button */
 .btn-ghost {
   display: inline-flex;
   align-items: center;
@@ -343,7 +312,6 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   border-color: var(--glass-hairline);
 }
 
-/* Icon button — square glass with icon */
 .btn-icon {
   width: 40px;
   height: 40px;
@@ -365,7 +333,6 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   transform: translateY(-1px);
 }
 
-/* Inputs */
 .input-glass {
   width: 100%;
   padding: 13px 16px;
@@ -384,12 +351,6 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 .input-glass::placeholder { color: var(--ink-3); }
 .input-glass:hover { border-color: var(--glass-hairline-strong); }
 
-/* Native dropdown popups are painted by the OS, not by our glass tokens. Without
-   `color-scheme` the popup surface stays white while .input-glass paints the
-   text near-white (--ink-1 on dark) — invisible until the hover bar appears.
-   Declaring the scheme fixes the popup chrome; the explicit option colors fix
-   the rows on the platforms that ignore it. Admin routes are force-dark
-   (ThemeContext), so they inherit the dark branch below. */
 select.input-glass { color-scheme: light; }
 select.input-glass option,
 select.input-glass optgroup {
@@ -405,7 +366,6 @@ select.input-glass optgroup {
     0 0 0 4px rgba(124, 58, 237, 0.18);
 }
 
-/* Card */
 .card-glass {
   position: relative;
   background: var(--glass-2);
@@ -427,7 +387,6 @@ select.input-glass optgroup {
     inset 0 1px 0 0 var(--glass-hairline-strong);
 }
 
-/* Modal scrim */
 .modal-scrim {
   position: fixed;
   inset: 0;
@@ -454,8 +413,6 @@ select.input-glass optgroup {
     0 32px 80px -16px rgba(0, 0, 0, 0.40),
     inset 0 1px 0 0 var(--glass-hairline-strong),
     inset 0 -1px 0 0 rgba(0, 0, 0, 0.05);
-  /* Use dvh on supporting browsers so iOS Safari's URL bar doesn't crop us.
-     Falls back to vh on older browsers. */
   max-height: calc(100vh - 24px);
   max-height: calc(100dvh - 24px);
   overflow: hidden;
@@ -468,13 +425,11 @@ select.input-glass optgroup {
   100% { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-/* Instagram-style smooth progress bar (MemorySlideshow) */
 @keyframes story-progress {
   from { transform: scaleX(0); }
   to   { transform: scaleX(1); }
 }
 
-/* Specular sheen for buttons / chips on hover */
 .sheen { position: relative; overflow: hidden; }
 .sheen::before {
   content: '';
@@ -492,10 +447,6 @@ select.input-glass optgroup {
   transition: left 700ms cubic-bezier(0.22,1,0.36,1);
 }
 .sheen:hover::before { left: 220%; }
-
-/* ==========================================================================
-   TYPOGRAPHY
-   ========================================================================== */
 
 .text-display {
   font-family: 'Inter Tight', 'Inter', system-ui, sans-serif;
@@ -534,12 +485,7 @@ select.input-glass optgroup {
   color: var(--ink-2);
 }
 
-/* Tabular numerals where useful */
 .nums { font-variant-numeric: tabular-nums; }
-
-/* ==========================================================================
-   LAYOUT
-   ========================================================================== */
 
 .main-container {
   max-width: 935px;
@@ -557,10 +503,6 @@ select.input-glass optgroup {
   }
 }
 
-/* ==========================================================================
-   GRID — Photo feed
-   ========================================================================== */
-
 .instagram-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -574,7 +516,6 @@ select.input-glass optgroup {
 @media (min-width: 1600px) { .instagram-grid { gap: 32px; max-width: 1400px; } }
 @media (min-width: 1920px) { .instagram-grid { gap: 36px; max-width: 1600px; } }
 
-/* Photo card */
 .instagram-card {
   position: relative;
   background: var(--glass-2);
@@ -596,7 +537,6 @@ select.input-glass optgroup {
     inset 0 1px 0 0 var(--glass-hairline-strong);
 }
 
-/* Carousel arrows */
 .carousel-nav-arrow {
   background: var(--glass-2) !important;
   backdrop-filter: blur(20px) saturate(160%) !important;
@@ -623,10 +563,6 @@ select.input-glass optgroup {
   background: rgba(255, 255, 255, 0.26) !important;
   transform: scale(1.06) !important;
 }
-
-/* ==========================================================================
-   CATEGORY PILLS
-   ========================================================================== */
 
 .category-pill {
   display: inline-flex;
@@ -659,10 +595,6 @@ select.input-glass optgroup {
 }
 .category-pill--selected:hover { filter: brightness(1.08); }
 
-/* ==========================================================================
-   FLOATING ELEMENTS
-   ========================================================================== */
-
 .floating-button {
   background: var(--glass-3) !important;
   backdrop-filter: blur(24px) saturate(180%) !important;
@@ -682,7 +614,6 @@ select.input-glass optgroup {
     inset 0 1px 0 0 var(--glass-hairline-strong) !important;
 }
 
-/* Slideshow + filter button container positions */
 @media (max-width: 768px) {
   .slideshow-button-container { right: 16px !important; bottom: 92px !important; }
   .filter-button-container    { right: 16px !important; bottom: 16px !important; }
@@ -691,10 +622,6 @@ select.input-glass optgroup {
   .slideshow-button-container { right: 92px !important; bottom: 24px !important; }
   .filter-button-container    { right: 24px !important; bottom: 24px !important; }
 }
-
-/* ==========================================================================
-   LEGACY HELPERS (keeping a thin compatibility layer for existing code)
-   ========================================================================== */
 
 .card { background: var(--glass-2); border-radius: 20px; padding: 20px; border: 1px solid var(--glass-hairline); transition: all 200ms cubic-bezier(0.22,1,0.36,1); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
 .card:hover { transform: translateY(-1px); box-shadow: var(--shadow-lg); }
@@ -757,14 +684,9 @@ select.input-glass optgroup {
 
 @media (min-width: 769px) { .desktop-nav { display: block !important; } }
 
-/* Disable legacy fixed-position scroll lock that broke modals */
 .modal-overlay,
-.modal-content { /* Allow internal scrolling */ }
+.modal-content {  }
 .modal-content [data-scroll="true"] { overflow-y: auto !important; }
-
-/* ==========================================================================
-   ANIMATIONS
-   ========================================================================== */
 
 @keyframes fadeIn {
   from { opacity: 0; transform: scale(0.96) translateY(8px); }
@@ -827,7 +749,6 @@ select.input-glass optgroup {
   animation: shimmer 1.5s infinite;
 }
 
-/* Carousel smooth scroll */
 .smooth-scroll-container {
   scroll-snap-type: x mandatory;
   scroll-snap-stop: always;
@@ -846,7 +767,6 @@ select.input-glass optgroup {
   image-rendering: optimizeQuality;
 }
 
-/* Skills card */
 .skills-card {
   transition: transform 320ms cubic-bezier(0.22,1,0.36,1),
               box-shadow 320ms cubic-bezier(0.22,1,0.36,1);
@@ -861,7 +781,6 @@ select.input-glass optgroup {
 .fun-button:hover { transform: translateY(-2px); }
 .fun-button:active { transform: translateY(0) scale(0.96); }
 
-/* Upload modal grid */
 .upload-modal-content { max-width: 640px; }
 @media (max-width: 768px) {
   .upload-modal-content { max-width: 95vw !important; width: 95vw !important; }
@@ -871,14 +790,12 @@ select.input-glass optgroup {
   .upload-form-full-width { grid-column: 1 / -1 !important; }
 }
 
-/* Utility */
 .text-primary { color: var(--ink-1); }
 .text-secondary { color: var(--ink-2); }
 .bg-primary { background-color: var(--canvas); }
 .bg-content { background-color: var(--glass-2); }
 .border-light { border-color: var(--glass-hairline); }
 
-/* Reduce motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

@@ -56,10 +56,8 @@ export default function Toast({ toast, onRemove }) {
   const [isLeaving, setIsLeaving] = useState(false)
 
   useEffect(() => {
-    // Trigger enter animation
     const timer1 = setTimeout(() => setIsVisible(true), 10)
 
-    // Auto-remove after duration
     const timer2 = setTimeout(() => {
       setIsLeaving(true)
       setTimeout(() => onRemove(toast.id), 200)

@@ -2,16 +2,13 @@ import { useState, useEffect, useCallback } from 'react'
 import { useLanguage } from '../contexts/LanguageContext'
 import { getCoverPoster } from '../lib/posters'
 
-// Helper function to clean description from old multi-photo format
 const getCleanDescription = (post) => {
   if (!post.description) return ''
 
-  // If this is a new format multi-photo post, just return the description as-is
   if (post.type === 'multi-photo' && post.file_urls) {
     return post.description
   }
 
-  // Clean up old format descriptions that contain URLs
   if (post.description.includes('__MULTI_PHOTO_URLS__:')) {
     const marker = '__MULTI_PHOTO_URLS__:'
     const markerIndex = post.description.indexOf(marker)
@@ -21,7 +18,6 @@ const getCleanDescription = (post) => {
   return post.description
 }
 
-// Fisher-Yates shuffle (returns a new array)
 const fisherYatesShuffle = (arr) => {
   const result = [...arr]
   for (let i = result.length - 1; i > 0; i--) {
@@ -31,9 +27,6 @@ const fisherYatesShuffle = (arr) => {
   return result
 }
 
-// Slide duration in ms. Used both by the auto-advance timer and by the
-// CSS progress-bar animation duration — kept in one constant so they stay
-// in sync.
 const SLIDE_DURATION_MS = 4000
 
 export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
@@ -43,7 +36,6 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
   const [isShuffled, setIsShuffled] = useState(false)
   const [shuffledMemories, setShuffledMemories] = useState([])
 
-  // Reset shuffle state every time the modal opens (per-session toggle).
   useEffect(() => {
     if (isOpen) {
       setIsShuffled(false)
@@ -53,12 +45,8 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
     }
   }, [isOpen])
 
-  // Get current memories array (shuffled or normal)
   const currentMemories = isShuffled && shuffledMemories.length > 0 ? shuffledMemories : memories
 
-  // Auto-advance. The progress bar uses pure CSS animation (see below) so
-  // we don't need a separate progress interval — eliminates the choppy
-  // 100ms React re-renders that produced the visible step pattern.
   useEffect(() => {
     if (!isPlaying || currentMemories.length === 0) return
 
@@ -69,7 +57,6 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
     return () => clearInterval(interval)
   }, [isPlaying, currentMemories.length, currentIndex])
 
-  // Keyboard navigation
   useEffect(() => {
     if (!isOpen) return
 
@@ -99,7 +86,6 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
     setIsShuffled(prev => {
       const next = !prev
       if (next) {
-        // Generate a fresh Fisher-Yates shuffle on every activation.
         setShuffledMemories(fisherYatesShuffle(memories))
       }
       return next
@@ -131,7 +117,6 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
       }}
       onClick={onClose}
     >
-      {/* Progress bars at top */}
       <div style={{
         position: 'absolute',
         top: '20px',
@@ -142,14 +127,6 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
         zIndex: 1001
       }}>
         {currentMemories.map((_, index) => {
-          // Instagram-story style progress bars:
-          //   • already-watched slides  → solid full fill
-          //   • current slide           → CSS-animated scaleX(0→1) over
-          //                               SLIDE_DURATION_MS (smooth, GPU-
-          //                               accelerated, no React re-renders)
-          //   • future slides           → empty
-          // The `key` includes currentIndex so the active bar's animation
-          // restarts cleanly when we jump or auto-advance.
           const isPast = index < safeIndex
           const isCurrent = index === safeIndex
           return (
@@ -186,7 +163,6 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
         })}
       </div>
 
-      {/* Control buttons */}
       <div style={{
         position: 'absolute',
         top: '40px',
@@ -195,7 +171,6 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
         gap: '10px',
         zIndex: 1001
       }}>
-        {/* Shuffle button */}
         <button
           onClick={(e) => {
             e.stopPropagation()
@@ -220,7 +195,6 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
           </svg>
         </button>
 
-        {/* Close button */}
         <button
           onClick={(e) => {
             e.stopPropagation()
@@ -240,7 +214,6 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
         </button>
       </div>
 
-      {/* Memory content */}
       <div
         style={{
           position: 'relative',
@@ -253,10 +226,6 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
         onClick={(e) => e.stopPropagation()}
       >
         {isVideo ? (
-          // playsInline is required or iOS refuses to play inline (it tries to
-          // go fullscreen and, inside a modal, just shows nothing). `src` is set
-          // directly rather than via <source type="video/mp4">, which made the
-          // browser reject any .mov/.webm outright.
           <video
             key={currentMemory.id}
             src={fileUrl}
@@ -290,7 +259,6 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
           />
         )}
 
-        {/* Navigation arrows */}
         {currentMemories.length > 1 && (
           <>
             <button
@@ -338,17 +306,10 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
         )}
       </div>
 
-      {/* Memory info.
-          This caption had no height bound, so a long description wrapped into
-          many lines and painted straight over the centred photo on a phone
-          (item 15). It's now capped and clamped, and the type scales down on
-          narrow screens. */}
       {(currentMemory.title || getCleanDescription(currentMemory)) && (
         <div
           className="glass-strong slideshow-caption"
           style={{
-            // NB: position/bottom/padding/max-* live in the styled-jsx block
-            // below, not here — an inline style would beat the media query.
             left: '50%',
             transform: 'translateX(-50%)',
             color: '#fff',
@@ -368,7 +329,7 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
             <p className="slideshow-caption-body" style={{
               margin: 0,
               opacity: 0.85,
-              whiteSpace: 'pre-wrap',   // keep the author's line breaks (item 4)
+              whiteSpace: 'pre-wrap',
               overflow: 'hidden',
               display: '-webkit-box',
               WebkitBoxOrient: 'vertical',
@@ -409,7 +370,6 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
         </div>
       )}
 
-      {/* Play/Pause button */}
       <button
         onClick={(e) => {
           e.stopPropagation()
@@ -439,7 +399,6 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
         )}
       </button>
 
-      {/* Counter */}
       <div
         className="glass-pill nums"
         style={{

@@ -16,37 +16,26 @@ export default function AdminSetup() {
   const [success, setSuccess] = useState(null)
 
   useEffect(() => {
-    // Check if admin is authenticated
     if (!isAdminAuthenticated()) {
       router.push('/admin/login')
     }
   }, [router])
 
-  // Admin routes are pinned to dark by ThemeProvider.
-
-  // PIN generation moved server-side — see /api/admin/families/create.js.
-  // The browser shouldn't query for PIN uniqueness (a) because RLS denies
-  // the read under strict policy, and (b) because it would leak existing
-  // PINs to anyone with admin access to the DOM.
-
   const handleProfilePictureChange = async (e) => {
     const selectedFile = e.target.files[0]
     if (!selectedFile) return
 
-    // Validate file type
     if (!selectedFile.type.startsWith('image/')) {
       setError('Vă rugăm să selectați doar fișiere imagine')
       return
     }
 
-    // Validate file size (10MB limit)
     if (selectedFile.size > 10 * 1024 * 1024) {
       setError('Mărimea imaginii trebuie să fie mai mică de 10MB')
       return
     }
 
     try {
-      // Compress image
       const options = {
         maxSizeMB: 1,
         maxWidthOrHeight: 500,
@@ -56,7 +45,6 @@ export default function AdminSetup() {
       const compressedFile = await imageCompression(selectedFile, options)
       setProfilePicture(compressedFile)
 
-      // Create preview URL
       const previewUrl = URL.createObjectURL(compressedFile)
       setProfilePreview(previewUrl)
       setError('')
@@ -70,9 +58,6 @@ export default function AdminSetup() {
     if (!profilePicture) return null
 
     const fileExt = profilePicture.name.split('.').pop()
-    // Bucket is `album_uploads` (the only one that exists — `photos` is the
-    // table name). Timestamped path keeps this a plain INSERT, since the
-    // browser's anon key has no UPDATE grant on storage.objects.
     const fileName = `${familyId}/profile_${Date.now()}.${fileExt}`
 
     const { error } = await supabase.storage
@@ -101,7 +86,6 @@ export default function AdminSetup() {
     setSuccess(null)
 
     try {
-      // Create the family via the admin API (service_role / RLS-safe).
       const createResponse = await adminFetch('/api/admin/families/create', {
         method: 'POST',
         body: JSON.stringify({
@@ -117,13 +101,10 @@ export default function AdminSetup() {
       const viewerPin = data.viewer_pin
       const editorPin = data.editor_pin
 
-      // Upload profile picture if provided
       let profilePictureUrl = null
       if (profilePicture) {
         profilePictureUrl = await uploadProfilePicture(data.id)
 
-        // Update the family record with the profile picture URL via the
-        // admin API (direct table updates are RLS-blocked from the browser).
         const updateResponse = await adminFetch('/api/admin/families/update', {
           method: 'POST',
           body: JSON.stringify({ id: data.id, profilePictureUrl })
@@ -133,9 +114,7 @@ export default function AdminSetup() {
 
         if (updateError) {
           console.error('Error updating profile picture URL:', updateError)
-          // Don't throw error here, just log it as the family was already created
         } else {
-          // Create a post in the album for the family profile picture
           try {
             const postResponse = await adminFetch('/api/posts/create', {
               method: 'POST',
@@ -159,7 +138,6 @@ export default function AdminSetup() {
             }
           } catch (postError) {
             console.warn('Error creating album post for profile picture:', postError)
-            // Don't fail the family creation for this
           }
         }
       }
@@ -218,7 +196,6 @@ export default function AdminSetup() {
             </p>
           </div>
 
-          {/* SECURITY NOTE BANNER */}
           <div className="glass-soft" style={{
             padding: '16px 18px',
             marginBottom: '24px',

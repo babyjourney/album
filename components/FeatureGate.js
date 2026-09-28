@@ -1,20 +1,12 @@
-// Client-side feature gate. Renders children when the family's tier unlocks the
-// feature; otherwise renders a compact "🔒 Upgrade" lock card (or nothing, or a
-// custom fallback). Enforcement is also done server-side — this is UX only.
-//
-// Usage:
-//   <FeatureGate feature="healthDashboard"><HealthDashboard /></FeatureGate>
-//   <FeatureGate feature="multipleChildren" mode="hide">…</FeatureGate>
-
 import { useTier } from '../hooks/useTier'
 import { useLanguage } from '../contexts/LanguageContext'
 
 export default function FeatureGate({
   feature,
   children,
-  mode = 'lock',      // 'lock' = show upgrade card, 'hide' = render nothing
-  fallback = null,    // custom node to render when locked (overrides mode)
-  title,              // optional label for the lock card
+  mode = 'lock',
+  fallback = null,
+  title,
 }) {
   const { has, requiredTierLabel } = useTier()
   const { t } = useLanguage()
@@ -49,8 +41,6 @@ export default function FeatureGate({
   )
 }
 
-// Small inline lock badge for buttons/menu items that should stay visible but
-// disabled (e.g. "Add custom category 🔒").
 export function LockBadge({ feature, style }) {
   const { has, requiredTierLabel } = useTier()
   const { t } = useLanguage()

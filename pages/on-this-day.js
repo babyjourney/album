@@ -1,5 +1,3 @@
-// On This Day Memories (baseline — all tiers). Shows posts from today's
-// calendar date across previous years.
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { getSession, isAuthenticated, clearSession } from '../lib/pinAuth'

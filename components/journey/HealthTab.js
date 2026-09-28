@@ -1,4 +1,3 @@
-// Health Dashboard — vitals form on top, health-tagged posts below.
 import { useState, useEffect } from 'react'
 import { authenticatedFetch, isEditor } from '../../lib/pinAuth'
 import { useToast } from '../../contexts/ToastContext'

@@ -1,5 +1,3 @@
-// Life chapters (colored date ranges) — GET list, POST create, DELETE.
-// Family tier.
 import { supabase } from '../../../lib/supabaseClient'
 import { requireAuthOrAdmin } from '../../../lib/authMiddleware'
 import { requireFeature } from '../../../lib/requireFeature'
@@ -26,9 +24,6 @@ async function handler(req, res) {
       const { childId, title, description, hashtags, color, startDate, endDate, displayOrder } = req.body || {}
       if (!title || !title.trim()) return res.status(400).json({ error: 'Titlul este obligatoriu', errorKey: 'errTitleRequired' })
 
-      // (Item 11) Hashtags let an event pull in matching posts even when they
-      // fall outside its date range. Accept a raw string or an array; normalize
-      // to bare lowercase tags so they agree with how posts store them.
       const tagList = (Array.isArray(hashtags) ? hashtags : String(hashtags || '').split(/[\s,]+/))
         .map((t) => String(t).trim().toLowerCase().replace(/^#/, ''))
         .filter(Boolean)
@@ -49,13 +44,9 @@ async function handler(req, res) {
       let { data, error } = await supabase
         .from('life_chapters').insert(payload).select().single()
 
-      // description/hashtags come from sql/sergiu_batch2.sql. On a deployment
-      // that hasn't run it, still save the event rather than failing outright —
-      // but TELL the client what was dropped, so the user isn't shown a clean
-      // success for an event that silently lost its text and tags.
       let warning = null
       if (error && /description|hashtags/i.test(error.message || '')) {
-        console.warn('life_chapters missing description/hashtags — run sql/sergiu_batch2.sql')
+        console.warn('life_chapters missing description/hashtags — run supabase-migration.sql')
         const { description: _d, hashtags: _h, ...legacy } = payload
         ;({ data, error } = await supabase
           .from('life_chapters').insert(legacy).select().single())

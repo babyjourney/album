@@ -1,6 +1,3 @@
-// Export Timeline to PDF / Book (Legacy). Dependency-free: renders a clean,
-// print-optimized layout of the family's timeline and uses the browser's
-// "Save as PDF" via window.print(). No server-side PDF library needed.
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { getSession, isAuthenticated, authenticatedFetch } from '../lib/pinAuth'
@@ -41,7 +38,6 @@ export default function ExportTimeline() {
   return (
     <FeatureGate feature="pdfExport" title={t('exportGateTitle')}>
       <div style={{ maxWidth: 820, margin: '0 auto', padding: '24px 20px 80px' }}>
-        {/* Toolbar — hidden when printing */}
         <div className="export-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, gap: 12, flexWrap: 'wrap' }}>
           <button onClick={() => router.push('/dashboard')} className="btn-glass" style={{ padding: '9px 16px' }}>← {t('back')}</button>
           <button onClick={() => window.print()} className="btn-iris sheen" style={{ padding: '10px 20px', fontWeight: 600 }}>
@@ -49,7 +45,6 @@ export default function ExportTimeline() {
           </button>
         </div>
 
-        {/* Cover */}
         <div style={{ textAlign: 'center', padding: '40px 0 30px', borderBottom: '2px solid #eee', marginBottom: 30 }}>
           <h1 style={{ fontSize: 38, margin: '0 0 8px' }}>{session.familyName}</h1>
           <p style={{ color: '#777', margin: 0 }}>{t('exportCoverSubtitle')}</p>

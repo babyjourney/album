@@ -1,23 +1,11 @@
-// Child <-> post associations.
-//
-// Two modes:
-//   ?photoId=<id>   -> { childIds: [...] } for one post (the edit form, so it
-//                      can pre-check the right children).
-//   ?familyId=<id>  -> { links: [{ photo_id, child_id }] } for the whole family
-//                      (the ZIP export, so filenames can carry child names —
-//                      one request instead of one per post).
-// Family-scoped for security in both modes.
 import { supabase } from '../../../lib/supabaseClient'
 import { requireAuthOrAdmin } from '../../../lib/authMiddleware'
 
 async function listFamilyLinks(req, res) {
-  // SECURITY: family sessions may only read their own family; admins may pick.
   const familyId = req.auth.isAdmin ? req.query.familyId : req.auth.familyId
   if (!familyId) return res.status(400).json({ error: 'familyId lipsește' })
 
   try {
-    // Restrict to this family's posts, so the join can't leak another family's
-    // associations even if a photo_id were guessed.
     const { data: photos, error: photosErr } = await supabase
       .from('photos').select('id').eq('family_id', familyId)
     if (photosErr) throw photosErr
@@ -43,7 +31,6 @@ async function handler(req, res) {
   if (!photoId) return listFamilyLinks(req, res)
 
   try {
-    // Verify the post belongs to the caller's family (admins bypass).
     const { data: photo } = await supabase
       .from('photos').select('id, family_id').eq('id', photoId).single()
     if (!photo) return res.status(404).json({ error: 'Postarea nu a fost găsită' })

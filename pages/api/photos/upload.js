@@ -9,18 +9,12 @@ async function handler(req, res) {
 
   const { title, description, fileUrl, fileType, category, hashtags, customDate, isPrivate, videoDurations } = req.body
 
-  // SECURITY: derive family from authenticated session; never trust body
   const familyId = req.auth.familyId
 
   if (!familyId || !title || !fileUrl) {
     return res.status(400).json({ error: 'Câmpuri obligatorii lipsă', errorKey: 'errRequiredFields' })
   }
 
-  // Enforce the family's package video-duration limit. Photos are always
-  // allowed. We trust the client-reported duration only as a fast-path
-  // hint — by accepting `null`/missing values we don't reject when the
-  // browser couldn't read metadata, but if a duration is present and
-  // exceeds the limit we refuse the upload.
   if (fileType === 'video') {
     try {
       const { data: fam } = await supabase
@@ -45,22 +39,16 @@ async function handler(req, res) {
       }
     } catch (limitErr) {
       console.error('Package limit lookup failed:', limitErr)
-      // Fail open — let the upload proceed rather than blocking on a
-      // transient lookup failure. The admin can still moderate later.
     }
   }
 
   try {
-    // Parse hashtags from string to array
     const hashtagArray = hashtags ?
       hashtags.split(/\s+/)
         .filter(tag => tag.startsWith('#'))
         .map(tag => tag.toLowerCase().replace('#', ''))
         .filter(tag => tag.length > 0) : []
 
-    // Look up the family's package once more to stamp the quality tier on
-    // the row. This drives the "HD" badge in the UI and lets us downgrade
-    // delivery if a Premium family later drops to Free.
     const { data: famQuality } = await supabase
       .from('families')
       .select('package')
@@ -69,7 +57,6 @@ async function handler(req, res) {
     const tier = famQuality?.package
     const quality = getPackageLimits(tier).imageQuality
 
-    // Prepare the insert object with base fields
     const insertData = {
       family_id: familyId,
       title: title.trim(),
@@ -80,27 +67,17 @@ async function handler(req, res) {
       quality
     }
 
-    // Add optional fields only if they're provided
     if (category) {
       insertData.category = category
     }
     if (hashtagArray && hashtagArray.length > 0) {
       insertData.hashtags = hashtagArray
     }
-    // The user-chosen memory date overrides created_at, which is what the whole
-    // app sorts and filters by. This used to write `custom_date`, a column that
-    // does not exist in any schema — so every request carrying a date 500'd
-    // (the retry below only strips `quality`, so it failed too).
-    //
-    // uploaded_at is untouched and keeps the real insert time, which is what the
-    // admin activity stats read. See sql/sergiu_batch2.sql.
     if (customDate) {
       const d = new Date(customDate)
       if (!isNaN(d.getTime())) insertData.created_at = d.toISOString()
     }
 
-    // Insert photo directly without relying on RLS. If the deployed schema
-    // pre-dates the `quality` column we retry without it once.
     let { data, error } = await supabase
       .from('photos')
       .insert(insertData)

@@ -1,9 +1,3 @@
-// (Sergiu batch3 #6) A compact language switch for the pre-login pages (/login,
-// /signup, /forgot-password). Inside the app the language lives in the header
-// drawer, but a first-time visitor never gets there — they need to switch right
-// on the entry screen. The active language is also auto-detected from the
-// browser (see LanguageContext); this lets the visitor override it.
-
 import { useLanguage } from '../contexts/LanguageContext'
 
 const LANGS = [

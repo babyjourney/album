@@ -1,8 +1,6 @@
 import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 
-// Right-edge slide-in glass drawer (or bottom sheet on mobile).
-// Renders into document.body via portal so it escapes any parent containing block.
 export default function SideSheet({
   isOpen,
   onClose,
@@ -33,7 +31,6 @@ export default function SideSheet({
 
   const tree = (
     <>
-      {/* Scrim */}
       <div
         onClick={onClose}
         style={{
@@ -49,7 +46,6 @@ export default function SideSheet({
         }}
       />
 
-      {/* Sheet */}
       <div
         role="dialog"
         aria-modal="true"

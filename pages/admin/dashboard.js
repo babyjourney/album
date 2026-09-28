@@ -19,21 +19,14 @@ export default function AdminDashboard() {
   const [exportData, setExportData] = useState([])
   const [exportLoading, setExportLoading] = useState(false)
   const [showExportModal, setShowExportModal] = useState(false)
-  const [sortBy, setSortBy] = useState('name') // name, last_post, last_access, photos, storage, posts_30d, activity
-  const [sortOrder, setSortOrder] = useState('asc') // asc, desc
-  const [filterBy, setFilterBy] = useState('all') // all, active, inactive, no_posts, very_active, sleeping, dead
+  const [sortBy, setSortBy] = useState('name')
+  const [sortOrder, setSortOrder] = useState('asc')
+  const [filterBy, setFilterBy] = useState('all')
   const [searchTerm, setSearchTerm] = useState('')
-  // Per-family year selection for the year-scoped export dropdown.
-  // Keyed by family id; defaults to the current year on first interaction.
   const [exportYearByFamily, setExportYearByFamily] = useState({})
-  // (Item 8) ZIP export is assembled in the browser and can take minutes, so we
-  // track which family is exporting and surface progress on its row.
   const [exportingFamilyId, setExportingFamilyId] = useState(null)
-  const [exportProgress, setExportProgress] = useState(null) // { stage, done, total }
-  // Collapsible "what each plan includes" reference panel.
+  const [exportProgress, setExportProgress] = useState(null)
   const [showTierGuide, setShowTierGuide] = useState(false)
-  // Deployment setup checks (SQL migration, storage limit, email/SMS keys).
-  // null = not loaded; rendered only when something is pending.
   const [setupStatus, setSetupStatus] = useState(null)
   const [showSetupDetails, setShowSetupDetails] = useState(false)
 
@@ -52,8 +45,6 @@ export default function AdminDashboard() {
       console.error('Error fetching setup status:', error)
     }
   }
-
-  // Admin routes are pinned to dark by ThemeProvider.
 
   const checkAuth = () => {
     if (!isAdminAuthenticated()) {
@@ -87,7 +78,6 @@ export default function AdminDashboard() {
       if (response.ok) {
         setExportData(data.exportData)
 
-        // Create and download CSV
         const csvContent = createCSV(data.exportData)
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
         const link = document.createElement('a')
@@ -113,10 +103,6 @@ export default function AdminDashboard() {
     }
   }
 
-  // (Item 8) Both admin exports now produce the same structured .zip the family
-  // gets from Settings — year folders of real media named
-  // [an.luna.zi][copii]_[titlu]_[nr].ext — instead of a JSON file of URLs.
-  // The archive is assembled in the browser using the admin token.
   const runFamilyExport = async (family, year) => {
     if (exportingFamilyId) return
     setExportingFamilyId(family.id)
@@ -145,11 +131,6 @@ export default function AdminDashboard() {
     runFamilyExport(family, year)
   }
 
-  // (Sergiu batch3 #4) The dropdown lists the years that actually contain posts
-  // (post_years, derived from photo memory-dates by the API) — Sergiu's albums
-  // are backdated to 2019/2020, but the account was made in 2026, so the old
-  // account-creation range only ever offered the current year. Fall back to that
-  // range only for families with no post_years yet (e.g. empty albums).
   const yearsForFamily = (family) => {
     if (Array.isArray(family.post_years) && family.post_years.length) return family.post_years
     const startYear = family.created_at
@@ -161,8 +142,6 @@ export default function AdminDashboard() {
     return years
   }
 
-  // The year the export defaults to when the admin hasn't picked one — the most
-  // recent year that actually has posts, so it always matches a real option.
   const defaultYearFor = (family) => {
     const years = yearsForFamily(family)
     return years[0] ?? new Date().getFullYear()
@@ -176,7 +155,6 @@ export default function AdminDashboard() {
       headers.join(','),
       ...data.map(row => headers.map(header => {
         const value = row[header]
-        // Escape commas and quotes
         if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
           return `"${value.replace(/"/g, '""')}"`
         }
@@ -206,7 +184,6 @@ export default function AdminDashboard() {
   const formatLastAccess = (dateString, createdAt) => {
     if (!dateString) return 'Niciodată accesat'
 
-    // Check if last_accessed is the same as created_at (from old migration)
     if (dateString === createdAt) {
       return 'Nu s-a accesat încă'
     }
@@ -222,21 +199,16 @@ export default function AdminDashboard() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
   }
 
-  // Filter and sort families
   const getFilteredAndSortedFamilies = () => {
     let filtered = dashboardData.familiesList.filter(family => {
-      // Search filter
       const matchesSearch = family.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            (family.phone_number && family.phone_number.includes(searchTerm))
 
-      // Category filter
       let matchesFilter = true
       switch (filterBy) {
         case 'active':
-          // Active: posted in last 30 days or accessed in last 7 days
           const now = new Date()
           const lastPost = family.last_post_date ? new Date(family.last_post_date) : null
-          // Only consider real access (not the created_at value)
           const lastAccess = family.last_accessed && family.last_accessed !== family.created_at ?
                             new Date(family.last_accessed) : null
           const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
@@ -245,10 +217,8 @@ export default function AdminDashboard() {
           matchesFilter = (lastPost && lastPost >= thirtyDaysAgo) || (lastAccess && lastAccess >= sevenDaysAgo)
           break
         case 'inactive':
-          // Inactive: no posts in last 30 days and no access in last 7 days
           const nowInactive = new Date()
           const lastPostInactive = family.last_post_date ? new Date(family.last_post_date) : null
-          // Only consider real access (not the created_at value)
           const lastAccessInactive = family.last_accessed && family.last_accessed !== family.created_at ?
                                     new Date(family.last_accessed) : null
           const thirtyDaysAgoInactive = new Date(nowInactive.getTime() - 30 * 24 * 60 * 60 * 1000)
@@ -279,7 +249,6 @@ export default function AdminDashboard() {
       return matchesSearch && matchesFilter
     })
 
-    // Sort
     filtered.sort((a, b) => {
       let aValue, bValue
 
@@ -289,7 +258,6 @@ export default function AdminDashboard() {
           bValue = b.last_post_date ? new Date(b.last_post_date) : new Date(0)
           break
         case 'last_access':
-          // Only consider real access times (not created_at values)
           aValue = a.last_accessed && a.last_accessed !== a.created_at ?
                    new Date(a.last_accessed) : new Date(0)
           bValue = b.last_accessed && b.last_accessed !== b.created_at ?
@@ -308,7 +276,6 @@ export default function AdminDashboard() {
           bValue = b.posts_last_30d || 0
           break
         case 'activity':
-          // Higher rank = more active. Stored on the row by the API.
           aValue = a.activity_rank ?? -1
           bValue = b.activity_rank ?? -1
           break
@@ -419,7 +386,6 @@ export default function AdminDashboard() {
     <div data-theme="dark" style={{ minHeight: '100vh' }}>
       <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '24px' }}>
 
-        {/* Header */}
         <div className="glass" style={{
           padding: '22px 26px',
           marginBottom: '24px',
@@ -491,8 +457,6 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Setup checklist — only when something on this deployment is still
-            missing (SQL migration not run, storage limit, email/SMS keys). */}
         {setupStatus && setupStatus.pendingCount > 0 && (
           <div className="card-glass" style={{
             padding: '16px 20px', marginBottom: '24px',
@@ -538,7 +502,6 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* Stats Cards */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
@@ -583,9 +546,6 @@ export default function AdminDashboard() {
           ))}
         </div>
 
-        {/* Growth Analytics — Tasks #10/#11.
-            Shows trendlines for the past 30 days. Sparkline-based so we don't
-            need an external charting lib. */}
         {dashboardData.analytics && (
           <div className="card-glass" style={{ padding: '24px', marginBottom: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '18px', flexWrap: 'wrap', gap: '8px' }}>
@@ -655,7 +615,6 @@ export default function AdminDashboard() {
           marginBottom: '24px'
         }}>
 
-          {/* Export Data Section */}
           <div className="card-glass" style={{ padding: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', gap: '12px', flexWrap: 'wrap' }}>
               <h2 className="text-section-title" style={{ margin: 0 }}>
@@ -706,7 +665,6 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Recent Activity */}
           <div className="card-glass" style={{ padding: '24px' }}>
             <h2 className="text-section-title" style={{ marginBottom: '16px' }}>
               Activitate Recentă
@@ -743,7 +701,6 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Plan / tier reference — what each plan unlocks */}
         <div className="card-glass" style={{ padding: '20px 24px', marginBottom: '20px' }}>
           <button
             onClick={() => setShowTierGuide((v) => !v)}
@@ -794,7 +751,6 @@ export default function AdminDashboard() {
           )}
         </div>
 
-        {/* Families List */}
         <div className="card-glass" style={{ padding: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '12px', flexWrap: 'wrap' }}>
             <h2 className="text-section-title" style={{ margin: 0 }}>
@@ -802,7 +758,6 @@ export default function AdminDashboard() {
             </h2>
           </div>
 
-          {/* Filters and Search */}
           <div className="glass-soft" style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
@@ -810,7 +765,6 @@ export default function AdminDashboard() {
             marginBottom: '20px',
             padding: '18px'
           }}>
-            {/* Search */}
             <div>
               <label className="text-eyebrow" style={{ display: 'block', marginBottom: '8px' }}>
                 Căutare
@@ -825,7 +779,6 @@ export default function AdminDashboard() {
               />
             </div>
 
-            {/* Filter */}
             <div>
               <label className="text-eyebrow" style={{ display: 'block', marginBottom: '8px' }}>
                 Filtru
@@ -847,7 +800,6 @@ export default function AdminDashboard() {
               </select>
             </div>
 
-            {/* Sort By */}
             <div>
               <label className="text-eyebrow" style={{ display: 'block', marginBottom: '8px' }}>
                 Sortează după
@@ -868,7 +820,6 @@ export default function AdminDashboard() {
               </select>
             </div>
 
-            {/* Sort Order */}
             <div>
               <label className="text-eyebrow" style={{ display: 'block', marginBottom: '8px' }}>
                 Ordine
@@ -1249,7 +1200,6 @@ export default function AdminDashboard() {
           )}
         </div>
 
-        {/* Export Modal */}
         {showExportModal && (
           <div className="modal-scrim">
             <div className="modal-glass" style={{ maxWidth: '500px', width: '100%', padding: '28px' }}>
@@ -1310,9 +1260,6 @@ export default function AdminDashboard() {
   )
 }
 
-// Inline sparkline-style card used by the Growth Analytics section.
-// Stays in this file (no new file) since it's only used here. Pure SVG —
-// no charting dep.
 function AnalyticsCard({ eyebrow, value, sub, series, stroke, fill, bigValue }) {
   return (
     <div className="glass-soft" style={{ padding: '16px 18px', borderRadius: '16px' }}>

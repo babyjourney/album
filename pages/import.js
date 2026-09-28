@@ -8,9 +8,6 @@ import FloatingDock from '../components/layout/FloatingDock'
 import SettingsDrawer from '../components/layout/SettingsDrawer'
 import FileImporter from '../components/import/FileImporter'
 
-// Live OAuth providers. Each needs a registered developer app + client
-// credentials (env) before it can connect — until then we offer an assisted
-// migration request (a Legacy concierge service).
 const PROVIDERS = [
   { id: 'google_photos', icon: '🌅', name: 'Google Photos' },
   { id: 'apple_photos', icon: '🍎', name: 'Apple Photos' },

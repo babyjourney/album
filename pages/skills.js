@@ -15,12 +15,8 @@ export default function Skills() {
   const [updatingSkill, setUpdatingSkill] = useState(null)
   const [showSettings, setShowSettings] = useState(false)
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false)
-  // (Item 10) Skills are per-child. With 3 kids you pick whose skills you're
-  // looking at; each child has their own progress on the same skill catalog.
   const [children, setChildren] = useState([])
   const [selectedChildId, setSelectedChildId] = useState(null)
-  // false when the server is still running family-wide skills (migration not
-  // applied) — the child selector is then informational only.
   const [childScoped, setChildScoped] = useState(true)
   const [childrenLoaded, setChildrenLoaded] = useState(false)
   const { showSuccess, showError } = useToast()
@@ -31,10 +27,6 @@ export default function Skills() {
     checkAuth()
   }, [])
 
-  // Fetch children directly rather than via useChildren(), which returns an
-  // empty list for single-child albums. Skills need the child either way: the
-  // migration attaches existing progress to the family's first child, so a
-  // single-child family that queried with no childId would see zero progress.
   useEffect(() => {
     if (!session?.familyId) return
     let cancelled = false
@@ -51,8 +43,6 @@ export default function Skills() {
     return () => { cancelled = true }
   }, [session?.familyId])
 
-  // Wait for the child list before the first fetch, so we don't fire an
-  // unscoped request and then immediately refire a scoped one.
   useEffect(() => {
     if (session?.familyId && childrenLoaded) {
       fetchSkillsProgress()
@@ -70,8 +60,6 @@ export default function Skills() {
     setLoading(false)
   }
 
-  // Cache is keyed per child — otherwise switching children would show the
-  // previous child's cached progress.
   const progressCacheKey = (familyId, childId) =>
     `skillsProgress_${familyId}_${childId || 'family'}`
 
@@ -79,13 +67,12 @@ export default function Skills() {
     try {
       const familyId = session.familyId
 
-      // Check cache first
       const cacheKey = progressCacheKey(familyId, selectedChildId)
       const cacheTimeKey = `${cacheKey}_time`
       const cached = sessionStorage.getItem(cacheKey)
       const cacheTime = sessionStorage.getItem(cacheTimeKey)
       const now = Date.now()
-      const cacheAge = 2 * 60 * 1000 // 2 minutes cache for skills
+      const cacheAge = 2 * 60 * 1000
 
       if (cached && cacheTime && (now - parseInt(cacheTime)) < cacheAge) {
         const progressMap = JSON.parse(cached)
@@ -110,7 +97,6 @@ export default function Skills() {
       if (typeof result.childScoped === 'boolean') setChildScoped(result.childScoped)
       setSkillsProgress(progressMap)
 
-      // Cache the result
       sessionStorage.setItem(cacheKey, JSON.stringify(progressMap))
       sessionStorage.setItem(cacheTimeKey, now.toString())
     } catch (error) {
@@ -122,8 +108,6 @@ export default function Skills() {
   const handleSelectChild = (childId) => {
     if (childId === selectedChildId) return
     setSelectedChildId(childId)
-    // Clear immediately so the previous child's numbers don't linger while the
-    // new child's progress loads.
     setSkillsProgress({})
   }
 
@@ -150,14 +134,12 @@ export default function Skills() {
         throw new Error((result.errorKey ? t(result.errorKey) : result.error) || t('error'))
       }
 
-      // Update local state
       const newProgressMap = {
         ...skillsProgress,
         [skillId]: result.skill
       }
       setSkillsProgress(newProgressMap)
 
-      // Update cache
       const cacheKey = progressCacheKey(session.familyId, selectedChildId)
       const cacheTimeKey = `${cacheKey}_time`
       sessionStorage.setItem(cacheKey, JSON.stringify(newProgressMap))
@@ -201,56 +183,48 @@ export default function Skills() {
   }
 
   const getSkillImage = (skillId, category) => {
-    // Match skill names with actual image file names based on content
     const imageMap = {
-      // Physical Skills - match with skill content
-      'skill_1': '/1. Physical Skills (Motor Development)/1. Walking.png', // Abilități Motorii Globale
-      'skill_2': '/1. Physical Skills (Motor Development)/5. Throwing and Catching a Ball.png', // Abilități Motorii Fine
-      'skill_3': '/1. Physical Skills (Motor Development)/4. Balancing.png', // Echilibru și Coordonare
-      'skill_4': '/1. Physical Skills (Motor Development)/2. Running.png', // Alergat și Sărit
-      'skill_5': '/1. Physical Skills (Motor Development)/5. Throwing and Catching a Ball.png', // Coordonare Ochi-Mână
+      'skill_1': '/1. Physical Skills (Motor Development)/1. Walking.png',
+      'skill_2': '/1. Physical Skills (Motor Development)/5. Throwing and Catching a Ball.png',
+      'skill_3': '/1. Physical Skills (Motor Development)/4. Balancing.png',
+      'skill_4': '/1. Physical Skills (Motor Development)/2. Running.png',
+      'skill_5': '/1. Physical Skills (Motor Development)/5. Throwing and Catching a Ball.png',
 
-      // Cognitive Skills - match with learning content
-      'skill_6': '/2. Cognitive Skills/1. Object Recognition.png', // Memorie și Amintire
-      'skill_7': '/2. Cognitive Skills/3. Solving Puzzles.png', // Rezolvarea Problemelor
-      'skill_8': '/2. Cognitive Skills/6. Logical thinking & problem-solving.png', // Gândire Logică
-      'skill_9': '/2. Cognitive Skills/1. Object Recognition.png', // Atenție și Concentrare
-      'skill_10': '/2. Cognitive Skills/5. Basic Math (Adding, Subtracting).png', // Concepte Matematice
+      'skill_6': '/2. Cognitive Skills/1. Object Recognition.png',
+      'skill_7': '/2. Cognitive Skills/3. Solving Puzzles.png',
+      'skill_8': '/2. Cognitive Skills/6. Logical thinking & problem-solving.png',
+      'skill_9': '/2. Cognitive Skills/1. Object Recognition.png',
+      'skill_10': '/2. Cognitive Skills/5. Basic Math (Adding, Subtracting).png',
 
-      // Language & Communication - match with speaking/reading
-      'skill_11': '/3. Language & Communication/1. First words.png', // Comunicare Verbală
-      'skill_12': '/2. Cognitive Skills/4. Reading.png', // Abilități de Citire
-      'skill_13': '/3. Language & Communication/4. Writing Words and Sentences.png', // Abilități de Scriere
-      'skill_14': '/4. Social and Emotional Skills/6. Empathy and Active Listening.png', // Abilități de Ascultare
-      'skill_15': '/3. Language & Communication/2. Sentence forming.png', // Dezvoltarea Vocabularului
+      'skill_11': '/3. Language & Communication/1. First words.png',
+      'skill_12': '/2. Cognitive Skills/4. Reading.png',
+      'skill_13': '/3. Language & Communication/4. Writing Words and Sentences.png',
+      'skill_14': '/4. Social and Emotional Skills/6. Empathy and Active Listening.png',
+      'skill_15': '/3. Language & Communication/2. Sentence forming.png',
 
-      // Social and Emotional Skills - match with social interactions
-      'skill_16': '/4. Social and Emotional Skills/2. Sharing and Turn-Taking.png', // Împărțire și Cooperare
-      'skill_17': '/4. Social and Emotional Skills/6. Empathy and Active Listening.png', // Empatie și Înțelegere
-      'skill_18': '/4. Social and Emotional Skills/1. Expressing emotions.png', // Reglarea Emoțiilor
-      'skill_19': '/4. Social and Emotional Skills/4. Making Friends.png', // Făcutul de Prieteni
-      'skill_20': '/4. Social and Emotional Skills/5. Handling Conflict and Stress.png', // Rezolvarea Conflictelor
+      'skill_16': '/4. Social and Emotional Skills/2. Sharing and Turn-Taking.png',
+      'skill_17': '/4. Social and Emotional Skills/6. Empathy and Active Listening.png',
+      'skill_18': '/4. Social and Emotional Skills/1. Expressing emotions.png',
+      'skill_19': '/4. Social and Emotional Skills/4. Making Friends.png',
+      'skill_20': '/4. Social and Emotional Skills/5. Handling Conflict and Stress.png',
 
-      // Self-Care & Independence - match with daily activities
-      'skill_21': '/5. Self-Care & Independence/5. Personal Hygiene.png', // Igienă Personală
-      'skill_22': '/5. Self-Care & Independence/4. Dressing and Undressing.png', // Îmbrăcare și Îngrijire
-      'skill_23': '/5. Self-Care & Independence/3. Eating with utensils.png', // Mâncare Independentă
-      'skill_24': '/5. Self-Care & Independence/6. Managing Personal Schedule.png', // Gestionarea Timpului
-      'skill_25': '/5. Self-Care & Independence/7. Doing Simple Chores.png', // Responsabilitate și Treburi
+      'skill_21': '/5. Self-Care & Independence/5. Personal Hygiene.png',
+      'skill_22': '/5. Self-Care & Independence/4. Dressing and Undressing.png',
+      'skill_23': '/5. Self-Care & Independence/3. Eating with utensils.png',
+      'skill_24': '/5. Self-Care & Independence/6. Managing Personal Schedule.png',
+      'skill_25': '/5. Self-Care & Independence/7. Doing Simple Chores.png',
 
-      // Creative & Expressive Skills - match with artistic activities
-      'skill_26': '/6. Creative & Expressive Skills/1. Drawing & Painting.png', // Desen și Pictură
-      'skill_27': '/6. Creative & Expressive Skills/2. Singing or Playing an Instrument.png', // Muzică și Ritm
-      'skill_28': '/6. Creative & Expressive Skills/3. Dancing.png', // Dans și Mișcare
-      'skill_29': '/6. Creative & Expressive Skills/4. Acting or Role-playing.png', // Joc Imaginativ
-      'skill_30': '/6. Creative & Expressive Skills/7. Creative Writing_Journaling.png', // Povestire
+      'skill_26': '/6. Creative & Expressive Skills/1. Drawing & Painting.png',
+      'skill_27': '/6. Creative & Expressive Skills/2. Singing or Playing an Instrument.png',
+      'skill_28': '/6. Creative & Expressive Skills/3. Dancing.png',
+      'skill_29': '/6. Creative & Expressive Skills/4. Acting or Role-playing.png',
+      'skill_30': '/6. Creative & Expressive Skills/7. Creative Writing_Journaling.png',
 
-      // Digital & Modern Skills - match with technology use
-      'skill_31': '/7. Digital & Modern Skills/2. Basic Computer Use.png', // Abilități de Bază cu Calculatorul
-      'skill_32': '/7. Digital & Modern Skills/6. Understanding online safety.png', // Siguranță Digitală
-      'skill_33': '/7. Digital & Modern Skills/5. Playing educational games.png', // Aplicații Educaționale
-      'skill_34': '/7. Digital & Modern Skills/2. Basic Computer Use.png', // Conștientizarea Tehnologiei
-      'skill_35': '/7. Digital & Modern Skills/5. Playing educational games.png' // Învățare Online
+      'skill_31': '/7. Digital & Modern Skills/2. Basic Computer Use.png',
+      'skill_32': '/7. Digital & Modern Skills/6. Understanding online safety.png',
+      'skill_33': '/7. Digital & Modern Skills/5. Playing educational games.png',
+      'skill_34': '/7. Digital & Modern Skills/2. Basic Computer Use.png',
+      'skill_35': '/7. Digital & Modern Skills/5. Playing educational games.png'
     }
     return imageMap[skillId] || '/1. Physical Skills (Motor Development)/1. Walking.png'
   }
@@ -260,7 +234,6 @@ export default function Skills() {
     const isUpdating = updatingSkill === skill.id
     const hasEditorAccess = isEditor()
 
-    // Tint level badge by progress band
     const levelTint =
       progress >= 75
         ? { bg: 'color-mix(in oklab, var(--accent-mint) 18%, transparent)', fg: 'var(--accent-mint)' }
@@ -282,7 +255,6 @@ export default function Skills() {
           transition: 'opacity 220ms cubic-bezier(0.22, 1, 0.36, 1)'
         }}
       >
-        {/* Skill Image */}
         <div style={{
           width: '56px',
           height: '56px',
@@ -308,7 +280,6 @@ export default function Skills() {
           />
         </div>
 
-        {/* Skill Info */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '10px' }}>
             <h3 className="text-section-title" style={{ margin: 0, fontSize: '15px' }}>
@@ -330,7 +301,6 @@ export default function Skills() {
             </span>
           </div>
 
-          {/* Glass progress track */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{
               flex: 1,
@@ -351,7 +321,6 @@ export default function Skills() {
           </div>
         </div>
 
-        {/* Controls */}
         {hasEditorAccess && (
           <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
             <button
@@ -481,9 +450,6 @@ export default function Skills() {
             </button>
           </div>
 
-          {/* (Item 10) Child selector — skills belong to a child, not the
-              family, so with several kids you switch between them here. With one
-              child there's nothing to switch, so it stays hidden. */}
           {children.length > 1 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '18px' }}>
               {children.map((child) => {
@@ -526,7 +492,6 @@ export default function Skills() {
             </p>
           )}
 
-          {/* Overall progress card */}
           <div
             className="card-glass"
             style={{
@@ -583,7 +548,6 @@ export default function Skills() {
             </div>
           </div>
 
-          {/* Category filter */}
           <div style={{ marginBottom: '24px' }}>
             <div style={{
               display: 'flex',
@@ -609,7 +573,6 @@ export default function Skills() {
           </div>
         </div>
 
-        {/* Skills Grid */}
         {filteredCategories.map((category) => (
           <div key={category} style={{ marginBottom: '40px' }}>
             {selectedCategory === 'all' && (
@@ -628,7 +591,6 @@ export default function Skills() {
           </div>
         ))}
 
-        {/* Viewer note */}
         {!hasEditorAccess && (
           <div
             className="glass-soft"

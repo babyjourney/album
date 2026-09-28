@@ -8,7 +8,6 @@ export default function ClearCategories() {
   const router = useRouter()
 
   useEffect(() => {
-    // Auto-run if requested
     if (router.query.auto === 'true') {
       clearCategories()
     }
@@ -17,10 +16,8 @@ export default function ClearCategories() {
   const clearCategories = async () => {
     setIsClearing(true)
     try {
-      // Clear all old category-related data
       localStorage.removeItem('customCategories')
       
-      // Clear any cached data
       const keys = Object.keys(localStorage)
       keys.forEach(key => {
         if (key.includes('categor') && !key.includes('customCategories_')) {
@@ -30,7 +27,6 @@ export default function ClearCategories() {
 
       setResult('success')
 
-      // Redirect to dashboard after 2 seconds
       setTimeout(() => {
         router.push('/dashboard')
       }, 2000)

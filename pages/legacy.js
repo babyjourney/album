@@ -61,7 +61,6 @@ export default function Legacy() {
         </div>
 
         <FeatureGate feature="pdfExport" title={t('legacyGateTitle')}>
-          {/* Export + imports */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14, marginBottom: 20 }}>
             <div className="card-glass" style={{ padding: 20 }}>
               <h3 className="text-section-title" style={{ marginTop: 0, fontSize: 16 }}>📄 {t('legacyExportTitle')}</h3>
@@ -83,7 +82,6 @@ export default function Legacy() {
             </div>
           </div>
 
-          {/* Concierge */}
           <div className="card-glass" style={{ padding: 20 }}>
             <h3 className="text-section-title" style={{ marginTop: 0, fontSize: 18 }}>{t('conciergeTitle')}</h3>
             <p className="text-subtle" style={{ fontSize: 13, marginTop: 0 }}>{t('conciergeHint')}</p>

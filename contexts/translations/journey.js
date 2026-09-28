@@ -1,12 +1,5 @@
-// Translations for the journey surface (item 13).
-// Every key must exist in all three languages. Keys must not collide with the
-// other modules in this folder or with the legacy dictionary in LanguageContext.
-//
-// Covers: pages/journey.js + components/journey/*, pages/skills.js chrome,
-// pages/family-tree.js, pages/legacy.js and components/FeatureGate.js.
 const journey = {
   ro: {
-    // Journey page
     journeyTitleSuffix: 'Parcursul Vieții',
     journeySubtitle: 'Biografie, cronologii, sănătate, creștere și mai mult.',
     journeyGateTitle: 'Parcursul Vieții — plan Family',
@@ -17,20 +10,16 @@ const journey = {
     journeyTabEducation: 'Educație',
     journeyTabTransfer: 'Transfer',
 
-    // Sign-out confirmation (journey + skills)
     signOutAlbumTitle: 'Ieși din album?',
     signOutAlbumBody: 'Va trebui să te autentifici din nou cu PIN-ul.',
 
-    // Shared
     addPlus: '+ Adaugă',
 
-    // Biography tab
     biographyTitle: 'Biografie & Povestea Vieții',
     biographyPlaceholder: 'Scrie povestea copilului — naștere, primii pași, momente importante…',
     biographySaved: 'Biografie salvată',
     recentPosts: 'Postări recente',
 
-    // Education tab (incl. the chapters/events form absorbed from the old tab)
     educationTitle: 'Progres Educațional',
     educationPlaceholder: 'Unde și ce a studiat, etape școlare, realizări…',
     educationSaved: 'Salvat',
@@ -53,7 +42,6 @@ const journey = {
     diplomasHint: 'Postări etichetate cu #diploma #certificate #proiect #scoala sau din categoria Educație.',
     noDiplomasYet: 'Nicio diplomă/proiect etichetat încă.',
 
-    // Growth tab
     heightCmLabel: 'Înălțime (cm)',
     weightKgLabel: 'Greutate (kg)',
     noMeasurementsYet: 'Nicio măsurătoare încă.',
@@ -64,7 +52,6 @@ const journey = {
     compareThen: 'Atunci',
     compareNow: 'Acum',
 
-    // Health tab
     healthTitle: 'Panou Medical',
     bloodTypeLabel: 'Grupă sanguină',
     allergiesLabel: 'Alergii',
@@ -75,7 +62,6 @@ const journey = {
     healthPostsHint: 'Postări din categoria Sănătate sau etichetate #health #medicine #medical.',
     noHealthPostsYet: 'Nicio postare medicală etichetată încă.',
 
-    // Timelines tab
     timelineBirth: 'Naștere (0–1 an)',
     timelineToddler: 'Anii mici (1–4 ani)',
     timelineSchool: 'Anii de școală (4–13)',
@@ -84,7 +70,6 @@ const journey = {
     noSkillPostsYet: 'Nicio postare etichetată cu abilități/realizări încă.',
     noPostsInAgeRange: 'Nicio postare în acest interval de vârstă. (Necesită data nașterii copilului.)',
 
-    // Transfer tab
     transferTitle: 'Transfer la 18 ani',
     transferIntro: 'Predă albumul copilului devenit adult. Vom seta emailul lui ca nou contact al contului și vom genera un PIN de editor nou, trimis pe acel email.',
     transferPinWarning: 'PIN-ul de editor curent va fi înlocuit.',
@@ -96,11 +81,9 @@ const journey = {
     transferring: 'Se transferă…',
     transferAlbum: 'Transferă albumul',
 
-    // FilteredPosts
     noPostsHereYet: 'Nicio postare aici încă.',
     textPost: 'Text',
 
-    // Family tree page
     familyTreeTitle: 'Arbore genealogic',
     familyTreeBasicCount: 'Arbore de bază — {count}/{cap} persoane. Treci la planul {tier} pentru arbore extins (nelimitat).',
     familyTreeExtendedCount: 'Arbore extins — {count} persoane (nelimitat).',
@@ -122,7 +105,6 @@ const journey = {
     relationCousin: 'Văr/Vară',
     relationOther: 'Altul',
 
-    // Legacy page
     legacyPageTitle: 'Servicii Legacy',
     legacySubtitle: 'Păstrare pe viață, export și servicii premium.',
     legacyGateTitle: 'Servicii Legacy — plan Legacy',
@@ -148,7 +130,6 @@ const journey = {
     conciergeMemoryOrg: 'Organizare amintiri',
     conciergeDataMigration: 'Migrare date',
 
-    // FeatureGate
     featureLocked: 'Funcție blocată',
     featureAvailableInPlan: 'Această funcție este disponibilă în planul {tier}.',
     featureNotInYourPlan: 'Această funcție nu este disponibilă în planul tău.',
@@ -156,7 +137,6 @@ const journey = {
     tierHigher: 'superior',
   },
   ru: {
-    // Journey page
     journeyTitleSuffix: 'Жизненный путь',
     journeySubtitle: 'Биография, хронологии, здоровье, рост и многое другое.',
     journeyGateTitle: 'Жизненный путь — план Family',
@@ -167,20 +147,16 @@ const journey = {
     journeyTabEducation: 'Образование',
     journeyTabTransfer: 'Передача',
 
-    // Sign-out confirmation (journey + skills)
     signOutAlbumTitle: 'Выйти из альбома?',
     signOutAlbumBody: 'Вам нужно будет снова войти с помощью PIN-кода.',
 
-    // Shared
     addPlus: '+ Добавить',
 
-    // Biography tab
     biographyTitle: 'Биография и история жизни',
     biographyPlaceholder: 'Напишите историю ребёнка — рождение, первые шаги, важные моменты…',
     biographySaved: 'Биография сохранена',
     recentPosts: 'Недавние посты',
 
-    // Education tab (incl. the chapters/events form absorbed from the old tab)
     educationTitle: 'Образовательный прогресс',
     educationPlaceholder: 'Где и что изучал, школьные этапы, достижения…',
     educationSaved: 'Сохранено',
@@ -203,7 +179,6 @@ const journey = {
     diplomasHint: 'Посты с хештегами #diploma #certificate #proiect #scoala или из категории «Образование».',
     noDiplomasYet: 'Пока нет отмеченных дипломов или проектов.',
 
-    // Growth tab
     heightCmLabel: 'Рост (см)',
     weightKgLabel: 'Вес (кг)',
     noMeasurementsYet: 'Пока нет измерений.',
@@ -214,7 +189,6 @@ const journey = {
     compareThen: 'Тогда',
     compareNow: 'Сейчас',
 
-    // Health tab
     healthTitle: 'Медицинская панель',
     bloodTypeLabel: 'Группа крови',
     allergiesLabel: 'Аллергии',
@@ -225,7 +199,6 @@ const journey = {
     healthPostsHint: 'Посты из категории «Здоровье» или с хештегами #health #medicine #medical.',
     noHealthPostsYet: 'Пока нет отмеченных медицинских постов.',
 
-    // Timelines tab
     timelineBirth: 'Рождение (0–1 год)',
     timelineToddler: 'Раннее детство (1–4 года)',
     timelineSchool: 'Школьные годы (4–13)',
@@ -234,7 +207,6 @@ const journey = {
     noSkillPostsYet: 'Пока нет постов с навыками или достижениями.',
     noPostsInAgeRange: 'Нет постов в этом возрастном диапазоне. (Требуется дата рождения ребёнка.)',
 
-    // Transfer tab
     transferTitle: 'Передача в 18 лет',
     transferIntro: 'Передайте альбом повзрослевшему ребёнку. Мы укажем его email как новый контакт аккаунта и создадим новый PIN редактора, отправив его на этот email.',
     transferPinWarning: 'Текущий PIN редактора будет заменён.',
@@ -246,11 +218,9 @@ const journey = {
     transferring: 'Передача…',
     transferAlbum: 'Передать альбом',
 
-    // FilteredPosts
     noPostsHereYet: 'Пока нет постов.',
     textPost: 'Текст',
 
-    // Family tree page
     familyTreeTitle: 'Семейное древо',
     familyTreeBasicCount: 'Базовое древо — {count}/{cap} человек. Перейдите на план {tier} для расширенного древа (без ограничений).',
     familyTreeExtendedCount: 'Расширенное древо — {count} человек (без ограничений).',
@@ -272,7 +242,6 @@ const journey = {
     relationCousin: 'Двоюродный брат/сестра',
     relationOther: 'Другое',
 
-    // Legacy page
     legacyPageTitle: 'Услуги Legacy',
     legacySubtitle: 'Пожизненное хранение, экспорт и премиум-услуги.',
     legacyGateTitle: 'Услуги Legacy — план Legacy',
@@ -298,7 +267,6 @@ const journey = {
     conciergeMemoryOrg: 'Организация воспоминаний',
     conciergeDataMigration: 'Перенос данных',
 
-    // FeatureGate
     featureLocked: 'Функция заблокирована',
     featureAvailableInPlan: 'Эта функция доступна в плане {tier}.',
     featureNotInYourPlan: 'Эта функция недоступна в вашем плане.',
@@ -306,7 +274,6 @@ const journey = {
     tierHigher: 'более высоком',
   },
   en: {
-    // Journey page
     journeyTitleSuffix: 'Life Journey',
     journeySubtitle: 'Biography, timelines, health, growth and more.',
     journeyGateTitle: 'Life Journey — Family plan',
@@ -317,20 +284,16 @@ const journey = {
     journeyTabEducation: 'Education',
     journeyTabTransfer: 'Transfer',
 
-    // Sign-out confirmation (journey + skills)
     signOutAlbumTitle: 'Leave the album?',
     signOutAlbumBody: 'You will need to sign in again with your PIN.',
 
-    // Shared
     addPlus: '+ Add',
 
-    // Biography tab
     biographyTitle: 'Biography & Life Story',
     biographyPlaceholder: "Write the child's story — birth, first steps, important moments…",
     biographySaved: 'Biography saved',
     recentPosts: 'Recent posts',
 
-    // Education tab (incl. the chapters/events form absorbed from the old tab)
     educationTitle: 'Educational Progress',
     educationPlaceholder: 'Where and what they studied, school stages, achievements…',
     educationSaved: 'Saved',
@@ -353,7 +316,6 @@ const journey = {
     diplomasHint: 'Posts tagged #diploma #certificate #proiect #scoala or in the Education category.',
     noDiplomasYet: 'No tagged diploma or project yet.',
 
-    // Growth tab
     heightCmLabel: 'Height (cm)',
     weightKgLabel: 'Weight (kg)',
     noMeasurementsYet: 'No measurements yet.',
@@ -364,7 +326,6 @@ const journey = {
     compareThen: 'Then',
     compareNow: 'Now',
 
-    // Health tab
     healthTitle: 'Health Dashboard',
     bloodTypeLabel: 'Blood type',
     allergiesLabel: 'Allergies',
@@ -375,7 +336,6 @@ const journey = {
     healthPostsHint: 'Posts in the Health category or tagged #health #medicine #medical.',
     noHealthPostsYet: 'No tagged health posts yet.',
 
-    // Timelines tab
     timelineBirth: 'Birth (0–1 year)',
     timelineToddler: 'Toddler years (1–4)',
     timelineSchool: 'School years (4–13)',
@@ -384,7 +344,6 @@ const journey = {
     noSkillPostsYet: 'No posts tagged with skills or achievements yet.',
     noPostsInAgeRange: "No posts in this age range. (Requires the child's birth date.)",
 
-    // Transfer tab
     transferTitle: 'Transfer at 18',
     transferIntro: "Hand the album over to your child now that they're an adult. We'll set their email as the new account contact and generate a new editor PIN, sent to that email.",
     transferPinWarning: 'The current editor PIN will be replaced.',
@@ -396,11 +355,9 @@ const journey = {
     transferring: 'Transferring…',
     transferAlbum: 'Transfer the album',
 
-    // FilteredPosts
     noPostsHereYet: 'No posts here yet.',
     textPost: 'Text',
 
-    // Family tree page
     familyTreeTitle: 'Family tree',
     familyTreeBasicCount: 'Basic tree — {count}/{cap} people. Upgrade to the {tier} plan for an extended tree (unlimited).',
     familyTreeExtendedCount: 'Extended tree — {count} people (unlimited).',
@@ -422,7 +379,6 @@ const journey = {
     relationCousin: 'Cousin',
     relationOther: 'Other',
 
-    // Legacy page
     legacyPageTitle: 'Legacy Services',
     legacySubtitle: 'Lifetime preservation, export and premium services.',
     legacyGateTitle: 'Legacy Services — Legacy plan',
@@ -448,7 +404,6 @@ const journey = {
     conciergeMemoryOrg: 'Memory organization',
     conciergeDataMigration: 'Data migration',
 
-    // FeatureGate
     featureLocked: 'Feature locked',
     featureAvailableInPlan: 'This feature is available in the {tier} plan.',
     featureNotInYourPlan: 'This feature is not available in your plan.',

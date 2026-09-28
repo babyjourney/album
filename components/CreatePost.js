@@ -18,8 +18,6 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
   const { showSuccess, showError } = useToast()
   const { t } = useLanguage()
 
-  // Load categories on mount. getCategories() is async — awaiting it (rather
-  // than storing the Promise) avoids a render crash on `categories.map`.
   useEffect(() => {
     let active = true
     getCategories()
@@ -33,7 +31,6 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
     setError('')
   }
 
-  // Handle hashtag input
   const handleHashtagKeyDown = (e) => {
     if (e.key === ' ' && currentHashtagInput.trim()) {
       e.preventDefault()
@@ -64,7 +61,7 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
         method: 'POST',
         body: JSON.stringify({
           type: 'text',
-          title: '', // Text posts don't need titles
+          title: '',
           description: postText.trim(),
           fileUrl: null,
           category: category,
@@ -79,16 +76,13 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
         throw new Error((result.errorKey ? t(result.errorKey) : result.error) || t('postCreationFailed'))
       }
 
-      // Reset form
       setPostText('')
       setCategory(DEFAULT_CATEGORY_VALUE)
       setHashtags([])
       setCurrentHashtagInput('')
 
-      // Show success toast
       showSuccess(t('success'))
 
-      // Notify parent component
       if (onPostSuccess) {
         onPostSuccess()
       }
@@ -143,7 +137,6 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
           />
         </div>
 
-        {/* Category and Hashtags Selection */}
         {isTyping && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', marginBottom: '18px' }}>
             <div>
@@ -195,7 +188,6 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
                   borderRadius: '14px'
                 }}
               >
-                {/* Display hashtag pills */}
                 {hashtags.map((tag, index) => (
                   <span
                     key={index}
@@ -217,7 +209,6 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
                   </span>
                 ))}
 
-                {/* Input for new hashtags */}
                 <input
                   type="text"
                   value={currentHashtagInput}
@@ -252,7 +243,6 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
               </p>
             </div>
 
-            {/* Date Picker */}
             <div>
               <DatePicker
                 value={customDate}
@@ -280,7 +270,6 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
         )}
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          {/* Media buttons - shown when not typing */}
           {!isTyping && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <button
@@ -317,7 +306,6 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
             </div>
           )}
 
-          {/* Post button - shown when typing */}
           {isTyping && (
             <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
               <button

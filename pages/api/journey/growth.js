@@ -1,5 +1,3 @@
-// Growth entries (height/weight over time) — GET list, POST create, DELETE.
-// Family tier.
 import { supabase } from '../../../lib/supabaseClient'
 import { requireAuthOrAdmin } from '../../../lib/authMiddleware'
 import { requireFeature } from '../../../lib/requireFeature'
@@ -43,7 +41,6 @@ async function handler(req, res) {
       if (!canWrite(req)) return res.status(403).json({ error: 'Necesită rol de editor', errorKey: 'errEditorRole' })
       const id = req.query.id || req.body?.id
       if (!id) return res.status(400).json({ error: 'id lipsește', errorKey: 'errIdRequired' })
-      // Scope delete to this family so a foreign id can't be removed.
       const { error } = await supabase
         .from('growth_entries').delete().eq('id', id).eq('family_id', familyId)
       if (error) throw error

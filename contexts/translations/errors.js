@@ -1,12 +1,3 @@
-// (Sergiu batch3 #8) Server-side error messages.
-//
-// The live album/journey UI already translates, but API routes returned
-// hardcoded Romanian `error:` strings that the client showed verbatim — so an
-// EN/RU user hit Romanian on every error/validation path. Each such route now
-// also returns an `errorKey`; the client renders t(errorKey) and falls back to
-// the Romanian string for older clients. These are the keys, shared across the
-// posts / skills / family-tree / journey / forgot-PIN flows (auth-page errors
-// live in auth.js).
 const errors = {
   ro: {
     errServerInternal: 'A apărut o eroare. Încearcă din nou.',
@@ -34,7 +25,6 @@ const errors = {
     errIdRequired: 'ID lipsește',
     errNameRequired: 'Numele este obligatoriu',
     errTitleRequired: 'Titlul este obligatoriu',
-    // posts
     errRequiredFields: 'Câmpuri obligatorii lipsă',
     errTitleTooLong: 'Titlul nu poate depăși 200 de caractere',
     errDescTooLong: 'Descrierea nu poate depăși 2000 de caractere',
@@ -44,7 +34,6 @@ const errors = {
     errVideoTooLongForPlan: 'Video-ul depășește durata maximă permisă de pachetul tău.',
     errNoEditPermission: 'Nu ai permisiunea să modifici această postare',
     errPostNotFound: 'Postarea nu a fost găsită',
-    // skills
     errSkillNameRequired: 'Numele abilității este obligatoriu',
     errSkillCreateFailed: 'Crearea abilității a eșuat',
     errSkillIdProgressRequired: 'ID-ul abilității și progresul sunt obligatorii',
@@ -56,9 +45,7 @@ const errors = {
     errProgressIncomplete: 'Date incomplete pentru actualizarea progresului',
     errProgressRange: 'Progresul trebuie să fie între 0 și 100',
     errProgressUpdateFailed: 'Actualizarea progresului a eșuat',
-    // journey / transfer
     errTransferEmailInvalid: 'Adresa de email a noului proprietar nu este validă',
-    // forgot PIN / reset
     errCodeMissing: 'Codul de verificare lipsește',
     errNewPinMissing: 'PIN-ul nou lipsește',
     errRoleInvalid: 'Rol invalid (viewer sau editor)',

@@ -11,7 +11,6 @@ async function handler(req, res) {
   const familyId = req.auth.familyId
 
   try {
-    // Use the auto-migration function
     const categories = await ensureFamilyCategories(familyId)
 
     res.status(200).json({
@@ -20,7 +19,6 @@ async function handler(req, res) {
     })
   } catch (error) {
     console.error('Error fetching categories:', error)
-    // Fallback to defaults on any error
     res.status(200).json({
       success: true,
       categories: DEFAULT_CATEGORIES
@@ -28,6 +26,4 @@ async function handler(req, res) {
   }
 }
 
-// requireAuth, not requireEditor: viewers (grandparents) need the category
-// list to use the filter drawer. Reading the category names is not an edit.
 export default requireAuth(handler)

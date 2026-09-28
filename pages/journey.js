@@ -13,9 +13,6 @@ import GrowthTab from '../components/journey/GrowthTab'
 import EducationTab from '../components/journey/EducationTab'
 import TransferTab from '../components/journey/TransferTab'
 
-// (Item 11) "Capitole" is no longer its own tab — its event-entry UI lives
-// inside Educație now, which is where people were already going to record
-// school/life milestones. components/journey/ChaptersTab.js is retired.
 const TABS = [
   { id: 'biography', labelKey: 'journeyTabBiography', feature: 'biography',           Comp: BiographyTab },
   { id: 'timelines', labelKey: 'journeyTabTimelines', feature: 'birthTimeline',       Comp: TimelinesTab },
@@ -52,10 +49,9 @@ export default function Journey() {
         const kids = (res.ok && (data.children || data.data)) || []
         setChildren(kids)
         if (kids.length && !childId) setChildId(kids[0].id)
-      } catch { /* no children rows — childId stays null (family-level records) */ }
+      } catch {  }
     }
     run()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session])
 
   if (loading || !session) {
@@ -101,7 +97,6 @@ export default function Journey() {
         </div>
 
         <FeatureGate feature="biography" title={t('journeyGateTitle')}>
-          {/* Tab bar */}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '8px 0 20px' }}>
             {TABS.map((tab) => {
               const locked = !has(tab.feature)

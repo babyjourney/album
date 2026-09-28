@@ -1,7 +1,3 @@
-// Presentational tile for audio / document posts in grid feeds (where an
-// <img>/<video> can't represent the file). Mirrors the look of the text-post
-// card. The actual playback/preview happens in PostModal.
-
 import { documentMeta } from '../lib/fileTypes'
 import { useLanguage } from '../contexts/LanguageContext'
 

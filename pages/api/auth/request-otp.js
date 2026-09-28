@@ -1,18 +1,3 @@
-// Step 1 of the 2-factor album login (Task #3).
-//
-// Input: { phoneNumber?: string, email?: string }
-//
-// Flow:
-//   • Look up the family by phone OR email.
-//   • If found AND the family has `require_otp_login = true`, issue an OTP
-//     and dispatch via the matching channel.
-//   • Respond identically whether the lookup succeeded or not (no account
-//     enumeration). The UI moves to step 2 (PIN + OTP) regardless.
-//
-// Important: this endpoint does NOT verify the PIN — PIN verification
-// happens in /api/auth/pin-login.js, which is called from step 2 of the UI
-// together with the OTP code.
-
 import { supabase } from '../../../lib/supabaseClient'
 import { issueOtp } from '../../../lib/otpStore'
 import { sendOtpEmail, sendOtpSms } from '../../../lib/notifications'
@@ -31,16 +16,14 @@ export default async function handler(req, res) {
 
   const ok = (channel = null, otpRequired = false, extra = {}) => res.status(200).json({
     ok: true,
-    otpRequired,                       // false = client can proceed straight to PIN
-    deliveryHint: channel,             // 'email' | 'phone' | null
+    otpRequired,
+    deliveryHint: channel,
     message: otpRequired
       ? 'Ți-am trimis un cod de verificare.'
       : 'Continuă cu PIN-ul.',
     ...extra,
   })
 
-  // self_registered arrives with sql/sergiu_batch2.sql. Select it defensively so
-  // login keeps working on a deployment that hasn't run the migration.
   const selectFamily = async (column, value) => {
     const cols = 'id, name, email, phone_number, is_suspended, require_otp_login, self_registered'
     const build = (c) => {
@@ -69,7 +52,6 @@ export default async function handler(req, res) {
         contactKind = 'email'
       }
     } else {
-      // E.164 — it's also what Twilio needs as the destination.
       contactValue = normalizePhone(phoneNumber)
       if (!contactValue) {
         return res.status(400).json({ error: 'Numărul de telefon nu este valid', errorKey: 'authErrPhoneInvalid' })
@@ -82,21 +64,9 @@ export default async function handler(req, res) {
     }
 
     if (!family) {
-      // Don't leak. Pretend OTP was sent so a fishing attacker can't
-      // distinguish from a real account.
       return ok(email ? 'email' : 'phone', true)
     }
 
-    // If 2FA is not enabled for this family, tell the UI it can skip
-    // straight to PIN entry. (Backwards compat — most legacy families won't
-    // enable OTP login.)
-    //
-    // LOGIN_OTP_BYPASS is the temporary escape hatch from when Resend/Twilio
-    // weren't configured. It deliberately does NOT apply to self-registered
-    // families (item 14): they only exist because they received a signup code
-    // by email, which proves email delivery works for them — and they were
-    // promised a code on every login. Bypassing it for them would silently turn
-    // off the 2FA they signed up for.
     const bypass = process.env.LOGIN_OTP_BYPASS === 'true' && !family.self_registered
     if (!family.require_otp_login || bypass) {
       return ok(contactKind, false)
@@ -113,10 +83,6 @@ export default async function handler(req, res) {
       ? await sendOtpEmail({ to: contactValue, code, purpose: 'login_2fa' })
       : await sendOtpSms({ to: contactValue, code, purpose: 'login_2fa' })
 
-    // Mirrors signup-request: when delivery isn't configured, dev needs to see
-    // the code or login is untestable. Never in production — there, an
-    // unconfigured channel means the code can NOT reach the user, and "code
-    // sent" would be a dead end. Say so.
     const extra = {}
     if (delivery?.mocked) {
       if (process.env.NODE_ENV === 'production') {
@@ -129,8 +95,6 @@ export default async function handler(req, res) {
       extra.devCode = code
     }
 
-    // (Sergiu 18.09) A real send failure (configured but rejected) must not be
-    // reported as "code sent" — the user would sit on the code screen forever.
     if (delivery && delivery.ok === false) {
       console.error(`[request-otp] ${contactKind} send FAILED — refusing to claim "code sent"`)
       return res.status(503).json({
