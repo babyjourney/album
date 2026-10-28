@@ -1,12 +1,20 @@
 # Notificări OTP — Email & SMS
 
-Codurile OTP de 6 cifre se folosesc pentru:
+Codurile OTP de 4 cifre se folosesc pentru:
+- **Înregistrare** (`/signup`) — familia alege unde primește codul: email sau SMS
 - **Forgot PIN** (`/forgot-password`) — resetare PIN viewer/editor
-- **2FA login** — când `families.require_otp_login = true`
+- **2FA login** — când `families.require_otp_login = true` (codul se trimite doar după un PIN corect)
 
 Implementarea trăiește în `lib/notifications.js`. Fără chei configurate,
-**codurile se loghează în consolă** (mock mode) — bun pentru dev, nu poți
-livra în producție.
+**codurile se loghează în consolă** (mock mode) — doar în development. În
+producție un canal fără chei este considerat indisponibil: înregistrarea pe acel
+canal răspunde „indisponibil momentan” și propune celălalt canal, dacă e
+configurat; codurile de login și de resetare merg pe celălalt contact al
+familiei, dacă există; resetarea PIN-ului răspunde mereu neutru, iar
+„indisponibil” apare doar când nu e configurat niciun canal. La login, pentru
+familiile care au nevoie de cod, „indisponibil momentan” apare după PIN-ul
+corect când niciun contact al familiei nu are un canal configurat sau când
+trimiterea eșuează.
 
 ---
 
@@ -110,6 +118,14 @@ Environment Variables**:
 | `TWILIO_ACCOUNT_SID`    | Production, Preview    |
 | `TWILIO_AUTH_TOKEN`     | Production, Preview    |
 | `TWILIO_FROM_NUMBER`    | Production, Preview    |
+| `ADMIN_NOTIFY_EMAIL`    | Production             |
+| `LOGIN_OTP_BYPASS`      | Production (`false` după ce un cod de test a ajuns) |
+| `SIGNUP_EMAIL_DAILY_CAP` | opțional, implicit 80 |
+| `SIGNUP_SMS_DAILY_CAP`  | opțional, implicit 300 |
+
+La Twilio: **Messaging → Settings → Geo permissions** — activează doar țările
+familiilor (MD, RO, RU, UA, IT, DE, FR, ES, PT, GB, US/CA); înregistrarea prin SMS
+acceptă oricum doar aceste prefixe.
 
 După salvare → **Deployments → Redeploy** (env vars nu se aplică la
 deploy-uri vechi).
@@ -124,8 +140,14 @@ deploy-uri vechi).
 [notifications] EMAIL (MOCKED — no RESEND_API_KEY): {
   from: 'BabyJourney <noreply@babyjourney.life>',
   to: 'parinte@email.com',
-  subject: 'Codul tău BabyJourney: 482719',
-  preview: 'Salut,\nCodul tău de verificare pentru a-ți reseta PIN-ul este: 482719...'
+  subject: 'Codul tău BabyJourney: 4827',
+  preview: 'Salut,\n' +
+    '\n' +
+    'Codul tău de verificare pentru a-ți reseta PIN-ul este: 4827\n' +
+    '\n' +
+    'Codul este valabil 10 minute. Dacă nu ai inițiat această cerere, ignoră acest mesaj.\n' +
+    '\n' +
+    '— BabyJourney'
 }
 ```
 

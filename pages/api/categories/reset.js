@@ -4,16 +4,20 @@ import { DEFAULT_CATEGORIES } from '../../../lib/defaultCategories'
 
 async function handler(req, res) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' })
+    return res.status(405).json({ error: 'Metoda nu este permisă' })
   }
 
   const familyId = req.auth.familyId
 
   try {
-    await supabase
+    const { error: deleteError } = await supabase
       .from('family_categories')
       .delete()
       .eq('family_id', familyId)
+
+    if (deleteError) {
+      throw deleteError
+    }
 
     const categoriesToInsert = DEFAULT_CATEGORIES.map(cat => ({
       family_id: familyId,
@@ -33,11 +37,11 @@ async function handler(req, res) {
     res.status(200).json({
       success: true,
       categories: DEFAULT_CATEGORIES,
-      message: 'Categories reset to defaults'
+      message: 'Categoriile au fost resetate la cele implicite'
     })
   } catch (error) {
     console.error('Error resetting categories:', error)
-    res.status(500).json({ error: 'Failed to reset categories' })
+    res.status(500).json({ error: 'Resetarea categoriilor a eșuat', errorKey: 'errCategoriesResetFailed' })
   }
 }
 

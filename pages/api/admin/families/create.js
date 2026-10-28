@@ -88,10 +88,10 @@ async function handler(req, res) {
     const finalRequireOtp = requireOtpLogin === true
 
     if (rawPhone && !cleanPhone) {
-      return res.status(400).json({ error: 'Numărul de telefon nu este valid (ex. 069010712 sau +37369010712)' })
+      return res.status(400).json({ error: 'Numărul de telefon nu este valid', errorKey: 'authErrPhoneInvalid' })
     }
     if (cleanEmail && !EMAIL_REGEX.test(cleanEmail)) {
-      return res.status(400).json({ error: 'Adresa de email nu este validă' })
+      return res.status(400).json({ error: 'Adresa de email nu este validă', errorKey: 'authErrEmailInvalid' })
     }
 
     let viewerPin = providedViewerPin ? String(providedViewerPin).replace(/\D/g, '') : null
@@ -119,6 +119,7 @@ async function handler(req, res) {
       if (existing && existing.length > 0) {
         return res.status(409).json({
           error: 'O familie cu acest număr de telefon există deja.',
+          errorKey: 'errPhoneTaken',
           code: 'PHONE_TAKEN',
         })
       }

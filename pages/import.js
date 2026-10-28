@@ -38,10 +38,13 @@ export default function ImportPage() {
         method: 'POST',
         body: JSON.stringify({ service: 'dataMigration', message: `Migrare din ${provider.name}` }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error((data.errorKey ? t(data.errorKey) : data.error) || t('error'))
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        showError((data.errorKey ? t(data.errorKey) : data.error) || t('error'))
+        return
+      }
       showSuccess(t('importMigrationRequested', { provider: provider.name }))
-    } catch (e) { showError(e.message) } finally { setRequesting(null) }
+    } catch { showError(t('forgotNetworkError')) } finally { setRequesting(null) }
   }
 
   if (!session) return null

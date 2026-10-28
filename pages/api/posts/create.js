@@ -1,12 +1,16 @@
 import { supabase } from '../../../lib/supabaseClient'
 import { requireAuthOrAdmin } from '../../../lib/authMiddleware'
+import { getPackageLimits } from '../../../lib/packages'
+import { getTier } from '../../../lib/tiers'
+import { storedMediaKindFromUrl, isOwnStorageUrl } from '../../../lib/fileTypes'
+import { verifyStoredVideoSeconds } from '../../../lib/videoCompress'
 
 async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Metoda nu este permisă' })
   }
 
-  const { type, title, description, fileUrl, category, hashtags, customDate, isPrivate, familyId: rawFamilyId } = req.body
+  const { type, title, description, fileUrl, category, hashtags, customDate, isPrivate, videoDuration, familyId: rawFamilyId } = req.body
 
   const familyId = req.auth.isAdmin ? rawFamilyId : req.auth.familyId
 
@@ -28,6 +32,51 @@ async function handler(req, res) {
 
   if (!['image', 'video', 'text'].includes(type)) {
     return res.status(400).json({ error: 'Tip de postare invalid', errorKey: 'errPostTypeInvalid' })
+  }
+
+  if (fileUrl) {
+    const mediaKind = typeof fileUrl === 'string' ? storedMediaKindFromUrl(fileUrl) : null
+    if (!mediaKind) {
+      return res.status(400).json({
+        error: 'Tip de fișier neacceptat. Sunt permise doar fotografii (JPG, PNG, GIF, HEIC/HEIF, WebP, JXL) și video-uri (MP4, MOV, M4V, WebM).',
+        errorKey: 'errFileTypeNotAllowed',
+      })
+    }
+    if (!isOwnStorageUrl(fileUrl, familyId)) {
+      return res.status(400).json({
+        error: 'Fișierul nu aparține acestui album. Încarcă-l din nou și încearcă iar.',
+        errorKey: 'errFileNotInAlbum',
+      })
+    }
+    if (mediaKind === 'video') {
+      const verifiedSeconds = await verifyStoredVideoSeconds(fileUrl, videoDuration)
+      if (verifiedSeconds === null) {
+        return res.status(400).json({
+          error: 'Durata video-ului nu a putut fi verificată. Reîncarcă pagina și încearcă din nou.',
+          errorKey: 'errVideoDurationMissing',
+          code: 'VIDEO_DURATION_MISSING',
+        })
+      }
+      const { data: famRow, error: famError } = await supabase
+        .from('families')
+        .select('package')
+        .eq('id', familyId)
+        .maybeSingle()
+      if (famError) {
+        console.error('Package lookup failed (create):', famError)
+      }
+      const familyPackage = famRow?.package || 'free'
+      const limit = getPackageLimits(familyPackage).maxVideoSeconds
+      if (Math.floor(verifiedSeconds) > limit) {
+        return res.status(413).json({
+          error: `Video-urile mai lungi de ${limit} secunde nu sunt disponibile pentru pachetul ${getTier(familyPackage).label}.`,
+          errorKey: 'errVideoTooLongForPlan',
+          code: 'VIDEO_TOO_LONG',
+          maxVideoSeconds: limit,
+          package: familyPackage,
+        })
+      }
+    }
   }
 
   try {
@@ -88,7 +137,8 @@ async function handler(req, res) {
       requestBody: req.body
     })
     return res.status(500).json({ 
-      error: `Crearea postării a eșuat: ${error.message}`,
+      error: 'Crearea postării a eșuat',
+      errorKey: 'postCreationFailed',
       details: error.details,
       hint: error.hint
     })

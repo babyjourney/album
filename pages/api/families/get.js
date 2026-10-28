@@ -10,7 +10,7 @@ async function handler(req, res) {
   const familyId = req.auth.isAdmin ? rawFamilyId : req.auth.familyId
 
   if (!familyId) {
-    return res.status(400).json({ error: 'ID-ul familiei este obligatoriu' })
+    return res.status(400).json({ error: 'ID-ul familiei este obligatoriu', errorKey: 'errFamilyIdRequired' })
   }
 
   try {
@@ -35,7 +35,7 @@ async function handler(req, res) {
 
   } catch (error) {
     console.error('Family fetch error:', error)
-    return res.status(500).json({ error: `Eroare la preluarea datelor familiei: ${error.message}` })
+    return res.status(500).json({ error: `Eroare la preluarea datelor familiei: ${error.message}`, errorKey: 'errFamilyLoadFailed' })
   }
 }
 

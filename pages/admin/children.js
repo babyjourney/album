@@ -4,7 +4,10 @@ import { supabase } from '../../lib/supabaseClient'
 import imageCompression from 'browser-image-compression'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { isAdminAuthenticated, clearAdminSession, adminFetch, parseAdminResponse } from '../../lib/adminAuth'
-import { isValidPhone } from '../../lib/phone'
+import { isValidPhone, formatPhoneDisplay } from '../../lib/phone'
+import PhoneInput from '../../components/PhoneInput'
+import { classifyUploadFile, fileExtension, UPLOAD_IMAGE_ACCEPT } from '../../lib/fileTypes'
+import { convertImageToJpeg, withCanonicalType } from '../../lib/imageConvert'
 import { TIER_ORDER, TIERS } from '../../lib/tiers'
 
 export default function AdminDashboard() {
@@ -229,15 +232,22 @@ export default function AdminDashboard() {
     }
   }
 
-  const compressImage = async (file) => {
-    const options = { maxSizeMB: 1, maxWidthOrHeight: 500, useWebWorker: true }
-    try { return await imageCompression(file, options) } catch { return file }
+  const prepareImage = async (file) => {
+    const info = classifyUploadFile(file)
+    if (!info || info.kind !== 'image') return null
+    if (info.needsConversion) {
+      try { return await convertImageToJpeg(file, { maxSizeMB: 1, maxWidthOrHeight: 500, initialQuality: 0.85 }) } catch { return null }
+    }
+    const source = withCanonicalType(file, info)
+    if (info.isGif) return source
+    try { return await imageCompression(source, { maxSizeMB: 1, maxWidthOrHeight: 500, useWebWorker: true, fileType: source.type }) } catch { return source }
   }
 
   const uploadChildPhoto = async (familyId, childId, file) => {
-    const compressed = await compressImage(file)
-    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
-    const fileName = `${familyId}/child_${childId}_${Date.now()}.${ext}`
+    const compressed = await prepareImage(file)
+    if (!compressed) throw new Error('Format de imagine neacceptat. Folosiți JPG, PNG, GIF, WebP, HEIC sau JXL.')
+    const ext = fileExtension(compressed.name) || '.jpg'
+    const fileName = `${familyId}/child_${childId}_${Date.now()}${ext}`
     const { error } = await supabase.storage
       .from('album_uploads').upload(fileName, compressed, { cacheControl: '3600' })
     if (error) throw error
@@ -277,8 +287,8 @@ export default function AdminDashboard() {
     const selectedFile = e.target.files[0]
     if (!selectedFile) return
 
-    if (!selectedFile.type.startsWith('image/')) {
-      setSetupError('Vă rugăm să selectați doar fișiere imagine')
+    if (!classifyUploadFile(selectedFile) || classifyUploadFile(selectedFile).kind !== 'image') {
+      setSetupError('Format de imagine neacceptat. Folosiți JPG, PNG, GIF, WebP, HEIC sau JXL.')
       return
     }
 
@@ -288,13 +298,11 @@ export default function AdminDashboard() {
     }
 
     try {
-      const options = {
-        maxSizeMB: 1,
-        maxWidthOrHeight: 500,
-        useWebWorker: true
+      const compressedFile = await prepareImage(selectedFile)
+      if (!compressedFile) {
+        setSetupError('Imaginea nu a putut fi convertită. Încercați un fișier JPG sau PNG.')
+        return
       }
-
-      const compressedFile = await imageCompression(selectedFile, options)
       setProfilePicture(compressedFile)
 
       const previewUrl = URL.createObjectURL(compressedFile)
@@ -309,8 +317,8 @@ export default function AdminDashboard() {
   const uploadProfilePicture = async (familyId) => {
     if (!profilePicture) return null
 
-    const fileExt = profilePicture.name.split('.').pop()
-    const fileName = `${familyId}/profile_${Date.now()}.${fileExt}`
+    const fileExt = fileExtension(profilePicture.name) || '.jpg'
+    const fileName = `${familyId}/profile_${Date.now()}${fileExt}`
 
     const { error } = await supabase.storage
       .from('album_uploads')
@@ -343,13 +351,13 @@ export default function AdminDashboard() {
       return
     }
 
-    if (!phoneNumber.trim()) {
-      setSetupError('Vă rugăm să introduceți numărul de telefon')
+    if (!phoneNumber) {
+      setSetupError(t('loginErrorPhoneRequired'))
       return
     }
 
     if (!isValidPhone(phoneNumber)) {
-      setSetupError('Numărul de telefon nu este valid (ex. 069010712 sau +37369010712)')
+      setSetupError(t('authErrPhoneInvalid'))
       return
     }
 
@@ -371,14 +379,14 @@ export default function AdminDashboard() {
         method: 'POST',
         body: JSON.stringify({
           name: familyName.trim(),
-          phoneNumber: phoneNumber.replace(/\s/g, ''),
+          phoneNumber,
           email: cleanEmail || undefined,
           package: tier,
         })
       })
       const parsed = await parseAdminResponse(createResponse)
       if (!parsed.ok) {
-        throw new Error(parsed.error || 'Crearea familiei a eșuat')
+        throw new Error((parsed.data?.errorKey ? t(parsed.data.errorKey) : parsed.error) || 'Crearea familiei a eșuat')
       }
       const data = parsed.data.family
       const viewerPin = data.viewer_pin
@@ -683,19 +691,17 @@ export default function AdminDashboard() {
               </div>
 
               <div>
-                <label className="text-eyebrow" style={{ display: 'block', marginBottom: '8px' }}>
+                <label htmlFor="family-phone" className="text-eyebrow" style={{ display: 'block', marginBottom: '8px' }}>
                   Numărul de Telefon *
                 </label>
-                <input
-                  type="tel"
+                <PhoneInput
+                  id="family-phone"
                   value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  className="input-glass"
-                  placeholder="ex: 069010712 sau +37369010712"
+                  onChange={setPhoneNumber}
                   required
                 />
                 <div className="text-tertiary" style={{ marginTop: '6px' }}>
-                  Format acceptat: 069010712 (Moldova) sau internațional cu prefix, ex. +40 7xx xxx xxx
+                  {t('phoneInputHint')}
                 </div>
               </div>
 
@@ -739,7 +745,7 @@ export default function AdminDashboard() {
                 </label>
                 <input
                   type="file"
-                  accept="image/*"
+                  accept={UPLOAD_IMAGE_ACCEPT}
                   onChange={handleProfilePictureChange}
                   className="input-glass"
                   style={{ paddingTop: '10px', paddingBottom: '10px' }}
@@ -882,7 +888,7 @@ export default function AdminDashboard() {
                 </div>
                 <div>
                   <div className="text-eyebrow" style={{ color: 'var(--accent-mint)', marginBottom: '4px' }}>Telefon</div>
-                  <div className="text-body nums" style={{ fontWeight: 600 }}>{setupSuccess.phoneNumber}</div>
+                  <div className="text-body nums" style={{ fontWeight: 600 }}>{formatPhoneDisplay(setupSuccess.phoneNumber)}</div>
                 </div>
                 {setupSuccess.email && (
                   <div>
@@ -1147,7 +1153,7 @@ export default function AdminDashboard() {
                         />
                         <input
                           type="file"
-                          accept="image/*"
+                          accept={UPLOAD_IMAGE_ACCEPT}
                           onChange={(e) => {
                             const f = e.target.files?.[0]
                             if (!f) return
@@ -1233,7 +1239,7 @@ export default function AdminDashboard() {
                       )}
                       <input
                         type="file"
-                        accept="image/*"
+                        accept={UPLOAD_IMAGE_ACCEPT}
                         onChange={(e) => {
                           const f = e.target.files?.[0]
                           if (!f) return

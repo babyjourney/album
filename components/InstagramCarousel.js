@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { getPosterForUrl } from '../lib/posters'
+import { useLanguage } from '../contexts/LanguageContext'
 
 export default function InstagramCarousel({ images, currentIndex = 0, onIndexChange, post }) {
+  const { t } = useLanguage()
   const [index, setIndex] = useState(currentIndex)
   const [isDragging, setIsDragging] = useState(false)
   const [dragOffset, setDragOffset] = useState(0)
@@ -333,7 +335,7 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
             ) : (
               <img
                 src={url}
-                alt={`${post?.title || 'Post'} - ${imgIndex + 1}/${images.length}`}
+                alt={`${post?.title || t('postFallbackTitle')} - ${imgIndex + 1}/${images.length}`}
                 style={{ 
                   maxWidth: '100%',
                   maxHeight: '100%',
@@ -367,6 +369,7 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
                 transform: 'translateY(-50%)',
                 zIndex: 20
               }}
+              aria-label={t('previousImage')}
             >
               ←
             </button>
@@ -386,6 +389,7 @@ export default function InstagramCarousel({ images, currentIndex = 0, onIndexCha
                 transform: 'translateY(-50%)',
                 zIndex: 20
               }}
+              aria-label={t('nextImage')}
             >
               →
             </button>

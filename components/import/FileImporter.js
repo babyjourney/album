@@ -1,10 +1,16 @@
 import { useRef, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
-import { authenticatedFetch } from '../../lib/pinAuth'
-import { isAcceptedUploadFile } from '../../lib/fileTypes'
+import { authenticatedFetch, getFamilyPackage } from '../../lib/pinAuth'
+import { UPLOAD_ACCEPT, UPLOAD_FORMAT_LABELS, classifyUploadFile, fileExtension } from '../../lib/fileTypes'
+import { getPackageLimits, getImageCompressionOptions } from '../../lib/packages'
 import { useToast } from '../../contexts/ToastContext'
 import { useLanguage } from '../../contexts/LanguageContext'
-import { captureVideoPoster } from '../../lib/videoCompress'
+import { captureVideoPoster, probeVideoDuration } from '../../lib/videoCompress'
+import { convertImageToJpeg, canDecodeImage, withCanonicalType } from '../../lib/imageConvert'
+
+const currentPackage = () => {
+  try { return getFamilyPackage() } catch { return 'free' }
+}
 
 export default function FileImporter({ familyId }) {
   const inputRef = useRef(null)
@@ -16,32 +22,72 @@ export default function FileImporter({ familyId }) {
   const { showSuccess, showError } = useToast()
   const { t } = useLanguage()
 
+  const maxVideoSeconds = getPackageLimits(currentPackage()).maxVideoSeconds
+
   const pick = (files) => {
-    const accepted = Array.from(files || []).filter(isAcceptedUploadFile)
+    const accepted = Array.from(files || []).filter((file) => classifyUploadFile(file) !== null)
     const rejected = (files?.length || 0) - accepted.length
-    if (rejected > 0) showError(t('fileImporterRejected', { count: rejected }))
+    if (rejected > 0) {
+      showError(t('fileImporterRejectedFormats', {
+        count: rejected,
+        images: UPLOAD_FORMAT_LABELS.images,
+        videos: UPLOAD_FORMAT_LABELS.videos,
+      }))
+    }
     setQueue(accepted)
     setDone(0); setFailed(0)
+  }
+
+  const prepareFile = async (file, pkg) => {
+    const info = classifyUploadFile(file)
+    if (!info) return { skip: 'format' }
+    if (info.kind === 'video') {
+      const duration = await probeVideoDuration(file)
+      if (duration === null || Math.floor(duration) > getPackageLimits(pkg).maxVideoSeconds) {
+        return { skip: 'video' }
+      }
+      return { file: withCanonicalType(file, info), kind: 'video', duration }
+    }
+    if (info.needsConversion) {
+      try {
+        return { file: await convertImageToJpeg(file, getImageCompressionOptions(pkg)), kind: 'image' }
+      } catch (err) {
+        console.warn('Import: image conversion failed for', file.name, err)
+        return { skip: 'image' }
+      }
+    }
+    const typed = withCanonicalType(file, info)
+    if (!(await canDecodeImage(typed))) return { skip: 'image' }
+    return { file: typed, kind: 'image' }
   }
 
   const run = async () => {
     if (!queue.length) return
     setRunning(true); setDone(0); setFailed(0)
-    let ok = 0, bad = 0
+    let ok = 0, bad = 0, skippedVideos = 0, skippedImages = 0
+    const pkg = currentPackage()
     const uploadOne = async (blob, i, suffix = '') => {
-      const ext = (blob.name.split('.').pop() || 'bin').toLowerCase()
+      const ext = (fileExtension(blob.name) || classifyUploadFile(blob)?.ext || '.bin').slice(1)
       const path = `${familyId}/${Date.now()}-${i}${suffix}-${Math.random().toString(36).slice(2)}.${ext}`
       const { error: upErr } = await supabase.storage.from('album_uploads').upload(path, blob)
       if (upErr) throw upErr
       return supabase.storage.from('album_uploads').getPublicUrl(path).data.publicUrl
     }
 
-    for (const [i, file] of queue.entries()) {
+    for (const [i, original] of queue.entries()) {
       try {
+        const prepared = await prepareFile(original, pkg)
+        if (prepared.skip) {
+          if (prepared.skip === 'video') skippedVideos += 1
+          else skippedImages += 1
+          bad += 1; setFailed(bad)
+          continue
+        }
+        const { file, kind, duration } = prepared
         const publicUrl = await uploadOne(file, i)
 
         let posterUrls = null
-        if (file.type?.startsWith('video/')) {
+        if (kind === 'video') {
           try {
             const poster = await captureVideoPoster(file)
             if (poster) posterUrls = [await uploadOne(poster, i, '-poster')]
@@ -53,10 +99,11 @@ export default function FileImporter({ familyId }) {
         const res = await authenticatedFetch('/api/posts/create-multi', {
           method: 'POST',
           body: JSON.stringify({
-            title: file.name.replace(/\.[^.]+$/, '').slice(0, 200),
+            title: original.name.replace(/\.[^.]+$/, '').slice(0, 200),
             description: '',
             imageUrls: [publicUrl],
             ...(posterUrls ? { posterUrls } : {}),
+            ...(kind === 'video' ? { videoDurations: [duration] } : {}),
             hashtags: '#import',
           }),
         })
@@ -68,7 +115,10 @@ export default function FileImporter({ familyId }) {
     }
     setRunning(false)
     if (ok) showSuccess(t('fileImporterImported', { count: ok }))
-    if (bad) showError(t('fileImporterFailed', { count: bad }))
+    if (skippedVideos) showError(t('fileImporterSkippedVideos', { count: skippedVideos, seconds: getPackageLimits(pkg).maxVideoSeconds }))
+    if (skippedImages) showError(t('fileImporterSkippedImages', { count: skippedImages }))
+    const otherFailures = bad - skippedVideos - skippedImages
+    if (otherFailures > 0) showError(t('fileImporterFailed', { count: otherFailures }))
     if (ok) setQueue([])
   }
 
@@ -76,10 +126,14 @@ export default function FileImporter({ familyId }) {
     <div className="card-glass" style={{ padding: 20 }}>
       <h3 className="text-section-title" style={{ marginTop: 0, fontSize: 18 }}>📂 {t('fileImporterTitle')}</h3>
       <p className="text-subtle" style={{ fontSize: 13, marginTop: 0 }}>
-        {t('fileImporterHelp')}
+        {t('fileImporterHelpMedia', {
+          images: UPLOAD_FORMAT_LABELS.images,
+          videos: UPLOAD_FORMAT_LABELS.videos,
+          seconds: maxVideoSeconds,
+        })}
       </p>
 
-      <input ref={inputRef} type="file" multiple style={{ display: 'none' }}
+      <input ref={inputRef} type="file" multiple accept={UPLOAD_ACCEPT} style={{ display: 'none' }}
         onChange={(e) => pick(e.target.files)} />
       <input ref={folderRef} type="file" multiple webkitdirectory="" directory="" style={{ display: 'none' }}
         onChange={(e) => pick(e.target.files)} />

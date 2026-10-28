@@ -1,15 +1,31 @@
 import { supabase } from '../../../lib/supabaseClient'
 import { requireEditor, verifyFamilyOwnership } from '../../../lib/authMiddleware'
+import { ownStoragePath, filterUnreferencedStoragePaths, STORAGE_BUCKET } from '../../../lib/fileTypes'
+
+const OLD_FORMAT_URLS_MARKER = '__MULTI_PHOTO_URLS__:'
+
+function urlsFromOldFormatDescription(description) {
+  if (typeof description !== 'string') return []
+  const at = description.indexOf(OLD_FORMAT_URLS_MARKER)
+  if (at < 0) return []
+  const line = description.slice(at + OLD_FORMAT_URLS_MARKER.length).split('\n')[0]
+  try {
+    const parsed = JSON.parse(line)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
 
 async function handler(req, res) {
   if (req.method !== 'PUT') {
-    return res.status(405).json({ error: 'Method not allowed' })
+    return res.status(405).json({ error: 'Metoda nu este permisă' })
   }
 
   const { postId, title, description, hashtags, file_urls, customDate, coverIndex, isPrivate, category, childIds } = req.body
 
   if (!postId) {
-    return res.status(400).json({ error: 'Post ID is required' })
+    return res.status(400).json({ error: 'ID-ul postării lipsește', errorKey: 'errPhotoIdRequired' })
   }
 
   if (title && title.length > 200) {
@@ -25,7 +41,8 @@ async function handler(req, res) {
     
     if (!ownershipCheck.isOwner) {
       return res.status(403).json({ 
-        error: ownershipCheck.error || 'Nu aveți permisiunea să modificați această postare', errorKey: 'errNoEditPermission',
+        error: ownershipCheck.error || 'Nu aveți permisiunea să modificați această postare',
+        errorKey: ownershipCheck.errorKey || 'errNoEditPermission',
         code: 'FORBIDDEN'
       })
     }
@@ -68,10 +85,10 @@ async function handler(req, res) {
     let fetchError = null
 
     for (const cols of [
-      'type, file_urls, poster_urls, file_sizes, description',
-      'type, file_urls, poster_urls, description',
-      'type, file_urls, description',
-      'type, description',
+      'type, file_url, file_urls, poster_urls, file_sizes, description',
+      'type, file_url, file_urls, poster_urls, description',
+      'type, file_url, file_urls, description',
+      'type, file_url, description',
     ]) {
       const { data, error } = await supabase
         .from('photos')
@@ -98,14 +115,42 @@ async function handler(req, res) {
     console.log('Current post in database:', currentPostData)
 
     if (file_urls !== undefined) {
-      updateData.file_urls = file_urls
-      console.log('Adding file_urls to update:', file_urls)
-
       const asArray = (v) => {
         if (Array.isArray(v)) return v
         if (typeof v === 'string') { try { const p = JSON.parse(v); return Array.isArray(p) ? p : null } catch { return null } }
         return null
       }
+
+      if (!currentPostData) {
+        return res.status(500).json({ error: 'Salvarea postării a eșuat', errorKey: 'errPhotoSaveFailed' })
+      }
+
+      const existingPool = [
+        ...(asArray(currentPostData.file_urls) || []),
+        ...urlsFromOldFormatDescription(currentPostData.description),
+      ].filter((url) => typeof url === 'string' && url)
+      if (currentPostData.file_url && !existingPool.includes(currentPostData.file_url)) {
+        existingPool.push(currentPostData.file_url)
+      }
+      const available = new Map()
+      existingPool.forEach((url) => available.set(url, (available.get(url) || 0) + 1))
+
+      const requestedUrls = file_urls === null ? [] : asArray(file_urls)
+      const onlyExistingFiles = Array.isArray(requestedUrls) && requestedUrls.every((url) => {
+        if (typeof url !== 'string' || !available.get(url)) return false
+        available.set(url, available.get(url) - 1)
+        return true
+      })
+      if (!onlyExistingFiles) {
+        return res.status(400).json({
+          error: 'Fișierele unei postări existente pot fi doar reordonate sau eliminate.',
+          errorKey: 'errPostFilesOnlyReorderOrRemove',
+        })
+      }
+
+      updateData.file_urls = file_urls
+      console.log('Adding file_urls to update:', file_urls)
+
       const oldUrls = asArray(currentPostData?.file_urls)
       const oldPosters = asArray(currentPostData?.poster_urls)
 
@@ -224,12 +269,12 @@ async function handler(req, res) {
 
     if (error) {
       console.error('Supabase error:', error)
-      return res.status(500).json({ error: 'Failed to update post: ' + error.message })
+      return res.status(500).json({ error: 'Salvarea postării a eșuat', errorKey: 'errPhotoSaveFailed' })
     }
 
     if (!data || data.length === 0) {
       console.log('No post found with ID:', postId)
-      return res.status(404).json({ error: 'Post not found', errorKey: 'errPostNotFound' })
+      return res.status(404).json({ error: 'Postarea nu a fost găsită', errorKey: 'errPostNotFound' })
     }
 
     if (Array.isArray(childIds)) {
@@ -250,11 +295,17 @@ async function handler(req, res) {
       }
     }
 
-    if (removedStorageUrls.length) {
-      try {
-        const paths = [...new Set(removedStorageUrls.map((url) => url.split('/').slice(-2).join('/')))]
-        await supabase.storage.from('album_uploads').remove(paths)
-      } catch (storageErr) {
+    const { paths: removablePaths, error: referenceError } = await filterUnreferencedStoragePaths(
+      supabase,
+      req.auth.familyId,
+      removedStorageUrls.map((url) => ownStoragePath(url, req.auth.familyId)).filter(Boolean)
+    )
+    if (referenceError) {
+      console.warn('update: kept removed files in storage, could not check other references:', referenceError.message || referenceError)
+    }
+    if (removablePaths.length) {
+      const { error: storageErr } = await supabase.storage.from(STORAGE_BUCKET).remove(removablePaths)
+      if (storageErr) {
         console.warn('update: could not delete removed files from storage:', storageErr)
       }
     }
@@ -267,7 +318,7 @@ async function handler(req, res) {
     })
   } catch (error) {
     console.error('Error in update API:', error)
-    res.status(500).json({ error: 'Internal server error: ' + error.message })
+    res.status(500).json({ error: 'Salvarea postării a eșuat', errorKey: 'errPhotoSaveFailed' })
   }
 }
 

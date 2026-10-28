@@ -3,9 +3,19 @@ import { supabase } from '../../../lib/supabaseClient'
 import { requireAuthOrAdmin } from '../../../lib/authMiddleware'
 import { requireFeature } from '../../../lib/requireFeature'
 import { resolveFamilyId, canWrite } from '../../../lib/childRecord'
-import { sendEmail } from '../../../lib/notifications'
+import { sendEmail, normalizeLang } from '../../../lib/notifications'
+import journey from '../../../contexts/translations/journey'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+const escapeHtml = (s) => String(s ?? '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;')
+
+const fill = (text, vars) => Object.keys(vars).reduce((acc, k) => acc.split(`{${k}}`).join(vars[k]), text)
 
 function randomPin(length) {
   const max = 10 ** length
@@ -45,16 +55,18 @@ async function handler(req, res) {
       .single()
     if (error) throw error
 
+    const copy = journey[normalizeLang(req.body?.lang)]
+    const name = fam?.name || ''
     await sendEmail({
       to: newEmail,
-      subject: `Ai primit acces complet la albumul ${fam?.name || ''}`,
-      text: `Felicitări! Albumul "${fam?.name || ''}" îți aparține acum.\n\nNoul tău PIN de editor (8 cifre): ${newPin}\n\nFolosește-l împreună cu acest email pentru a te autentifica. Păstrează-l în siguranță.\n\n— BabyJourney`,
+      subject: fill(copy.transferEmailSubject, { name }),
+      text: `${fill(copy.transferEmailCongrats, { name })}\n\n${copy.transferEmailPinLabel} ${newPin}\n\n${copy.transferEmailHowTo}\n\n— BabyJourney`,
       html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
-        <h2>Albumul îți aparține acum 🎉</h2>
-        <p>Albumul <strong>${fam?.name || ''}</strong> a fost transferat ție.</p>
-        <p>Noul tău PIN de editor:</p>
+        <h2>${escapeHtml(copy.transferEmailHeading)}</h2>
+        <p>${fill(escapeHtml(copy.transferEmailCongrats), { name: `<strong>${escapeHtml(name)}</strong>` })}</p>
+        <p>${escapeHtml(copy.transferEmailPinLabel)}</p>
         <p style="font-size:28px;font-weight:700;letter-spacing:5px;color:#7c3aed">${newPin}</p>
-        <p style="color:#888;font-size:13px">Folosește-l împreună cu acest email pentru a te autentifica.</p>
+        <p style="color:#888;font-size:13px">${escapeHtml(copy.transferEmailHowTo)}</p>
       </div>`,
     })
 

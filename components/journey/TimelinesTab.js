@@ -7,7 +7,7 @@ const VIEWS = [
   { id: 'toddler',labelKey: 'timelineToddler', params: { ageMinMonths: 12,  ageMaxMonths: 48 } },
   { id: 'school', labelKey: 'timelineSchool',  params: { ageMinMonths: 48,  ageMaxMonths: 156 } },
   { id: 'teen',   labelKey: 'timelineTeen',    params: { ageMinMonths: 156, ageMaxMonths: 240 } },
-  { id: 'skills', labelKey: 'timelineSkills',  params: { categoryAny: 'milestones,achievements', hashtagsAny: 'skill,abilitate,achievement,realizare,milestone,medal,medalie,award,premiu,trophy' } },
+  { id: 'skills', labelKey: 'timelineSkills',  params: { categoryAny: 'milestones,achievements', hashtagsAny: 'skill,abilitate,achievement,realizare,milestone,medal,medalie,award,premiu,trophy,trofeu,навык,достижение,медаль,награда,кубок' } },
 ]
 
 export default function TimelinesTab({ familyId, childId }) {

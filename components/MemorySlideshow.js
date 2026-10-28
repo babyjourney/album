@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useLanguage } from '../contexts/LanguageContext'
 import { getCoverPoster } from '../lib/posters'
+import { detectFileTypeFromUrl } from '../lib/fileTypes'
 
 const getCleanDescription = (post) => {
   if (!post.description) return ''
@@ -99,7 +100,7 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
   const safeIndex = Math.min(currentIndex, currentMemories.length - 1)
   const currentMemory = currentMemories[safeIndex] || memories[0]
   const fileUrl = currentMemory?.fileUrl || currentMemory?.file_url
-  const isVideo = currentMemory?.type === 'video' || currentMemory?.file_type === 'video' || fileUrl?.includes('.mp4')
+  const isVideo = !!fileUrl && detectFileTypeFromUrl(fileUrl) === 'video'
 
   return (
     <div
@@ -185,6 +186,8 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
             borderColor: isShuffled ? 'transparent' : 'rgba(255,255,255,0.18)'
           }}
           title={isShuffled ? t('shuffleOff') : t('shuffleOn')}
+          aria-label={isShuffled ? t('shuffleOff') : t('shuffleOn')}
+          aria-pressed={isShuffled}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="16 3 21 3 21 8" />
@@ -201,6 +204,7 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
             onClose()
           }}
           className="btn-icon"
+          aria-label={t('close')}
           style={{
             color: 'rgba(255,255,255,0.9)',
             background: 'rgba(255, 255, 255, 0.10)',
@@ -248,7 +252,7 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
         ) : (
           <img
             src={fileUrl}
-            alt={currentMemory.title || 'Memory'}
+            alt={currentMemory.title || t('mediaAltFallback')}
             style={{
               maxWidth: '100%',
               maxHeight: '100%',
@@ -264,6 +268,7 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
             <button
               onClick={goToPrevious}
               className="btn-icon"
+              aria-label={t('previousImage')}
               style={{
                 position: 'absolute',
                 left: window.innerWidth < 768 ? '10px' : '-72px',
@@ -285,6 +290,7 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
             <button
               onClick={goToNext}
               className="btn-icon"
+              aria-label={t('nextImage')}
               style={{
                 position: 'absolute',
                 right: window.innerWidth < 768 ? '10px' : '-72px',
@@ -376,6 +382,7 @@ export default function MemorySlideshow({ isOpen, onClose, memories = [] }) {
           setIsPlaying(!isPlaying)
         }}
         className="btn-icon"
+        aria-label={isPlaying ? t('slideshowPauseAria') : t('slideshowPlayAria')}
         style={{
           position: 'absolute',
           bottom: '20px',

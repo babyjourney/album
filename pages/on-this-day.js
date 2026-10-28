@@ -8,7 +8,7 @@ import FilteredPosts from '../components/journey/FilteredPosts'
 
 export default function OnThisDay() {
   const router = useRouter()
-  const { language, t } = useLanguage()
+  const { locale, t } = useLanguage()
   const [session, setSession] = useState(null)
   const [showSettings, setShowSettings] = useState(false)
 
@@ -22,7 +22,6 @@ export default function OnThisDay() {
   const now = new Date()
   const mm = String(now.getMonth() + 1).padStart(2, '0')
   const dd = String(now.getDate()).padStart(2, '0')
-  const locale = language === 'ru' ? 'ru-RU' : language === 'en' ? 'en-US' : 'ro-RO'
   const pretty = now.toLocaleDateString(locale, { day: 'numeric', month: 'long' })
 
   return (

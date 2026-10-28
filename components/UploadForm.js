@@ -9,8 +9,9 @@ import DatePicker from './DatePicker'
 import { getCategories } from '../lib/categoriesData'
 import { getPackageLimits, getImageCompressionOptions, getVideoLimits, getVideoEncodeOptions, STORAGE_MAX_UPLOAD_MB, STORAGE_MAX_UPLOAD_BYTES } from '../lib/packages'
 import { getTier } from '../lib/tiers'
-import { UPLOAD_ACCEPT, isAcceptedUploadFile } from '../lib/fileTypes'
-import { transcodeVideo, captureVideoPoster } from '../lib/videoCompress'
+import { UPLOAD_ACCEPT, UPLOAD_FORMAT_LABELS, classifyUploadFile, fileExtension } from '../lib/fileTypes'
+import { transcodeVideo, captureVideoPoster, probeVideoDuration } from '../lib/videoCompress'
+import { convertImageToJpeg, canDecodeImage, withCanonicalType } from '../lib/imageConvert'
 import { DEFAULT_CATEGORY_VALUE, categoryDisplayLabel } from '../lib/defaultCategories'
 
 const reorderBtnStyle = (disabled) => ({
@@ -23,6 +24,19 @@ const reorderBtnStyle = (disabled) => ({
   opacity: disabled ? 0.35 : 1,
   backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
 })
+
+const PLURAL_KEY_SUFFIX = { one: 'One', few: 'Few', many: 'Many' }
+
+const localizedError = (message) => Object.assign(new Error(message), { localized: true })
+
+const sourceSignature = (file) => `${file.name}|${file.size}|${file.lastModified}`
+
+const moveItem = (list, from, to) => {
+  const next = [...list]
+  const [m] = next.splice(from, 1)
+  next.splice(to, 0, m)
+  return next
+}
 
 export default function UploadForm({ familyId, onUploadSuccess, onClose, refreshTrigger, selectedChildId = null }) {
   const [title, setTitle] = useState('')
@@ -48,13 +62,21 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
   })
   const [videoDurations, setVideoDurations] = useState([])
   const [posters, setPosters] = useState([])
+  const [sourceKeys, setSourceKeys] = useState([])
   const [videoProgress, setVideoProgress] = useState(null)
+  const [convertingName, setConvertingName] = useState(null)
   const [existingHashtags, setExistingHashtags] = useState([])
   const [dragReorderIndex, setDragReorderIndex] = useState(null)
   const { showSuccess, showError } = useToast()
-  const { t } = useLanguage()
+  const { t, locale } = useLanguage()
   const modalRef = useRef(null)
   const userTouchedDateRef = useRef(false)
+
+  const countLabel = (baseKey, count) => {
+    let category = 'other'
+    try { category = new Intl.PluralRules(locale).select(count) } catch {}
+    return t(`${baseKey}${PLURAL_KEY_SUFFIX[category] || 'Other'}`, { count })
+  }
   const customDateRef = useRef(customDate)
   customDateRef.current = customDate
 
@@ -65,37 +87,10 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
     setCustomDate(newValue)
   }
 
-  const probeVideoDuration = (file) => {
-    return new Promise((resolve) => {
-      try {
-        const url = URL.createObjectURL(file)
-        const video = document.createElement('video')
-        video.preload = 'metadata'
-        video.muted = true
-        let settled = false
-        const finish = (value) => {
-          if (settled) return
-          settled = true
-          try { URL.revokeObjectURL(url) } catch {}
-          resolve(value)
-        }
-        video.onloadedmetadata = () => {
-          const d = Number.isFinite(video.duration) ? video.duration : null
-          finish(d)
-        }
-        video.onerror = () => finish(null)
-        setTimeout(() => finish(null), 10000)
-        video.src = url
-      } catch {
-        resolve(null)
-      }
-    })
-  }
-
   const extractDateFromFile = async (file) => {
     if (!file) return null
     try {
-      if (file.type && file.type.startsWith('image/')) {
+      if (classifyUploadFile(file)?.kind === 'image') {
         const exifr = (await import('exifr')).default
         const parsed = await exifr.parse(file, ['DateTimeOriginal', 'CreateDate']).catch(() => null)
         if (parsed) {
@@ -154,24 +149,10 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
 
   const moveFile = (from, to) => {
     if (from === to || from == null || to == null) return
-    setFiles((prev) => {
-      const next = [...prev]
-      const [m] = next.splice(from, 1)
-      next.splice(to, 0, m)
-      return next
-    })
-    setVideoDurations((prev) => {
-      const next = [...prev]
-      const [m] = next.splice(from, 1)
-      next.splice(to, 0, m)
-      return next
-    })
-    setPosters((prev) => {
-      const next = [...prev]
-      const [m] = next.splice(from, 1)
-      next.splice(to, 0, m)
-      return next
-    })
+    setFiles((prev) => moveItem(prev, from, to))
+    setVideoDurations((prev) => moveItem(prev, from, to))
+    setPosters((prev) => moveItem(prev, from, to))
+    setSourceKeys((prev) => moveItem(prev, from, to))
     setCoverIndex((ci) => {
       if (ci === from) return to
       if (from < ci && to >= ci) return ci - 1
@@ -268,7 +249,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
 
     const totalFilesAfterAddition = files.length + selectedFiles.length
     if (totalFilesAfterAddition > 10) {
-      const errorMessage = t('error')
+      const errorMessage = t('errMaxFiles')
       setError(errorMessage)
       showError(errorMessage)
       return
@@ -286,11 +267,15 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
     const processedFiles = [...files]
     const processedDurations = [...videoDurations]
     const processedPosters = [...posters]
+    const processedKeys = [...sourceKeys]
     while (processedDurations.length < processedFiles.length) {
       processedDurations.push(null)
     }
     while (processedPosters.length < processedFiles.length) {
       processedPosters.push(null)
+    }
+    while (processedKeys.length < processedFiles.length) {
+      processedKeys.push(null)
     }
     setLoading(true)
 
@@ -298,17 +283,19 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
     const videoLimits = getVideoLimits(currentPackage)
     const maxVideoBytes = videoLimits.maxMB * 1024 * 1024
     const videoEncodeOptions = getVideoEncodeOptions(currentPackage)
+    const imageOptions = getImageCompressionOptions(currentPackage)
     let rejectedLongVideos = 0
     let rejectedLargeVideos = 0
     let rejectedOversizeAfterCompression = 0
     let rejectedOversizeFiles = 0
+    const rejectedFormatNames = []
+    const rejectedUnknownDurationNames = []
+    const rejectedConversionNames = []
+    const rejectedUnreadableNames = []
 
     for (const selectedFile of selectedFiles) {
-      const fileExists = processedFiles.some(existingFile =>
-        existingFile.name === selectedFile.name && existingFile.size === selectedFile.size
-      )
-
-      if (fileExists) {
+      const sourceKey = sourceSignature(selectedFile)
+      if (processedKeys.includes(sourceKey)) {
         console.log(`File ${selectedFile.name} already selected, skipping`)
         continue
       }
@@ -326,41 +313,79 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
         continue
       }
 
-      if (!isAcceptedUploadFile(selectedFile)) {
-        const errorMessage = t('invalidFileType', { fileName: selectedFile.name })
-        setError(errorMessage)
-        showError(errorMessage)
+      const info = classifyUploadFile(selectedFile)
+      if (!info) {
+        rejectedFormatNames.push(selectedFile.name)
         continue
       }
 
       let videoDurationSec = null
-      if (selectedFile.type.startsWith('video/')) {
+      if (info.kind === 'video') {
         if (selectedFile.size > maxVideoBytes) {
           rejectedLargeVideos += 1
           continue
         }
         videoDurationSec = await probeVideoDuration(selectedFile)
-        if (videoDurationSec !== null && Math.floor(videoDurationSec) > maxVideoSeconds) {
+        if (videoDurationSec === null) {
+          rejectedUnknownDurationNames.push(selectedFile.name)
+          continue
+        }
+        if (Math.floor(videoDurationSec) > maxVideoSeconds) {
           rejectedLongVideos += 1
           continue
         }
       }
 
       try {
-        if (selectedFile.type.startsWith('image/')) {
-          const options = {
-            ...getImageCompressionOptions(currentPackage),
-            fileType: selectedFile.type,
+        if (info.kind === 'image') {
+          let prepared = null
+          if (info.needsConversion) {
+            setConvertingName(selectedFile.name)
+            try {
+              prepared = await convertImageToJpeg(selectedFile, imageOptions)
+            } catch (convertErr) {
+              console.warn('Image conversion failed for', selectedFile.name, convertErr)
+            } finally {
+              setConvertingName(null)
+            }
+            if (!prepared) {
+              rejectedConversionNames.push(selectedFile.name)
+              continue
+            }
+          } else if (info.isGif) {
+            const gif = withCanonicalType(selectedFile, info)
+            if (!(await canDecodeImage(gif))) {
+              rejectedUnreadableNames.push(selectedFile.name)
+              continue
+            }
+            prepared = gif
+          } else {
+            const source = withCanonicalType(selectedFile, info)
+            try {
+              prepared = await imageCompression(source, { ...imageOptions, fileType: source.type })
+            } catch (compressErr) {
+              console.warn('Image compression failed for', selectedFile.name, compressErr)
+              prepared = (await canDecodeImage(source)) ? source : null
+            }
+            if (!prepared) {
+              rejectedUnreadableNames.push(selectedFile.name)
+              continue
+            }
           }
 
-          const compressedFile = await imageCompression(selectedFile, options)
-          processedFiles.push(compressedFile)
+          if (prepared.size > STORAGE_MAX_UPLOAD_BYTES) {
+            rejectedOversizeFiles += 1
+            continue
+          }
+          processedFiles.push(prepared)
           processedDurations.push(null)
           processedPosters.push(null)
-        } else if (selectedFile.type.startsWith('video/')) {
+          processedKeys.push(sourceKey)
+        } else {
+          const sourceVideo = withCanonicalType(selectedFile, info)
           setVideoProgress({ name: selectedFile.name, pct: 0 })
 
-          const poster = await captureVideoPoster(selectedFile)
+          const poster = await captureVideoPoster(sourceVideo)
 
           const encodeOptions = { ...videoEncodeOptions }
           if (videoDurationSec && videoDurationSec > 0) {
@@ -370,7 +395,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
             }
           }
 
-          const { file: encoded, transcoded } = await transcodeVideo(selectedFile, {
+          const { file: encoded, transcoded } = await transcodeVideo(sourceVideo, {
             ...encodeOptions,
             onProgress: (p) =>
               setVideoProgress({ name: selectedFile.name, pct: Math.round(p * 100) }),
@@ -390,23 +415,28 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
           processedFiles.push(encoded)
           processedDurations.push(videoDurationSec)
           processedPosters.push(poster)
-        } else {
-          if (selectedFile.size > STORAGE_MAX_UPLOAD_BYTES) {
-            rejectedOversizeFiles += 1
-            continue
-          }
-          processedFiles.push(selectedFile)
-          processedDurations.push(null)
-          processedPosters.push(null)
+          processedKeys.push(sourceKey)
         }
       } catch (error) {
         console.error('Processing failed for', selectedFile.name, error)
         setVideoProgress(null)
-        processedFiles.push(selectedFile)
-        processedDurations.push(selectedFile.type.startsWith('video/') ? videoDurationSec : null)
-        processedPosters.push(null)
+        setConvertingName(null)
+        if (info.kind !== 'video') {
+          rejectedUnreadableNames.push(selectedFile.name)
+        } else if (selectedFile.size > STORAGE_MAX_UPLOAD_BYTES) {
+          rejectedOversizeAfterCompression += 1
+        } else {
+          processedFiles.push(withCanonicalType(selectedFile, info))
+          processedDurations.push(videoDurationSec)
+          processedPosters.push(null)
+          processedKeys.push(sourceKey)
+        }
       }
     }
+
+    const listNames = (names) => (names.length > 3
+      ? `${names.slice(0, 3).join(', ')} +${names.length - 3}`
+      : names.join(', '))
 
     if (rejectedLongVideos > 0) {
       const packageName = getTier(currentPackage).label
@@ -440,11 +470,40 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
       setError(msg)
       showError(msg)
     }
+    if (rejectedUnknownDurationNames.length > 0) {
+      const msg = t('uploadRejectedVideoDurationUnknown', {
+        names: listNames(rejectedUnknownDurationNames),
+        seconds: maxVideoSeconds,
+      })
+      setError(msg)
+      showError(msg)
+    }
+    if (rejectedConversionNames.length > 0) {
+      const msg = t('uploadRejectedImageConversion', { names: listNames(rejectedConversionNames) })
+      setError(msg)
+      showError(msg)
+    }
+    if (rejectedUnreadableNames.length > 0) {
+      const msg = t('uploadRejectedImageUnreadable', { names: listNames(rejectedUnreadableNames) })
+      setError(msg)
+      showError(msg)
+    }
+    if (rejectedFormatNames.length > 0) {
+      const msg = t('uploadRejectedFormat', {
+        names: listNames(rejectedFormatNames),
+        images: UPLOAD_FORMAT_LABELS.images,
+        videos: UPLOAD_FORMAT_LABELS.videos,
+      })
+      setError(msg)
+      showError(msg)
+    }
 
     setFiles(processedFiles)
     setVideoDurations(processedDurations)
     setPosters(processedPosters)
+    setSourceKeys(processedKeys)
     setVideoProgress(null)
+    setConvertingName(null)
     setLoading(false)
 
     if (coverIndex >= processedFiles.length) {
@@ -478,7 +537,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
       const posterUrls = []
 
       const uploadToStorage = async (fileToUpload, index, suffix = '') => {
-        const fileExt = fileToUpload.name.split('.').pop()
+        const fileExt = (fileExtension(fileToUpload.name) || classifyUploadFile(fileToUpload)?.ext || '.bin').slice(1)
         const fileName = `${Date.now()}-${index}${suffix}-${Math.random().toString(36).substring(2)}.${fileExt}`
         const filePath = `${familyId}/${fileName}`
 
@@ -486,7 +545,11 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
           .from('album_uploads')
           .upload(filePath, fileToUpload)
 
-        if (uploadError) throw uploadError
+        if (uploadError) {
+          const tooLarge = String(uploadError.statusCode || uploadError.status || '') === '413'
+            || /maximum allowed size|too large/i.test(uploadError.message || '')
+          throw localizedError(t(tooLarge ? 'uploadStorageTooLarge' : 'uploadStorageFailed', { name: fileToUpload.name }))
+        }
 
         const { data: publicUrlData } = supabase.storage
           .from('album_uploads')
@@ -538,10 +601,10 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
         body: JSON.stringify(requestData)
       })
 
-      const result = await response.json()
+      const result = await response.json().catch(() => ({}))
 
       if (!response.ok) {
-        throw new Error((result.errorKey ? t(result.errorKey) : result.error) || t('error'))
+        throw localizedError((result.errorKey ? t(result.errorKey) : result.error) || t('postCreationFailed'))
       }
 
       const successMessage = t('success')
@@ -554,6 +617,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
       setFiles([])
       setVideoDurations([])
       setPosters([])
+      setSourceKeys([])
       setCompressionInfo(null)
       setSelectedChildren([])
       setCoverIndex(0)
@@ -574,7 +638,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
 
     } catch (error) {
       console.error('Upload error:', error)
-      const errorMessage = t('uploadFailed', { error: error.message })
+      const errorMessage = error?.localized ? error.message : t('postCreationFailedRetry')
       setError(errorMessage)
       showError(errorMessage)
     } finally {
@@ -584,7 +648,9 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
 
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768
 
-  const isHd = getPackageLimits(currentPackage).imageQuality === 'hd'
+  const packageLimits = getPackageLimits(currentPackage)
+  const isHd = packageLimits.imageQuality === 'hd'
+  const qualityLabel = isHd ? 'HD' : 'SD'
 
   const ease = 'cubic-bezier(0.22, 1, 0.36, 1)'
   const transition = `all 220ms ${ease}`
@@ -721,9 +787,15 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                   lineHeight: 1.4
                 }}>
                   {isMobile
-                    ? `${t('fileTypesSupported')} • ${t('maxFiles')}`
-                    : `${t('dragAndDropBrowse')} • ${t('fileTypesSupported')} • ${t('maxFiles')}`
+                    ? t('maxFiles')
+                    : `${t('dragAndDropBrowse')} • ${t('maxFiles')}`
                   }
+                </p>
+                <p className="text-tertiary" style={{
+                  margin: '4px 0 0 0',
+                  lineHeight: 1.4
+                }}>
+                  {t('uploadFormatsHint', UPLOAD_FORMAT_LABELS)}
                 </p>
 
                 <div style={{ marginTop: 10, display: 'flex', justifyContent: 'center', gap: 6 }}>
@@ -736,7 +808,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                     borderColor: isHd ? 'rgba(124,58,237,0.45)' : 'var(--glass-hairline)',
                     background: isHd ? 'rgba(124,58,237,0.12)' : 'var(--glass-1)'
                   }}>
-                    {isHd ? '📷 HD · 🎬 HD video' : '📷 SD · 🎬 SD video'}
+                    {`📷 ${t('uploadPhotoBadge', { quality: qualityLabel })} · 🎬 ${t('uploadVideoBadge', { quality: qualityLabel, seconds: packageLimits.maxVideoSeconds })}`}
                   </span>
                 </div>
 
@@ -785,6 +857,36 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                 </div>
               )}
 
+              {convertingName && (
+                <div className="glass-soft" style={{
+                  padding: isMobile ? '12px' : '14px',
+                  marginBottom: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                }}>
+                  <div style={{
+                    width: 14,
+                    height: 14,
+                    flexShrink: 0,
+                    border: '2px solid rgba(124, 58, 237, 0.25)',
+                    borderTop: '2px solid var(--accent-iris)',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite'
+                  }} />
+                  <span className="text-body" style={{
+                    fontSize: 13,
+                    fontWeight: 600,
+                    minWidth: 0,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {t('convertingImage', { name: convertingName })}
+                  </span>
+                </div>
+              )}
+
               {files.length > 0 && (
                 <div className="glass-soft" style={{
                   padding: isMobile ? '12px' : '14px',
@@ -797,7 +899,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                     marginBottom: isMobile ? '8px' : '10px'
                   }}>
                     <h4 className="text-eyebrow nums" style={{ margin: 0 }}>
-                      {files.length} {t('filesSelected')}
+                      {countLabel('uploadSelectedCount', files.length)}
                     </h4>
                     {files.length > 1 && (
                       <span className="text-tertiary">
@@ -841,7 +943,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                         {file.type.startsWith('image/') ? (
                           <img
                             src={URL.createObjectURL(file)}
-                            alt="Preview"
+                            alt={file.name}
                             style={{
                               width: '100%',
                               height: '100%',
@@ -851,7 +953,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                         ) : posters[index] ? (
                           <img
                             src={URL.createObjectURL(posters[index])}
-                            alt="Preview"
+                            alt={file.name}
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                           />
                         ) : (
@@ -897,9 +999,11 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                             const newFiles = files.filter((_, i) => i !== index)
                             const newDurations = videoDurations.filter((_, i) => i !== index)
                             const newPosters = posters.filter((_, i) => i !== index)
+                            const newSourceKeys = sourceKeys.filter((_, i) => i !== index)
                             setFiles(newFiles)
                             setVideoDurations(newDurations)
                             setPosters(newPosters)
+                            setSourceKeys(newSourceKeys)
                             if (index === coverIndex && index === files.length - 1) {
                               setCoverIndex(Math.max(0, index - 1))
                             } else if (index < coverIndex) {
@@ -1456,7 +1560,7 @@ export default function UploadForm({ familyId, onUploadSuccess, onClose, refresh
                   background: 'rgba(124, 58, 237, 0.12)',
                   border: '1px solid rgba(124, 58, 237, 0.30)'
                 }}>
-                  {files.length} {files.length !== 1 ? t('filePlural') : t('fileSingular')}
+                  {countLabel('uploadFileCount', files.length)}
                 </span>
                 <span style={{ color: 'var(--ink-3)' }}>•</span>
               </>

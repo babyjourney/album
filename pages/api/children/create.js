@@ -12,7 +12,7 @@ async function handler(req, res) {
   const familyId = req.auth.isAdmin ? rawFamilyId : req.auth.familyId
 
   if (!familyId || !name) {
-    return res.status(400).json({ error: 'ID-ul familiei și numele sunt obligatorii' })
+    return res.status(400).json({ error: 'ID-ul familiei și numele sunt obligatorii', errorKey: 'errRequiredFields' })
   }
 
   if (!req.auth.isAdmin) {
@@ -28,6 +28,7 @@ async function handler(req, res) {
         const min = FEATURE_MIN_TIER.multipleChildren
         return res.status(403).json({
           error: `Planul curent permite ${maxChildren} copil. Treci la planul ${TIERS[min]?.label} pentru mai mulți copii.`,
+          errorKey: 'errFeatureLocked',
           code: 'FEATURE_LOCKED',
           feature: 'multipleChildren',
           requiredTier: min,
@@ -85,7 +86,7 @@ async function handler(req, res) {
 
   } catch (error) {
     console.error('Child creation error:', error)
-    return res.status(500).json({ error: `Crearea copilului a eșuat: ${error.message}` })
+    return res.status(500).json({ error: `Crearea copilului a eșuat: ${error.message}`, errorKey: 'errServerInternal' })
   }
 }
 

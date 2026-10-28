@@ -36,10 +36,13 @@ export default function Legacy() {
       const res = await authenticatedFetch('/api/concierge/request', {
         method: 'POST', body: JSON.stringify({ service: key }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error((data.errorKey ? t(data.errorKey) : data.error) || t('error'))
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        showError((data.errorKey ? t(data.errorKey) : data.error) || t('error'))
+        return
+      }
       showSuccess(t('conciergeRequestSent'))
-    } catch (e) { showError(e.message) } finally { setRequesting(null) }
+    } catch { showError(t('forgotNetworkError')) } finally { setRequesting(null) }
   }
 
   if (!session) return null

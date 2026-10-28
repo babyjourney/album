@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { getSession, isAuthenticated, isEditor, clearSession, authenticatedFetch } from '../lib/pinAuth'
-import { getSkillCategories, SKILL_CATEGORIES } from '../lib/skillsData'
+import { getSkillCategories } from '../lib/skillsData'
 import { useToast } from '../contexts/ToastContext'
 import { useLanguage } from '../contexts/LanguageContext'
 import FloatingDock from '../components/layout/FloatingDock'
@@ -86,7 +86,8 @@ export default function Skills() {
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error((result.errorKey ? t(result.errorKey) : result.error) || t('loading'))
+        showError((result.errorKey ? t(result.errorKey) : result.error) || t('errProgressLoadFailed'))
+        return
       }
 
       const progressMap = {}
@@ -101,7 +102,7 @@ export default function Skills() {
       sessionStorage.setItem(cacheTimeKey, now.toString())
     } catch (error) {
       console.error('Error fetching skills progress:', error)
-      showError(t('loading'))
+      showError(t('errProgressLoadFailed'))
     }
   }
 
@@ -131,7 +132,8 @@ export default function Skills() {
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error((result.errorKey ? t(result.errorKey) : result.error) || t('error'))
+        showError((result.errorKey ? t(result.errorKey) : result.error) || t('errProgressUpdateFailed'))
+        return
       }
 
       const newProgressMap = {
@@ -148,7 +150,7 @@ export default function Skills() {
       showSuccess(t('success'))
     } catch (error) {
       console.error('Error updating skill progress:', error)
-      showError(t('error'))
+      showError(t('errProgressUpdateFailed'))
     } finally {
       setUpdatingSkill(null)
     }
@@ -446,7 +448,7 @@ export default function Skills() {
                 gap: '8px'
               }}
             >
-              ← {t('back')} {t('album')}
+              ← {t('backToAlbum')}
             </button>
           </div>
 
@@ -604,7 +606,7 @@ export default function Skills() {
               fontSize: '13px'
             }}
           >
-            {t('info')}: {t('edit')} PIN
+            {t('skillsViewerNotice')}
           </div>
         )}
       </div>

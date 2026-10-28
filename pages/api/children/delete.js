@@ -3,13 +3,13 @@ import { requireAuthOrAdmin } from '../../../lib/authMiddleware'
 
 async function handler(req, res) {
   if (req.method !== 'DELETE') {
-    return res.status(405).json({ error: 'Method not allowed' })
+    return res.status(405).json({ error: 'Metoda nu este permisă' })
   }
 
   const { childId } = req.body
 
   if (!childId) {
-    return res.status(400).json({ error: 'Child ID is required' })
+    return res.status(400).json({ error: 'ID-ul copilului este obligatoriu', errorKey: 'errIdRequired' })
   }
 
   try {
@@ -20,11 +20,11 @@ async function handler(req, res) {
       .single()
 
     if (fetchError || !childData) {
-      return res.status(404).json({ error: 'Child not found' })
+      return res.status(404).json({ error: 'Copilul nu a fost găsit', errorKey: 'errChildNotFound' })
     }
 
     if (!req.auth.isAdmin && childData.family_id !== req.auth.familyId) {
-      return res.status(403).json({ error: 'Accesul la această resursă este interzis' })
+      return res.status(403).json({ error: 'Accesul la această resursă este interzis', errorKey: 'errResourceForbidden' })
     }
 
     const { error: deleteError } = await supabase
@@ -35,17 +35,17 @@ async function handler(req, res) {
 
     if (deleteError) {
       console.error('Error deleting child:', deleteError)
-      return res.status(500).json({ error: 'Failed to delete child' })
+      return res.status(500).json({ error: 'Ștergerea copilului a eșuat', errorKey: 'errServerInternal' })
     }
 
     res.status(200).json({
       success: true,
-      message: `Child ${childData.name} has been removed successfully`,
+      message: `Copilul ${childData.name} a fost eliminat`,
       deletedChild: childData
     })
   } catch (error) {
     console.error('Error in delete child API:', error)
-    res.status(500).json({ error: 'Internal server error' })
+    res.status(500).json({ error: 'Eroare internă', errorKey: 'errServerInternal' })
   }
 }
 

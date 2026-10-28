@@ -84,7 +84,7 @@ export default function FilteredPosts({ familyId, childId, params = {}, emptyTex
                 <MediaThumbnail
                   src={cover}
                   poster={getCoverPoster(post)}
-                  alt={post.title || 'Post'}
+                  alt={post.title || t('mediaAltFallback')}
                   showPlayIcon={kind === 'video'}
                   style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
                 />

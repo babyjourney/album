@@ -6,6 +6,8 @@ import { getCategories } from '../lib/categoriesData'
 import { authenticatedFetch } from '../lib/pinAuth'
 import { DEFAULT_CATEGORY_VALUE, categoryDisplayLabel } from '../lib/defaultCategories'
 
+const localizedError = (message) => Object.assign(new Error(message), { localized: true })
+
 export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVideoClick }) {
   const [postText, setPostText] = useState('')
   const [category, setCategory] = useState(DEFAULT_CATEGORY_VALUE)
@@ -70,10 +72,10 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
         })
       })
 
-      const result = await response.json()
+      const result = await response.json().catch(() => ({}))
 
       if (!response.ok) {
-        throw new Error((result.errorKey ? t(result.errorKey) : result.error) || t('postCreationFailed'))
+        throw localizedError((result.errorKey ? t(result.errorKey) : result.error) || t('postCreationFailed'))
       }
 
       setPostText('')
@@ -89,7 +91,7 @@ export default function CreatePost({ familyId, onPostSuccess, onPhotoClick, onVi
 
     } catch (error) {
       console.error('Error creating text post:', error)
-      const errorMessage = t('postCreationFailedRetry')
+      const errorMessage = error?.localized ? error.message : t('postCreationFailedRetry')
       setError(errorMessage)
       showError(errorMessage)
     } finally {

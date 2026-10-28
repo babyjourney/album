@@ -6,7 +6,8 @@ import MediaThumbnail from '../MediaThumbnail'
 import MediaTypeCard from '../MediaTypeCard'
 import { detectFileTypeFromUrl } from '../../lib/fileTypes'
 import { getCoverPoster } from '../../lib/posters'
-import { categoryDisplayLabel } from '../../lib/defaultCategories'
+import { categoryDisplayLabel, findCategory } from '../../lib/defaultCategories'
+import { getCategories } from '../../lib/categoriesData'
 
 const getMultiPhotoUrls = (post) => {
   let urls = null
@@ -79,9 +80,19 @@ export default function BentoMasonry({ familyId, searchQuery, refreshTrigger, on
   const BENTO_PATTERN = safeColumns === 3 ? BENTO_PATTERN_3 : BENTO_PATTERN_2
   const [posts, setPosts] = useState([])
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useState(false)
+  const [categories, setCategories] = useState([])
   const { showError } = useToast()
-  const { language, t } = useLanguage()
+  const { locale, t } = useLanguage()
+
+  useEffect(() => {
+    if (!familyId) return
+    let active = true
+    getCategories()
+      .then((cats) => { if (active) setCategories(Array.isArray(cats) ? cats : []) })
+      .catch(() => { if (active) setCategories([]) })
+    return () => { active = false }
+  }, [familyId, refreshTrigger])
 
   useEffect(() => {
     if (!familyId) return
@@ -92,6 +103,7 @@ export default function BentoMasonry({ familyId, searchQuery, refreshTrigger, on
   const fetchPosts = async () => {
     try {
       setLoading(true)
+      setError(false)
       const params = new URLSearchParams({ familyId })
       if (searchQuery?.trim()) params.append('search', searchQuery.trim())
       if (filters) {
@@ -114,17 +126,14 @@ export default function BentoMasonry({ familyId, searchQuery, refreshTrigger, on
       onPostsLoaded && onPostsLoaded(data)
     } catch (e) {
       console.error('Error fetching posts:', e)
-      const msg = t('postsLoadFailed')
-      setError(msg); showError(msg)
+      setError(true)
+      showError(t('postsLoadFailed'))
     } finally {
       setLoading(false)
     }
   }
 
-  const formatDate = (s) => new Date(s).toLocaleDateString(
-    language === 'ru' ? 'ru-RU' : language === 'en' ? 'en-US' : 'ro-RO',
-    { month: 'short', day: 'numeric', year: 'numeric' }
-  )
+  const formatDate = (s) => new Date(s).toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' })
 
   const renderCard = (post, index) => {
     const isTextPost = post.type === 'text'
@@ -200,7 +209,7 @@ export default function BentoMasonry({ familyId, searchQuery, refreshTrigger, on
           <MediaThumbnail
             src={cover}
             poster={getCoverPoster(post)}
-            alt={post.title || 'Post'}
+            alt={post.title || t('mediaAltFallback')}
             showPlayIcon={isVideo}
             style={{
               position: 'absolute', inset: 0,
@@ -224,7 +233,7 @@ export default function BentoMasonry({ familyId, searchQuery, refreshTrigger, on
                 border: '1px solid rgba(255,255,255,0.20)',
                 letterSpacing: '0.02em',
               }}>
-                {categoryDisplayLabel(post.category, t)}
+                {categoryDisplayLabel(findCategory(categories, post.category) || post.category, t)}
               </span>
             )}
             {post.is_private && (
@@ -324,7 +333,7 @@ export default function BentoMasonry({ familyId, searchQuery, refreshTrigger, on
     return (
       <div className="card-glass" style={{ textAlign: 'center', padding: '48px 24px' }}>
         <div style={{ fontSize: 48, marginBottom: 16 }}>😕</div>
-        <p className="text-body">{error}</p>
+        <p className="text-body">{t('postsLoadFailed')}</p>
       </div>
     )
   }

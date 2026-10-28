@@ -17,7 +17,7 @@ const key = (y, m, d) => `${y}-${String(m + 1).padStart(2, '0')}-${String(d).pad
 
 export default function CalendarView() {
   const router = useRouter()
-  const { t } = useLanguage()
+  const { t, locale } = useLanguage()
   const [session, setSession] = useState(null)
   const [showSettings, setShowSettings] = useState(false)
   const [counts, setCounts] = useState({})
@@ -73,6 +73,9 @@ export default function CalendarView() {
 
   const dayStart = selected ? new Date(selected + 'T00:00:00').toISOString() : null
   const dayEnd = selected ? new Date(selected + 'T23:59:59.999').toISOString() : null
+  const selectedLabel = selected
+    ? new Date(selected + 'T00:00:00').toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' })
+    : ''
 
   return (
     <div style={{ minHeight: '100vh', position: 'relative' }}>
@@ -87,9 +90,9 @@ export default function CalendarView() {
 
         <section className="card-glass" style={{ padding: 20, maxWidth: 520 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <button onClick={() => move(-1)} className="btn-icon" style={{ width: 36, height: 36 }}>‹</button>
+            <button onClick={() => move(-1)} className="btn-icon" aria-label={t('previous')} style={{ width: 36, height: 36 }}>‹</button>
             <strong style={{ fontSize: 16 }}>{t(MONTH_KEYS[cursor.m])} {cursor.y}</strong>
-            <button onClick={() => move(1)} className="btn-icon" style={{ width: 36, height: 36 }}>›</button>
+            <button onClick={() => move(1)} className="btn-icon" aria-label={t('next')} style={{ width: 36, height: 36 }}>›</button>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6 }}>
             {DOW_KEYS.map((k) => <div key={k} className="text-subtle" style={{ textAlign: 'center', fontSize: 11, fontWeight: 600 }}>{t(k)}</div>)}
@@ -119,7 +122,7 @@ export default function CalendarView() {
 
         {selected && (
           <section className="card-glass" style={{ padding: 20, marginTop: 16 }}>
-            <h3 className="text-section-title" style={{ marginTop: 0, fontSize: 16 }}>{t('calendarPostsFromDay', { date: selected })}</h3>
+            <h3 className="text-section-title" style={{ marginTop: 0, fontSize: 16 }}>{t('calendarPostsFromDay', { date: selectedLabel })}</h3>
             <FilteredPosts familyId={session.familyId} params={{ dateStart: dayStart, dateEnd: dayEnd, sort: 'oldest' }} />
           </section>
         )}

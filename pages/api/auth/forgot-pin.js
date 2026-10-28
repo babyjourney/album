@@ -1,96 +1,98 @@
 import { supabase } from '../../../lib/supabaseClient'
-import { normalizePhone, phoneLookupVariants } from '../../../lib/phone'
-import { issueOtp } from '../../../lib/otpStore'
-import { sendOtpEmail, sendOtpSms } from '../../../lib/notifications'
+import { normalizePhone, phoneLookupVariants, maskPhone } from '../../../lib/phone'
+import { issueAndSendOtp, familyOtpTargets, responseFloor } from '../../../lib/otpStore'
+import { normalizeLang, maskEmail, emailMatchPattern, channelConfigured, anyChannelConfigured } from '../../../lib/notifications'
+import rateLimiter, { HOUR } from '../../../lib/rateLimiter'
+
+const RESPONSE_FLOOR_MS = 900
+
+const maskContact = (kind, value) => (kind === 'email' ? maskEmail(value) : maskPhone(value))
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' })
+    return res.status(405).json({ error: 'Metoda nu este permisă', errorKey: 'authErrServer' })
   }
 
-  const { phoneNumber, email, role } = req.body || {}
-
-  const okResponse = (channel = null) => res.status(200).json({
-    ok: true,
-    deliveryHint: channel,
-    message: 'Dacă există un cont asociat, ai primit un cod de verificare.',
-  })
+  const settle = responseFloor(RESPONSE_FLOOR_MS)
+  const { phoneNumber, email, role, lang } = req.body || {}
+  const language = normalizeLang(lang)
 
   if (!phoneNumber && !email) {
-    return res.status(400).json({ error: 'Introdu numărul de telefon sau adresa de email' })
+    return res.status(400).json({ error: 'Introdu numărul de telefon sau adresa de email', errorKey: 'authErrContactRequired' })
   }
 
   const validRole = role === 'editor' || role === 'viewer' ? role : null
+  const contactKind = email ? 'email' : 'phone'
+  const contactValue = email ? String(email).trim().toLowerCase() : normalizePhone(phoneNumber)
+
+  if (!contactValue) {
+    return res.status(400).json({ error: 'Numărul de telefon nu este valid', errorKey: 'authErrPhoneInvalid' })
+  }
+
+  const emailPattern = contactKind === 'email' ? emailMatchPattern(contactValue) : null
+  if (contactKind === 'email' && !emailPattern) {
+    return res.status(400).json({ error: 'Adresa de email nu este validă', errorKey: 'authErrEmailInvalid' })
+  }
+
+  const limit = rateLimiter.take([
+    rateLimiter.byIp('forgot-pin', req, 10, HOUR),
+    rateLimiter.byContact('forgot-pin', contactValue, 5, HOUR),
+  ])
+  if (!limit.allowed) {
+    return res.status(429).json(rateLimiter.tooManyBody(limit.retryAfterMs))
+  }
+
+  if (!anyChannelConfigured()) {
+    console.error('[forgot-pin] neither RESEND nor TWILIO is configured — cannot send PIN reset codes')
+    return res.status(503).json({
+      error: 'Trimiterea codului nu este disponibilă momentan. Te rugăm să încerci mai târziu.',
+      errorKey: 'otpDeliveryUnavailable',
+    })
+  }
+
+  const genericResponse = async () => {
+    await settle()
+    return res.status(200).json({
+      ok: true,
+      deliveryHint: contactKind,
+      deliveryTo: maskContact(contactKind, contactValue) || null,
+      fallback: !channelConfigured(contactKind),
+      message: 'Dacă există un cont asociat, ai primit un cod de verificare.',
+    })
+  }
 
   try {
-    let family = null
-    let contactKind = null
-    let contactValue = null
-
-    if (email) {
-      const cleanEmail = String(email).trim().toLowerCase()
-      const { data } = await supabase
-        .from('families')
-        .select('id, name, email, phone_number, is_suspended')
-        .ilike('email', cleanEmail)
-        .maybeSingle()
-      if (data && !data.is_suspended) {
-        family = data
-        contactKind = 'email'
-        contactValue = cleanEmail
-      }
-    } else if (phoneNumber) {
-      const cleanPhone = normalizePhone(phoneNumber)
-      if (cleanPhone) {
-        const { data } = await supabase
-          .from('families')
-          .select('id, name, email, phone_number, is_suspended')
-          .in('phone_number', phoneLookupVariants(cleanPhone))
-          .limit(1)
-          .maybeSingle()
-        if (data && !data.is_suspended) {
-          family = data
-          contactKind = 'phone'
-          contactValue = cleanPhone
-        }
-      }
-    }
+    let lookup = supabase
+      .from('families')
+      .select('id, name, email, phone_number, is_suspended')
+    lookup = contactKind === 'email'
+      ? lookup.ilike('email', emailPattern).limit(1)
+      : lookup.in('phone_number', phoneLookupVariants(contactValue)).limit(1)
+    const { data, error: lookupError } = await lookup.maybeSingle()
+    if (lookupError) console.error('[forgot-pin] family lookup failed:', lookupError)
+    const family = data && !data.is_suspended ? data : null
 
     if (!family) {
-      return okResponse()
+      return await genericResponse()
     }
 
-    const { code } = await issueOtp({
+    const sent = await issueAndSendOtp({
       familyId: family.id,
-      contactKind,
-      contactValue,
+      targets: familyOtpTargets(family, contactKind, contactValue),
       purpose: 'reset_pin',
       role: validRole,
+      lang: language,
+      maxIssuedPerHour: 5,
+      maxIssuedPerDay: 10,
     })
 
-    const delivery = contactKind === 'email'
-      ? await sendOtpEmail({ to: contactValue, code, purpose: 'reset_pin' })
-      : await sendOtpSms({ to: contactValue, code, purpose: 'reset_pin' })
-
-    if (delivery?.mocked && process.env.NODE_ENV === 'production') {
-      console.error(`[forgot-pin] ${contactKind} delivery is not configured (RESEND/TWILIO env)`)
-      return res.status(503).json({
-        error: 'Trimiterea codului nu este disponibilă momentan. Te rugăm să încerci mai târziu.',
-        errorKey: 'otpDeliveryUnavailable',
-      })
+    if (!sent.ok) {
+      console.error(`[forgot-pin] reset code not sent (${sent.reason})`)
     }
 
-    if (delivery && delivery.ok === false) {
-      console.error(`[forgot-pin] ${contactKind} send FAILED — refusing to claim "code sent"`)
-      return res.status(503).json({
-        error: 'Trimiterea codului nu este disponibilă momentan. Te rugăm să încerci mai târziu.',
-        errorKey: 'otpDeliveryUnavailable',
-      })
-    }
-
-    return okResponse(contactKind)
+    return await genericResponse()
   } catch (error) {
     console.error('forgot-pin error:', error)
-    return okResponse()
+    return await genericResponse()
   }
 }

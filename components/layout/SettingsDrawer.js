@@ -43,7 +43,7 @@ export default function SettingsDrawer({ isOpen, onClose, onProfilePicture, onSi
       showSuccess(t('exportArchiveSuccess', { files: result.files, posts: result.posts }))
     } catch (e) {
       console.error('export failed', e)
-      showError(e.message || t('exportFailedError'))
+      showError(e?.name === 'Error' && e.message ? e.message : t('exportFailedError'))
     } finally {
       setExporting(false)
       setExportStatus(null)
@@ -79,7 +79,7 @@ export default function SettingsDrawer({ isOpen, onClose, onProfilePicture, onSi
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
-        <Section label={t('language') || 'Language'}>
+        <Section label={t('language')}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
             {[
               { code: 'ro', flag: '🇷🇴', name: 'Română' },
@@ -114,15 +114,18 @@ export default function SettingsDrawer({ isOpen, onClose, onProfilePicture, onSi
           </div>
         </Section>
 
-        <Section label={t('theme') || 'Theme'}>
+        <Section label={t('theme')}>
           <div style={{ display: 'flex', gap: 14, justifyContent: 'space-around' }}>
             {Object.values(themes).map((theme) => {
               const active = currentTheme === theme.name
+              const themeName = t(theme.labelKey)
               return (
                 <button
                   key={theme.name}
                   onClick={() => changeTheme(theme.name)}
-                  title={theme.label}
+                  title={themeName}
+                  aria-label={themeName}
+                  aria-pressed={active}
                   style={{
                     position: 'relative',
                     width: 64, height: 64,
@@ -233,7 +236,7 @@ export default function SettingsDrawer({ isOpen, onClose, onProfilePicture, onSi
             </button>
 
             <p className="text-subtle" style={{ fontSize: 11.5, lineHeight: 1.4, margin: 0 }}>
-              {t('exportHelpBefore')}{' '}<strong>postari.csv</strong>{' '}{t('exportHelpAfter')}
+              {t('exportHelpBefore')}{' '}<strong>{t('exportCsvName')}</strong>{' '}{t('exportHelpAfter')}
             </p>
           </div>
         </Section>
@@ -296,7 +299,7 @@ export default function SettingsDrawer({ isOpen, onClose, onProfilePicture, onSi
               <polyline points="16 17 21 12 16 7"/>
               <line x1="21" y1="12" x2="9" y2="12"/>
             </svg>
-            {t('signOut') || 'Sign out'}
+            {t('signOut')}
           </button>
         </div>
       )}

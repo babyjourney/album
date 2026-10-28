@@ -19,6 +19,8 @@ import CreatePost from '../components/CreatePost'
 import ProfilePictureModal from '../components/ProfilePictureModal'
 import MemorySlideshow from '../components/MemorySlideshow'
 
+const MEMORY_COUNT_KEYS = { one: 'memoryCountOne', few: 'memoryCountFew', many: 'memoryCountMany', other: 'memoryCountOther' }
+
 export default function Dashboard() {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -29,7 +31,7 @@ export default function Dashboard() {
   const [selectedChildId, setSelectedChildId] = useState(null)
   const [postCount, setPostCount] = useState(0)
   const [feedPosts, setFeedPosts] = useState([])
-  const [albumTitle, setAlbumTitle] = useState('Family Album')
+  const [albumTitleInfo, setAlbumTitleInfo] = useState(null)
   const [familyProfilePicture, setFamilyProfilePicture] = useState('')
   const [feedColumns, setFeedColumns] = useState(3)
 
@@ -50,7 +52,7 @@ export default function Dashboard() {
   const [slideshowLoading, setSlideshowLoading] = useState(false)
 
   const router = useRouter()
-  const { t } = useLanguage()
+  const { t, locale } = useLanguage()
   const { children, isMultiChild } = useChildren(session?.familyId)
 
   useEffect(() => { checkAuth() }, [])
@@ -76,23 +78,26 @@ export default function Dashboard() {
     if (!userSession?.familyId) return
     const familyId = userSession.familyId
 
-    const cachedTitle   = sessionStorage.getItem(`albumTitle_${familyId}`)
+    const titleCacheKey = `albumTitleInfo_${familyId}`
+    let cachedTitle = null
+    try { cachedTitle = JSON.parse(sessionStorage.getItem(titleCacheKey) || 'null') } catch {}
     const cachedPicture = sessionStorage.getItem(`familyPicture_${familyId}`)
-    if (cachedTitle)   setAlbumTitle(cachedTitle)
+    if (cachedTitle?.key) setAlbumTitleInfo(cachedTitle)
     if (cachedPicture) setFamilyProfilePicture(cachedPicture)
 
-    const titleAge = sessionStorage.getItem(`albumTitle_${familyId}_time`)
+    const titleAge = sessionStorage.getItem(`${titleCacheKey}_time`)
     const picAge   = sessionStorage.getItem(`familyPicture_${familyId}_time`)
     const now = Date.now()
     const cacheAge = 5 * 60 * 1000
 
-    if (!cachedTitle || !titleAge || (now - titleAge) > cacheAge) {
+    if (!cachedTitle?.key || !titleAge || (now - titleAge) > cacheAge) {
       authenticatedFetch(`/api/album-settings/get-title?familyId=${familyId}`)
-        .then(r => r.json()).then(({ title }) => {
-          if (title) {
-            setAlbumTitle(title)
-            sessionStorage.setItem(`albumTitle_${familyId}`, title)
-            sessionStorage.setItem(`albumTitle_${familyId}_time`, now.toString())
+        .then(r => r.json()).then(({ titleKey, titleName }) => {
+          if (titleKey) {
+            const info = { key: titleKey, name: titleName || '' }
+            setAlbumTitleInfo(info)
+            sessionStorage.setItem(titleCacheKey, JSON.stringify(info))
+            sessionStorage.setItem(`${titleCacheKey}_time`, now.toString())
           }
         }).catch(() => {})
     }
@@ -174,6 +179,10 @@ export default function Dashboard() {
   if (!session) return null
 
   const hasEditorAccess = isEditor()
+  const albumTitle = albumTitleInfo?.key
+    ? t(albumTitleInfo.key, { name: albumTitleInfo.name })
+    : t('albumTitleDefault')
+  const memoryCountKey = MEMORY_COUNT_KEYS[new Intl.PluralRules(locale).select(postCount)] || 'memoryCountOther'
 
   const railChildren = isMultiChild ? children : []
   const actionItems = []
@@ -275,7 +284,7 @@ export default function Dashboard() {
             {albumTitle}
           </h1>
           <p className="text-body" style={{ color: 'var(--ink-2)', fontSize: 16 }}>
-            <span className="nums">{postCount}</span> {postCount === 1 ? t('memoryCountSingular') : t('memoryCountPlural')}
+            <span className="nums">{postCount}</span> {t(memoryCountKey)}
             <span style={{ margin: '0 8px', opacity: 0.4 }}>·</span>
             <span style={{
               background: 'linear-gradient(90deg, #7c3aed, #06b6d4)',

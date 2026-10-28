@@ -3,7 +3,7 @@ import { requireAuthOrAdmin } from '../../../lib/authMiddleware'
 
 async function listFamilyLinks(req, res) {
   const familyId = req.auth.isAdmin ? req.query.familyId : req.auth.familyId
-  if (!familyId) return res.status(400).json({ error: 'familyId lipsește' })
+  if (!familyId) return res.status(400).json({ error: 'familyId lipsește', errorKey: 'errFamilyIdRequired' })
 
   try {
     const { data: photos, error: photosErr } = await supabase
@@ -20,7 +20,7 @@ async function listFamilyLinks(req, res) {
     return res.status(200).json({ success: true, links: data || [] })
   } catch (error) {
     console.error('child-posts family list error:', error)
-    return res.status(500).json({ error: 'Încărcarea asocierilor a eșuat' })
+    return res.status(500).json({ error: 'Încărcarea asocierilor a eșuat', errorKey: 'errServerInternal' })
   }
 }
 
@@ -33,9 +33,9 @@ async function handler(req, res) {
   try {
     const { data: photo } = await supabase
       .from('photos').select('id, family_id').eq('id', photoId).single()
-    if (!photo) return res.status(404).json({ error: 'Postarea nu a fost găsită' })
+    if (!photo) return res.status(404).json({ error: 'Postarea nu a fost găsită', errorKey: 'errPostNotFound' })
     if (!req.auth.isAdmin && photo.family_id !== req.auth.familyId) {
-      return res.status(403).json({ error: 'Fotografia nu aparține familiei dvs.' })
+      return res.status(403).json({ error: 'Fotografia nu aparține familiei dvs.', errorKey: 'errForbiddenOtherFamily' })
     }
 
     const { data, error } = await supabase
@@ -45,7 +45,7 @@ async function handler(req, res) {
     return res.status(200).json({ success: true, childIds: (data || []).map((r) => r.child_id) })
   } catch (error) {
     console.error('child-posts list error:', error)
-    return res.status(500).json({ error: 'Încărcarea copiilor asociați a eșuat' })
+    return res.status(500).json({ error: 'Încărcarea copiilor asociați a eșuat', errorKey: 'errServerInternal' })
   }
 }
 

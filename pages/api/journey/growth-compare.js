@@ -1,6 +1,24 @@
 import { requireAuthOrAdmin } from '../../../lib/authMiddleware'
 import { requireFeature } from '../../../lib/requireFeature'
 import { getChildRecord, upsertChildRecord, resolveFamilyId, canWrite } from '../../../lib/childRecord'
+import { isAllowedStoredImageUrl, isOwnStorageUrl } from '../../../lib/fileTypes'
+
+function compareUrlError(url, familyId) {
+  if (url === undefined || url === null || url === '') return null
+  if (typeof url !== 'string' || !isAllowedStoredImageUrl(url)) {
+    return {
+      error: 'Tip de fișier neacceptat. Pentru comparație sunt permise doar fotografii (JPG, PNG, GIF, HEIC/HEIF, WebP, JXL).',
+      errorKey: 'errCompareImageTypeNotAllowed',
+    }
+  }
+  if (!isOwnStorageUrl(url, familyId)) {
+    return {
+      error: 'Fișierul nu aparține acestui album. Încarcă-l din nou și încearcă iar.',
+      errorKey: 'errFileNotInAlbum',
+    }
+  }
+  return null
+}
 
 async function handler(req, res) {
   const familyId = resolveFamilyId(req)
@@ -15,6 +33,8 @@ async function handler(req, res) {
     if (req.method === 'POST') {
       if (!canWrite(req)) return res.status(403).json({ error: 'Necesită rol de editor', errorKey: 'errEditorRole' })
       const childId = req.body?.childId || null
+      const urlError = compareUrlError(req.body?.thenUrl, familyId) || compareUrlError(req.body?.nowUrl, familyId)
+      if (urlError) return res.status(400).json(urlError)
       const patch = {}
       if (req.body?.thenUrl !== undefined) patch.then_url = req.body.thenUrl || null
       if (req.body?.nowUrl !== undefined) patch.now_url = req.body.nowUrl || null

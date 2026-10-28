@@ -11,6 +11,7 @@ const errors = {
     errFeatureLocked: 'Această funcție nu este inclusă în planul albumului tău.',
     errPlanCheckFailed: 'Nu s-a putut verifica planul albumului.',
     errRateLimited: 'Prea multe încercări. Încearcă din nou mai târziu.',
+    errRateLimitedRetryIn: 'Prea multe încercări. Încearcă din nou peste {time}.',
     errMeasurementDateRequired: 'Data măsurării este obligatorie.',
     errPhotosLoadFailed: 'Încărcarea postărilor a eșuat.',
     errPhotoSaveFailed: 'Salvarea postării a eșuat.',
@@ -54,6 +55,8 @@ const errors = {
     errAccountNotFoundOrExpired: 'Cont negăsit sau cod expirat',
     errAccountSuspended: 'Acest cont este suspendat',
     errPinUpdateFailed: 'Nu s-a putut actualiza PIN-ul',
+    errPhoneTaken: 'O familie cu acest număr de telefon există deja.',
+    errPhoneTakenOther: 'O altă familie are deja acest număr de telefon.',
   },
   ru: {
     errServerInternal: 'Произошла ошибка. Попробуйте снова.',
@@ -67,6 +70,7 @@ const errors = {
     errFeatureLocked: 'Эта функция не входит в тариф вашего альбома.',
     errPlanCheckFailed: 'Не удалось проверить тариф альбома.',
     errRateLimited: 'Слишком много попыток. Попробуйте позже.',
+    errRateLimitedRetryIn: 'Слишком много попыток. До следующей попытки: {time}.',
     errMeasurementDateRequired: 'Дата измерения обязательна.',
     errPhotosLoadFailed: 'Не удалось загрузить посты.',
     errPhotoSaveFailed: 'Не удалось сохранить пост.',
@@ -110,6 +114,8 @@ const errors = {
     errAccountNotFoundOrExpired: 'Аккаунт не найден или код истёк',
     errAccountSuspended: 'Этот аккаунт приостановлен',
     errPinUpdateFailed: 'Не удалось обновить PIN',
+    errPhoneTaken: 'Семья с этим номером телефона уже существует.',
+    errPhoneTakenOther: 'Этот номер телефона уже указан у другой семьи.',
   },
   en: {
     errServerInternal: 'Something went wrong. Please try again.',
@@ -123,6 +129,7 @@ const errors = {
     errFeatureLocked: 'This feature is not included in your album plan.',
     errPlanCheckFailed: 'Could not verify the album plan.',
     errRateLimited: 'Too many attempts. Please try again later.',
+    errRateLimitedRetryIn: 'Too many attempts. Please try again in {time}.',
     errMeasurementDateRequired: 'The measurement date is required.',
     errPhotosLoadFailed: 'Could not load the posts.',
     errPhotoSaveFailed: 'Could not save the post.',
@@ -166,6 +173,8 @@ const errors = {
     errAccountNotFoundOrExpired: 'Account not found or code expired',
     errAccountSuspended: 'This account is suspended',
     errPinUpdateFailed: 'Could not update the PIN',
+    errPhoneTaken: 'A family with this phone number already exists.',
+    errPhoneTakenOther: 'Another family already uses this phone number.',
   },
 }
 

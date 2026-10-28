@@ -1,5 +1,6 @@
 import { supabase } from '../../../../lib/supabaseClient'
 import { requireAdmin } from '../../../../lib/authMiddleware'
+import { formatPhoneDisplay } from '../../../../lib/phone'
 
 async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -34,7 +35,7 @@ async function handler(req, res) {
       children: childrenList,
       childrenCount,
       displayTitle,
-      phoneDisplay: f.phone_number || 'Fără telefon',
+      phoneDisplay: f.phone_number ? formatPhoneDisplay(f.phone_number) : 'Fără telefon',
     }
   })
 

@@ -1,12 +1,16 @@
 import { useState } from 'react'
 import { useRouter } from 'next/router'
+import Head from 'next/head'
 import Link from 'next/link'
 import { useLanguage } from '../contexts/LanguageContext'
+import { isValidPhone, formatPhoneDisplay } from '../lib/phone'
+import { formatWaitTime } from '../lib/pinAuth'
 import LanguagePicker from '../components/LanguagePicker'
+import PhoneInput from '../components/PhoneInput'
 
 export default function ForgotPassword() {
   const router = useRouter()
-  const { t } = useLanguage()
+  const { t, language, locale } = useLanguage()
   const [step, setStep] = useState(1)
   const [channel, setChannel] = useState('phone')
   const [phone, setPhone] = useState('')
@@ -18,16 +22,24 @@ export default function ForgotPassword() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const [sentTo, setSentTo] = useState('')
 
-  const contactValue = channel === 'email' ? email : phone
+  const serverError = (data, fallbackKey) => t(
+    data?.errorKey || fallbackKey,
+    data?.retryAfterMs ? { time: formatWaitTime(data.retryAfterMs, locale) } : {}
+  )
 
   async function handleRequestCode(e) {
     e.preventDefault()
     setError('')
     setNotice('')
 
-    if (channel === 'phone' && !phone.trim()) {
+    if (channel === 'phone' && !phone) {
       setError(t('forgotErrorPhoneRequired'))
+      return
+    }
+    if (channel === 'phone' && !isValidPhone(phone)) {
+      setError(t('authErrPhoneInvalid'))
       return
     }
     if (channel === 'email' && !email.trim()) {
@@ -41,16 +53,24 @@ export default function ForgotPassword() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          phoneNumber: channel === 'phone' ? phone.trim() : undefined,
+          phoneNumber: channel === 'phone' ? phone : undefined,
           email: channel === 'email' ? email.trim() : undefined,
           role,
+          lang: language,
         }),
       })
-      setNotice(
-        channel === 'email'
-          ? t('forgotNoticeEmail')
-          : t('forgotNoticeSms')
-      )
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setError(serverError(data, 'forgotNetworkError'))
+        return
+      }
+      if (data.fallback) {
+        setSentTo('')
+        setNotice(t(channel === 'email' ? 'otpViaOtherContactEmail' : 'otpViaOtherContactSms'))
+      } else {
+        setSentTo(channel === 'email' ? email.trim() : formatPhoneDisplay(phone))
+        setNotice(`${t(channel === 'email' ? 'forgotNoticeEmail' : 'forgotNoticeSms')} ${t('otpOtherContactHint')}`)
+      }
       setStep(2)
     } catch (err) {
       console.error('forgot-pin request failed', err)
@@ -89,16 +109,16 @@ export default function ForgotPassword() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          phoneNumber: channel === 'phone' ? phone.trim() : undefined,
+          phoneNumber: channel === 'phone' ? phone : undefined,
           email: channel === 'email' ? email.trim() : undefined,
           code: code.trim(),
           newPin: cleaned,
           role,
         }),
       })
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setError((data.errorKey ? t(data.errorKey) : data.error) || t('forgotResetFailed'))
+        setError(serverError(data, 'forgotResetFailed'))
         return
       }
       router.push('/login?reset=ok')
@@ -116,10 +136,13 @@ export default function ForgotPassword() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: 24,
+      padding: '76px 24px 24px',
       position: 'relative',
     }}>
-      <div style={{ position: 'absolute', top: 20, right: 20, zIndex: 2 }}>
+      <Head>
+        <title>{`${t('forgotTitle')} · BabyJourney`}</title>
+      </Head>
+      <div style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 16px)', right: 16, zIndex: 2 }}>
         <LanguagePicker />
       </div>
       <div aria-hidden style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0 }}>
@@ -174,15 +197,9 @@ export default function ForgotPassword() {
                 <label htmlFor="phone" className="text-eyebrow" style={{ display: 'block', marginBottom: 8 }}>
                   {t('authPhoneLabel')}
                 </label>
-                <input
-                  id="phone" type="tel" inputMode="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="061234567"
-                  className="input-glass"
-                  style={{ marginBottom: 16 }}
-                  required
-                />
+                <div style={{ marginBottom: 16 }}>
+                  <PhoneInput id="phone" value={phone} onChange={setPhone} required />
+                </div>
               </>
             ) : (
               <>
@@ -242,18 +259,21 @@ export default function ForgotPassword() {
 
         {step === 2 && (
           <form onSubmit={handleResetPin} className="modal-glass" style={{ padding: '28px 26px' }}>
-            <p className="text-subtle" style={{ marginBottom: 14, fontSize: 13 }}>
-              {t('forgotCodeSentTo')} <strong style={{ color: 'var(--ink-1)' }}>{contactValue}</strong>
-            </p>
+            {sentTo && (
+              <p className="text-subtle" style={{ marginBottom: 14, fontSize: 13 }}>
+                {t('forgotCodeSentTo')} <strong style={{ color: 'var(--ink-1)' }}>{sentTo}</strong>
+              </p>
+            )}
 
             <label htmlFor="code" className="text-eyebrow" style={{ display: 'block', marginBottom: 8 }}>
               {t('forgotCodeLabel')}
             </label>
             <input
-              id="code" type="text" inputMode="numeric" pattern="[0-9]*" maxLength="6"
+              id="code" type="text" inputMode="numeric" pattern="[0-9]*" maxLength="4"
+              autoComplete="one-time-code"
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-              placeholder="• • • • • •"
+              placeholder="• • • •"
               className="input-glass nums"
               style={{ textAlign: 'center', letterSpacing: 10, fontSize: 22, marginBottom: 16 }}
               required

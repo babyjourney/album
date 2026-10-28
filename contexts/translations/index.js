@@ -4,8 +4,9 @@ import auth from './auth'
 import media from './media'
 import errors from './errors'
 import categories from './categories'
+import legal from './legal'
 
-const MODULES = [dashboard, journey, auth, media, errors, categories]
+const MODULES = [dashboard, journey, auth, media, errors, categories, legal]
 const LANGS = ['ro', 'ru', 'en']
 
 const merged = LANGS.reduce((acc, lang) => {

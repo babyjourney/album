@@ -21,6 +21,8 @@ const RELATIONS = [
   { value: 'Altul', key: 'relationOther' },
 ]
 
+const PEOPLE_KEYS = { one: 'familyTreePeopleOne', few: 'familyTreePeopleFew', many: 'familyTreePeopleMany' }
+
 export default function FamilyTree() {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -31,7 +33,7 @@ export default function FamilyTree() {
   const [form, setForm] = useState({ name: '', relation: RELATIONS[0].value, birthYear: '', notes: '' })
   const [adding, setAdding] = useState(false)
   const router = useRouter()
-  const { t } = useLanguage()
+  const { t, locale } = useLanguage()
   const { children, isMultiChild } = useChildren(session?.familyId)
   const { showSuccess, showError } = useToast()
   const { limits, requiredTierLabel } = useTier()
@@ -43,6 +45,11 @@ export default function FamilyTree() {
     const known = RELATIONS.find((r) => r.value === value)
     return known ? t(known.key) : value
   }
+
+  const peopleLabel = (count) =>
+    t(PEOPLE_KEYS[new Intl.PluralRules(locale).select(count)] || 'familyTreePeopleOther', { count })
+
+  const apiErrorText = (data) => (data?.errorKey ? t(data.errorKey) : data?.error) || t('errServerInternal')
 
   useEffect(() => {
     if (!isAuthenticated()) { router.push('/login'); return }
@@ -72,20 +79,28 @@ export default function FamilyTree() {
           notes: form.notes,
         }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error((data.errorKey ? t(data.errorKey) : data.error) || t('error'))
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        showError(data.feature === 'extendedFamilyTree'
+          ? t('familyTreeCapReached', { people: peopleLabel(data.cap ?? cap), tier: requiredTierLabel('extendedFamilyTree') })
+          : apiErrorText(data))
+        return
+      }
       setForm({ name: '', relation: RELATIONS[0].value, birthYear: '', notes: '' })
       showSuccess(t('familyTreeMemberAdded'))
       loadNodes(session.familyId)
-    } catch (e) { showError(e.message) } finally { setAdding(false) }
+    } catch { showError(t('errServerInternal')) } finally { setAdding(false) }
   }
 
   const remove = async (id) => {
     try {
       const res = await authenticatedFetch(`/api/family-tree/nodes?id=${id}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error(t('error'))
+      if (!res.ok) {
+        showError(apiErrorText(await res.json().catch(() => ({}))))
+        return
+      }
       setNodes((n) => n.filter((x) => x.id !== id))
-    } catch (e) { showError(e.message) }
+    } catch { showError(t('errServerInternal')) }
   }
 
   if (loading || !session) {
@@ -124,8 +139,8 @@ export default function FamilyTree() {
           </h1>
           <p className="text-subtle" style={{ fontSize: 14, margin: 0 }}>
             {Number.isFinite(cap)
-              ? t('familyTreeBasicCount', { count: nodes.length, cap, tier: requiredTierLabel('extendedFamilyTree') })
-              : t('familyTreeExtendedCount', { count: nodes.length })}
+              ? t('familyTreeBasicCount', { count: nodes.length, people: peopleLabel(cap), tier: requiredTierLabel('extendedFamilyTree') })
+              : t('familyTreeExtendedCount', { people: peopleLabel(nodes.length) })}
           </p>
         </header>
 
@@ -133,7 +148,7 @@ export default function FamilyTree() {
           <div className="card-glass" style={{ padding: 20, marginBottom: 20 }}>
             {atCap ? (
               <div className="glass-soft" style={{ padding: 16, textAlign: 'center', borderRadius: 12 }}>
-                {t('familyTreeCapReached', { cap, tier: requiredTierLabel('extendedFamilyTree') })}
+                {t('familyTreeCapReached', { people: peopleLabel(cap), tier: requiredTierLabel('extendedFamilyTree') })}
               </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, alignItems: 'end' }}>

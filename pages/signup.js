@@ -1,59 +1,104 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
+import Head from 'next/head'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useLanguage } from '../contexts/LanguageContext'
-import { COUNTRIES, PINNED_COUNT, dialOf } from '../lib/phone'
+import { isValidPhone, formatPhoneDisplay } from '../lib/phone'
+import { formatWaitTime } from '../lib/pinAuth'
 import LanguagePicker from '../components/LanguagePicker'
+import PhoneInput from '../components/PhoneInput'
+
+const CHANNEL_REFUSALS = {
+  signupEmailUnavailable: 'email',
+  signupSmsUnavailable: 'sms',
+  signupSmsCountryUnsupported: 'sms',
+}
 
 export default function Signup() {
   const router = useRouter()
-  const { t, locale } = useLanguage()
+  const { t, language, locale } = useLanguage()
   const [step, setStep] = useState('details')
+  const [channel, setChannel] = useState('email')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [suggestion, setSuggestion] = useState(null)
+  const [refusedChannels, setRefusedChannels] = useState([])
 
   const [familyName, setFamilyName] = useState('')
   const [email, setEmail] = useState('')
-  const [country, setCountry] = useState('MD')
-  const [phoneNumber, setPhoneNumber] = useState('')
-
-  const fullPhone = () => `${dialOf(country)}${phoneNumber.replace(/\D/g, '').replace(/^0+/, '')}`
-
-  const countryOptions = useMemo(() => {
-    let nameOf = (code) => code
-    try {
-      const dn = new Intl.DisplayNames([locale], { type: 'region' })
-      nameOf = (code) => dn.of(code) || code
-    } catch {  }
-    const withNames = COUNTRIES.map((c) => ({ ...c, name: nameOf(c.code) }))
-    return [
-      ...withNames.slice(0, PINNED_COUNT),
-      ...withNames.slice(PINNED_COUNT).sort((a, b) => a.name.localeCompare(b.name, locale)),
-    ]
-  }, [locale])
+  const [phone, setPhone] = useState('')
 
   const [code, setCode] = useState('')
   const [devCode, setDevCode] = useState('')
 
   const [credentials, setCredentials] = useState(null)
 
+  const isSms = channel === 'sms'
+
+  const clearError = () => {
+    setError('')
+    setSuggestion(null)
+  }
+
+  const switchChannel = (next) => {
+    setChannel(next)
+    clearError()
+  }
+
+  const contactBody = () => (isSms ? { phoneNumber: phone } : { email: email.trim() })
+
+  const failWith = (data, fallbackKey) => {
+    const refused = CHANNEL_REFUSALS[data?.errorKey]
+    if (refused) {
+      const tried = refusedChannels.includes(refused) ? refusedChannels : [...refusedChannels, refused]
+      const next = refused === 'sms' ? 'email' : 'sms'
+      setRefusedChannels(tried)
+      if (data.otherChannelAvailable === true && !tried.includes(next)) {
+        setError(t(data.errorKey))
+        setSuggestion({ next, label: t(next === 'sms' ? 'signupUseSmsInstead' : 'signupUseEmailInstead') })
+      } else {
+        setError(t('signupUnavailable'))
+        setSuggestion(null)
+      }
+      return
+    }
+    const key = data?.errorKey || fallbackKey
+    setSuggestion(null)
+    setError(data?.retryAfterMs
+      ? t(key, { time: formatWaitTime(data.retryAfterMs, locale) })
+      : t(key))
+  }
+
   const submitDetails = async (e) => {
     e.preventDefault()
-    setError('')
+    clearError()
+    if (isSms && !isValidPhone(phone)) {
+      setError(t('authErrPhoneInvalid'))
+      return
+    }
     setLoading(true)
     try {
       const res = await fetch('/api/auth/signup-request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ familyName, email, phoneNumber: fullPhone() }),
+        body: JSON.stringify({
+          familyName,
+          ...contactBody(),
+          channel,
+          lang: language,
+        }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.errorKey ? t(data.errorKey) : (data.error || t('signupFailed')))
-
-      if (data.devCode) setDevCode(data.devCode)
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        failWith(data, 'signupFailed')
+        return
+      }
+      setDevCode(data.devCode || '')
+      setCode('')
       setStep('code')
     } catch (err) {
-      setError(err.message)
+      console.error('signup-request failed', err)
+      setError(t('forgotNetworkError'))
     } finally {
       setLoading(false)
     }
@@ -61,25 +106,69 @@ export default function Signup() {
 
   const submitCode = async (e) => {
     e.preventDefault()
-    setError('')
+    clearError()
     setLoading(true)
     try {
       const res = await fetch('/api/auth/signup-verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, code }),
+        body: JSON.stringify({
+          channel,
+          ...contactBody(),
+          code,
+          lang: language,
+        }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.errorKey ? t(data.errorKey) : (data.error || t('signupCodeVerifyFailed')))
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        failWith(data, 'signupCodeVerifyFailed')
+        return
+      }
 
       setCredentials({ viewerPin: data.viewerPin, editorPin: data.editorPin })
       setStep('done')
     } catch (err) {
-      setError(err.message)
+      console.error('signup-verify failed', err)
+      setError(t('forgotNetworkError'))
     } finally {
       setLoading(false)
     }
   }
+
+  const subtitle =
+    step === 'details' ? t(isSms ? 'signupDetailsSubtitleSms' : 'signupDetailsSubtitle')
+    : step === 'code' ? (isSms
+      ? t('signupCodeSubtitleSms', { phone: formatPhoneDisplay(phone) })
+      : t('signupCodeSubtitle', { email: email.trim() }))
+    : t(isSms ? 'signupDoneSubtitleSms' : 'signupDoneSubtitle')
+
+  const emailField = (
+    <div key="email">
+      <label htmlFor="signup-email" className="text-eyebrow" style={{ display: 'block', marginBottom: 6 }}>
+        {t('authEmailShort')}
+      </label>
+      <input
+        id="signup-email"
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        className="input-glass"
+        placeholder={t('signupEmailPlaceholder')}
+        autoComplete="email"
+        required
+      />
+    </div>
+  )
+
+  const phoneField = (
+    <div key="phone">
+      <label htmlFor="signup-phone" className="text-eyebrow" style={{ display: 'block', marginBottom: 6 }}>{t('authPhoneShort')}</label>
+      <PhoneInput id="signup-phone" value={phone} onChange={setPhone} required />
+      <p className="text-subtle" style={{ fontSize: 11.5, margin: '6px 2px 0', lineHeight: 1.4 }}>
+        {t('phoneInputHint')}
+      </p>
+    </div>
+  )
 
   return (
     <div style={{
@@ -87,10 +176,13 @@ export default function Signup() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: 20,
+      padding: '76px 20px 20px',
       position: 'relative',
     }}>
-      <div style={{ position: 'absolute', top: 20, right: 20, zIndex: 2 }}>
+      <Head>
+        <title>{`${t('signupTitle')} · BabyJourney`}</title>
+      </Head>
+      <div style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 16px)', right: 16, zIndex: 2 }}>
         <LanguagePicker />
       </div>
       <div className="card-glass" style={{ width: '100%', maxWidth: 440, padding: 32 }}>
@@ -99,14 +191,12 @@ export default function Signup() {
             {step === 'done' ? t('signupDoneTitle') : t('signupTitle')}
           </h1>
           <p className="text-subtle" style={{ fontSize: 13.5, margin: 0 }}>
-            {step === 'details' && t('signupDetailsSubtitle')}
-            {step === 'code' && t('signupCodeSubtitle', { email })}
-            {step === 'done' && t('signupDoneSubtitle')}
+            {subtitle}
           </p>
         </div>
 
         {error && (
-          <div className="glass-soft" style={{
+          <div role="alert" className="glass-soft" style={{
             padding: '12px 14px',
             marginBottom: 16,
             borderRadius: 14,
@@ -117,14 +207,25 @@ export default function Signup() {
             fontWeight: 600,
           }}>
             {error}
+            {suggestion && step === 'details' && (
+              <button
+                type="button"
+                onClick={() => switchChannel(suggestion.next)}
+                className="btn-glass"
+                style={{ display: 'flex', width: '100%', justifyContent: 'center', marginTop: 10, padding: '8px 12px', fontSize: 13 }}
+              >
+                {suggestion.label}
+              </button>
+            )}
           </div>
         )}
 
         {step === 'details' && (
           <form onSubmit={submitDetails} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div>
-              <label className="text-eyebrow" style={{ display: 'block', marginBottom: 6 }}>{t('signupFamilyNameLabel')}</label>
+              <label htmlFor="signup-family" className="text-eyebrow" style={{ display: 'block', marginBottom: 6 }}>{t('signupFamilyNameLabel')}</label>
               <input
+                id="signup-family"
                 type="text"
                 value={familyName}
                 onChange={(e) => setFamilyName(e.target.value)}
@@ -134,47 +235,29 @@ export default function Signup() {
               />
             </div>
             <div>
-              <label className="text-eyebrow" style={{ display: 'block', marginBottom: 6 }}>{t('authEmailShort')}</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="input-glass"
-                placeholder={t('signupEmailPlaceholder')}
-                autoComplete="email"
-                required
-              />
-            </div>
-            <div>
-              <label className="text-eyebrow" style={{ display: 'block', marginBottom: 6 }}>{t('authPhoneShort')}</label>
+              <span className="text-eyebrow" style={{ display: 'block', marginBottom: 6 }}>{t('signupChannelLabel')}</span>
               <div style={{ display: 'flex', gap: 8 }}>
-                <select
-                  value={country}
-                  onChange={(e) => setCountry(e.target.value)}
-                  className="input-glass"
-                  aria-label={t('signupCountryLabel')}
-                  style={{ flex: '0 0 auto', width: 132, paddingRight: 8 }}
-                >
-                  {countryOptions.map((c) => (
-                    <option key={c.code} value={c.code}>{c.flag} {c.name} ({c.dial})</option>
-                  ))}
-                </select>
-                <input
-                  type="tel"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value.replace(/[^\d]/g, ''))}
-                  className="input-glass"
-                  placeholder="69123456"
-                  inputMode="numeric"
-                  autoComplete="tel-national"
-                  required
+                <button
+                  type="button"
+                  onClick={() => switchChannel('email')}
+                  aria-pressed={!isSms}
+                  className={`category-pill${!isSms ? ' category-pill--selected sheen' : ''}`}
                   style={{ flex: 1 }}
-                />
+                >
+                  ✉️ {t('authEmailShort')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => switchChannel('sms')}
+                  aria-pressed={isSms}
+                  className={`category-pill${isSms ? ' category-pill--selected sheen' : ''}`}
+                  style={{ flex: 1 }}
+                >
+                  💬 {t('signupChannelSms')}
+                </button>
               </div>
-              <p className="text-subtle" style={{ fontSize: 11.5, margin: '6px 2px 0', lineHeight: 1.4 }}>
-                {t('signupPhoneHint', { dial: dialOf(country) })}
-              </p>
             </div>
+            {isSms ? phoneField : emailField}
             <button type="submit" disabled={loading} className="btn-iris sheen" style={{ padding: '13px 16px', justifyContent: 'center', marginTop: 4 }}>
               {loading ? t('authSending') : t('authSendCode')}
             </button>
@@ -185,16 +268,18 @@ export default function Signup() {
           <form onSubmit={submitCode} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {devCode && (
               <div className="glass-soft" style={{ padding: '10px 12px', borderRadius: 12, fontSize: 12.5 }}>
-                <strong>Development:</strong> {t('signupDevCodeNotice')}{' '}
+                <strong>{t('signupDevModeLabel')}</strong> {t(isSms ? 'signupDevCodeNoticeSms' : 'signupDevCodeNotice')}{' '}
                 <span className="nums" style={{ fontWeight: 700, letterSpacing: 2 }}>{devCode}</span>
               </div>
             )}
             <div>
-              <label className="text-eyebrow" style={{ display: 'block', marginBottom: 6 }}>{t('authVerificationCode')}</label>
+              <label htmlFor="signup-code" className="text-eyebrow" style={{ display: 'block', marginBottom: 6 }}>{t('authVerificationCode')}</label>
               <input
+                id="signup-code"
                 type="text"
                 inputMode="numeric"
                 pattern="[0-9]*"
+                autoComplete="one-time-code"
                 maxLength={4}
                 value={code}
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
@@ -210,7 +295,7 @@ export default function Signup() {
             </button>
             <button
               type="button"
-              onClick={() => { setStep('details'); setCode(''); setError('') }}
+              onClick={() => { setStep('details'); setCode(''); setDevCode(''); clearError() }}
               className="btn-glass"
               style={{ padding: '10px 16px', justifyContent: 'center' }}
             >
@@ -244,6 +329,12 @@ export default function Signup() {
         {step !== 'done' && (
           <p className="text-subtle" style={{ textAlign: 'center', fontSize: 13, marginTop: 20, marginBottom: 0 }}>
             {t('signupHaveAccount')} <Link href="/login" style={{ color: 'var(--accent-iris)', fontWeight: 600 }}>{t('signupLoginLink')}</Link>
+            {step === 'code' && (
+              <>
+                {' · '}
+                <Link href="/forgot-password" style={{ color: 'var(--accent-iris)', fontWeight: 600 }}>{t('loginForgotPin')}</Link>
+              </>
+            )}
           </p>
         )}
       </div>

@@ -1,14 +1,17 @@
-import { supabase } from '../../../lib/supabaseClient'
-import { requireAuth } from '../../../lib/authMiddleware'
+import { requireAuthOrAdmin } from '../../../lib/authMiddleware'
+import { resolveFamilyId } from '../../../lib/childRecord'
 import { ensureFamilyCategories } from '../../../lib/categoryMigration'
 import { DEFAULT_CATEGORIES } from '../../../lib/defaultCategories'
 
 async function handler(req, res) {
   if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' })
+    return res.status(405).json({ error: 'Metoda nu este permisă' })
   }
 
-  const familyId = req.auth.familyId
+  const familyId = resolveFamilyId(req)
+  if (!familyId) {
+    return res.status(400).json({ error: 'familyId lipsește', errorKey: 'errFamilyIdRequired' })
+  }
 
   try {
     const categories = await ensureFamilyCategories(familyId)
@@ -26,4 +29,4 @@ async function handler(req, res) {
   }
 }
 
-export default requireAuth(handler)
+export default requireAuthOrAdmin(handler)

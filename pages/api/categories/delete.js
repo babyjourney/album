@@ -5,18 +5,18 @@ import { ESSENTIAL_CATEGORIES } from '../../../lib/defaultCategories'
 
 async function handler(req, res) {
   if (req.method !== 'DELETE') {
-    return res.status(405).json({ error: 'Method not allowed' })
+    return res.status(405).json({ error: 'Metoda nu este permisă' })
   }
 
-  const { value } = req.body
+  const { value } = req.body || {}
   const familyId = req.auth.familyId
 
   if (!value) {
-    return res.status(400).json({ error: 'Category value is required' })
+    return res.status(400).json({ error: 'Valoarea categoriei este obligatorie', errorKey: 'errCategoryValueRequired' })
   }
 
   if (ESSENTIAL_CATEGORIES.includes(value)) {
-    return res.status(400).json({ error: 'Cannot delete essential categories' })
+    return res.status(400).json({ error: 'Categoriile de bază nu pot fi șterse', errorKey: 'errCategoryEssential' })
   }
 
   try {
@@ -28,7 +28,7 @@ async function handler(req, res) {
       .single()
 
     if (!existing) {
-      return res.status(404).json({ error: 'Category not found' })
+      return res.status(404).json({ error: 'Categoria nu a fost găsită', errorKey: 'errCategoryNotFound' })
     }
 
     const { error } = await supabase
@@ -43,11 +43,11 @@ async function handler(req, res) {
 
     res.status(200).json({
       success: true,
-      message: 'Category deleted successfully'
+      message: 'Categoria a fost ștearsă'
     })
   } catch (error) {
     console.error('Error deleting category:', error)
-    res.status(500).json({ error: 'Failed to delete category' })
+    res.status(500).json({ error: 'Ștergerea categoriei a eșuat', errorKey: 'errCategoryDeleteFailed' })
   }
 }
 

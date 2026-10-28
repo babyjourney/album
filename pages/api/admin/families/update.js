@@ -1,7 +1,7 @@
 import { supabase } from '../../../../lib/supabaseClient'
 import { requireAdmin } from '../../../../lib/authMiddleware'
 import { isValidPackage, normalizeTier } from '../../../../lib/tiers'
-import { normalizePhone } from '../../../../lib/phone'
+import { normalizePhone, phoneLookupVariants } from '../../../../lib/phone'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -39,7 +39,7 @@ async function handler(req, res) {
     const rawPhone = phoneNumber === null ? null : String(phoneNumber).replace(/\s/g, '')
     const cleanPhone = rawPhone ? normalizePhone(rawPhone) : null
     if (rawPhone && !cleanPhone) {
-      return res.status(400).json({ error: 'Numărul de telefon nu este valid (ex. 069010712 sau +37369010712)' })
+      return res.status(400).json({ error: 'Numărul de telefon nu este valid', errorKey: 'authErrPhoneInvalid' })
     }
     patch.phone_number = cleanPhone || null
   }
@@ -47,7 +47,7 @@ async function handler(req, res) {
   if (email !== undefined) {
     const cleanEmail = email === null ? null : String(email).trim().toLowerCase()
     if (cleanEmail && !EMAIL_REGEX.test(cleanEmail)) {
-      return res.status(400).json({ error: 'Adresa de email nu este validă' })
+      return res.status(400).json({ error: 'Adresa de email nu este validă', errorKey: 'authErrEmailInvalid' })
     }
     patch.email = cleanEmail || null
   }
@@ -98,10 +98,14 @@ async function handler(req, res) {
   }
 
   if (patch.phone_number) {
-    const { data: clash } = await supabase
-      .from('families').select('id').eq('phone_number', patch.phone_number).neq('id', id).limit(1)
-    if (clash && clash.length > 0) {
-      return res.status(409).json({ error: 'O altă familie are deja acest număr de telefon.', code: 'PHONE_TAKEN' })
+    const { data: current } = await supabase
+      .from('families').select('phone_number').eq('id', id).maybeSingle()
+    if (normalizePhone(current?.phone_number) !== patch.phone_number) {
+      const { data: clash } = await supabase
+        .from('families').select('id').in('phone_number', phoneLookupVariants(patch.phone_number)).neq('id', id).limit(1)
+      if (clash && clash.length > 0) {
+        return res.status(409).json({ error: 'O altă familie are deja acest număr de telefon.', errorKey: 'errPhoneTakenOther', code: 'PHONE_TAKEN' })
+      }
     }
   }
 

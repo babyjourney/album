@@ -11,6 +11,8 @@ import { detectFileTypeFromUrl, documentMeta } from '../lib/fileTypes'
 import { getCoverPoster as getPostPoster, getPosterForUrl } from '../lib/posters'
 import { DEFAULT_CATEGORIES, categoryDisplayLabel } from '../lib/defaultCategories'
 
+const localizedError = (message) => Object.assign(new Error(message), { localized: true })
+
 function AudioDocView({ url, kind, title }) {
   const { t } = useLanguage()
   if (kind === 'audio') {
@@ -36,7 +38,7 @@ function AudioDocView({ url, kind, title }) {
         target="_blank"
         rel="noopener noreferrer"
         className="btn-glass"
-        style={{ padding: '10px 18px', fontSize: 14, textDecoration: 'none', color: '#fff' }}
+        style={{ padding: '10px 18px', fontSize: 14, textDecoration: 'none', color: '#fff', background: 'rgba(255, 255, 255, 0.16)', border: '1px solid rgba(255, 255, 255, 0.28)' }}
       >
         {meta.icon} {t('openFile', { name: meta.name })}
       </a>
@@ -536,7 +538,7 @@ function PostModalInner({
         body: JSON.stringify(updateData)
       })
 
-      const result = await response.json()
+      const result = await response.json().catch(() => ({}))
 
       if (response.ok) {
         const serverPost = result.post
@@ -555,11 +557,11 @@ function PostModalInner({
           onUpdate(updatedPost)
         }
       } else {
-        throw new Error((result.errorKey ? t(result.errorKey) : result.error) || 'Failed to update post')
+        throw localizedError((result.errorKey ? t(result.errorKey) : result.error) || t('errPhotoSaveFailed'))
       }
     } catch (error) {
       console.error('Error saving post:', error)
-      showError(error.message || t('error'))
+      showError(error?.localized ? error.message : t('errPhotoSaveFailed'))
     } finally {
       setEditLoading(false)
     }
@@ -757,22 +759,22 @@ function PostModalInner({
         })
       })
 
-      const result = await response.json()
+      const result = await response.json().catch(() => ({}))
 
       if (!response.ok) {
-        throw new Error((result.errorKey ? t(result.errorKey) : result.error) || t('error'))
+        throw localizedError((result.errorKey ? t(result.errorKey) : result.error) || t('errPhotoDeleteFailed'))
       }
 
       showSuccess(t('success'))
-      
+
       if (onDelete) {
         onDelete(currentPost.id)
       }
-      
+
       onClose()
     } catch (error) {
       console.error('Delete error:', error)
-      showError(t('error'))
+      showError(error?.localized ? error.message : t('errPhotoDeleteFailed'))
     }
   }
 
@@ -789,9 +791,7 @@ function PostModalInner({
       const link = document.createElement('a')
       link.href = url
       
-      const fileName = currentPost.title ? 
-        `${currentPost.title.replace(/[^a-z0-9]/gi, '_')}_${new Date(currentPost.created_at).toISOString().split('T')[0]}` :
-        `download_${new Date(currentPost.created_at).toISOString().split('T')[0]}`
+      const fileName = `${(currentPost.title || t('postFallbackTitle')).replace(/[^\p{L}\p{N}]/gu, '_')}_${new Date(currentPost.created_at).toISOString().split('T')[0]}`
       
       const fileType = currentPost.file_type || 'image'
       const extension = fileType === 'video' ? '.mp4' : '.jpg'
@@ -889,6 +889,7 @@ function PostModalInner({
             height: '40px',
             color: 'var(--ink-1)'
           }}
+          aria-label={t('close')}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="m18 6-12 12"/>
@@ -1039,7 +1040,7 @@ function PostModalInner({
                         ) : (
                           <img
                             src={post.file_url}
-                            alt={post.title || 'Post'}
+                            alt={post.title || t('postFallbackTitle')}
                             style={{ 
                               maxWidth: '100%',
                               maxHeight: '100%',
@@ -1886,7 +1887,7 @@ function PostModalInner({
                             <img
                               key={index}
                               src={url}
-                              alt={`${currentPost.title || 'Post'} - ${index + 1}/${multiPhotoUrls.length}`}
+                              alt={`${currentPost.title || t('postFallbackTitle')} - ${index + 1}/${multiPhotoUrls.length}`}
                               style={{ 
                                 minWidth: '100%',
                                 width: '100%',
@@ -2027,7 +2028,7 @@ function PostModalInner({
                   ) : (
                     <img
                       src={currentPost.file_url}
-                      alt={currentPost.title || 'Post'}
+                      alt={currentPost.title || t('postFallbackTitle')}
                       style={{ 
                         maxWidth: '100%', 
                         maxHeight: 'calc(100vh - 40px)',

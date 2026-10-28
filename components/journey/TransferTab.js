@@ -9,7 +9,7 @@ export default function TransferTab({ familyId }) {
   const [busy, setBusy] = useState(false)
   const [result, setResult] = useState(null)
   const { showError } = useToast()
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const canEdit = isEditor()
 
   const transfer = async () => {
@@ -17,12 +17,12 @@ export default function TransferTab({ familyId }) {
     try {
       const res = await authenticatedFetch('/api/journey/ownership-transfer', {
         method: 'POST',
-        body: JSON.stringify({ newEmail: email }),
+        body: JSON.stringify({ newEmail: email, lang: language }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error((data.errorKey ? t(data.errorKey) : data.error) || t('error'))
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) { showError((data.errorKey ? t(data.errorKey) : data.error) || t('errServerInternal')); return }
       setResult(data)
-    } catch (e) { showError(e.message) } finally { setBusy(false) }
+    } catch { showError(t('errServerInternal')) } finally { setBusy(false) }
   }
 
   return (

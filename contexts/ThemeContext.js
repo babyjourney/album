@@ -6,25 +6,25 @@ const ThemeContext = createContext()
 export const themes = {
   light: {
     name: 'light',
-    label: 'Lumină / Light',
+    labelKey: 'settingsThemeNameLight',
     icon: '☀️',
     swatch: 'linear-gradient(135deg, #c4b5fd 0%, #7dd3fc 50%, #fda4af 100%)',
   },
   dark: {
     name: 'dark',
-    label: 'Întuneric / Dark',
+    labelKey: 'settingsThemeNameDark',
     icon: '🌙',
     swatch: 'linear-gradient(135deg, #4c1d95 0%, #0e7490 50%, #831843 100%)',
   },
   blue: {
     name: 'blue',
-    label: 'Cer / Sky',
+    labelKey: 'settingsThemeNameSky',
     icon: '💙',
     swatch: 'linear-gradient(135deg, #38bdf8 0%, #6366f1 100%)',
   },
   pink: {
     name: 'pink',
-    label: 'Înflorit / Bloom',
+    labelKey: 'settingsThemeNameBloom',
     icon: '🌸',
     swatch: 'linear-gradient(135deg, #fb7185 0%, #c4b5fd 100%)',
   },

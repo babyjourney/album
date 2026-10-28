@@ -3,6 +3,7 @@ import { useLanguage } from '../contexts/LanguageContext'
 
 const TOAST_TYPES = {
   success: {
+    titleKey: 'success',
     accent: 'var(--accent-mint)',
     tint: 'rgba(52, 211, 153, 0.10)',
     border: 'rgba(52, 211, 153, 0.30)',
@@ -13,6 +14,7 @@ const TOAST_TYPES = {
     )
   },
   error: {
+    titleKey: 'error',
     accent: 'var(--accent-red)',
     tint: 'rgba(239, 68, 68, 0.10)',
     border: 'rgba(239, 68, 68, 0.30)',
@@ -25,6 +27,7 @@ const TOAST_TYPES = {
     )
   },
   info: {
+    titleKey: 'info',
     accent: 'var(--accent-aqua)',
     tint: 'rgba(56, 189, 248, 0.10)',
     border: 'rgba(56, 189, 248, 0.30)',
@@ -37,6 +40,7 @@ const TOAST_TYPES = {
     )
   },
   warning: {
+    titleKey: 'warning',
     accent: 'var(--accent-amber)',
     tint: 'rgba(245, 158, 11, 0.10)',
     border: 'rgba(245, 158, 11, 0.30)',
@@ -75,6 +79,7 @@ export default function Toast({ toast, onRemove }) {
   }
 
   const toastType = TOAST_TYPES[toast.type] || TOAST_TYPES.info
+  const title = toast.title === undefined ? t(toastType.titleKey) : toast.title
 
   const active = isVisible && !isLeaving
 
@@ -114,7 +119,7 @@ export default function Toast({ toast, onRemove }) {
         {toastType.icon}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        {toast.title && (
+        {title && (
           <h4
             style={{
               margin: 0,
@@ -125,7 +130,7 @@ export default function Toast({ toast, onRemove }) {
               letterSpacing: '-0.01em'
             }}
           >
-            {toast.title}
+            {title}
           </h4>
         )}
         <p

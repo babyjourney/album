@@ -1,12 +1,38 @@
 import { Html, Head, Main, NextScript } from 'next/document'
 
+const languageBootstrapScript = `
+(function () {
+  try {
+    if ((window.location.pathname || '').indexOf('/admin') === 0) return;
+    var lang = null;
+    try {
+      var saved = localStorage.getItem('selectedLanguage');
+      if (saved === 'ro' || saved === 'ru' || saved === 'en') lang = saved;
+    } catch (e) {}
+    if (!lang) {
+      var map = { ro: 'ro', mo: 'ro', ru: 'ru', en: 'en' };
+      var prefs = (navigator.languages && navigator.languages.length) ? navigator.languages : [navigator.language];
+      for (var i = 0; i < prefs.length && !lang; i++) {
+        var primary = String(prefs[i] || '').trim().toLowerCase().split(/[-_]/)[0];
+        if (Object.prototype.hasOwnProperty.call(map, primary)) lang = map[primary];
+      }
+    }
+    var root = document.documentElement;
+    root.setAttribute('lang', lang || 'ro');
+    if (lang && lang !== 'ro') {
+      root.setAttribute('data-lang-pending', '1');
+      setTimeout(function () { root.removeAttribute('data-lang-pending'); }, 1500);
+    }
+  } catch (e) {}
+})();
+`
+
 const themeBootstrapScript = `
 (function () {
   try {
     var path = window.location.pathname || '';
     var theme;
     if (path.indexOf('/admin') === 0) {
-      // Admin panel is always dark (white text on glass surfaces).
       theme = 'dark';
     } else {
       var saved = localStorage.getItem('album-theme');
@@ -19,7 +45,7 @@ const themeBootstrapScript = `
       var map = { light: '#f4f5fb', dark: '#07070d', blue: '#dde9f4', pink: '#faecf2' };
       meta.setAttribute('content', map[theme] || '#f4f5fb');
     }
-  } catch (e) { /* fail open — leave default theme */ }
+  } catch (e) {}
 })();
 `
 
@@ -35,6 +61,7 @@ export default function Document() {
 
         <meta name="format-detection" content="telephone=no" />
 
+        <script dangerouslySetInnerHTML={{ __html: languageBootstrapScript }} />
         <script dangerouslySetInnerHTML={{ __html: themeBootstrapScript }} />
 
         <link rel="preconnect" href="https://fonts.googleapis.com" />

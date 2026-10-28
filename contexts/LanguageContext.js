@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useState, useEffect, useLayoutEffect } from 'react'
+import { useRouter } from 'next/router'
 import extraTranslations from './translations'
 
 const LanguageContext = createContext()
@@ -12,12 +13,10 @@ export const translations = {
     cancel: 'Anulează',
     disconnect: 'Deconectează',
     album: 'Album',
-    skills: 'Skills',
     language: 'Limbă',
     theme: 'Temă',
     done: 'Gata',
     
-    createPost: 'Creaza postare',
     editPost: 'Editează postarea',
     postCreationFailed: 'Crearea postării a eșuat',
     postCreationFailedRetry: 'Crearea postării a eșuat. Vă rugăm să încercați din nou.',
@@ -173,7 +172,7 @@ export const translations = {
     sharingCooperation: 'Împărțire și Cooperare',
     empathyUnderstanding: 'Empatie și Înțelegere',
     emotionRegulation: 'Reglarea Emoțiilor',
-    makingFriends: 'Făcutul de Prieteni',
+    makingFriends: 'Legarea prieteniilor',
     conflictResolution: 'Rezolvarea Conflictelor',
     personalHygiene: 'Igienă Personală',
     dressingCare: 'Îmbrăcare și Îngrijire',
@@ -222,9 +221,7 @@ export const translations = {
     chooseFiles: 'Alege fișiere',
     dropFilesHere: 'Lasă fișierele aici',
     dragAndDropBrowse: 'Trage și lasă sau apasă pentru a răsfoi',
-    fileTypesSupported: 'JPG, PNG, GIF, MP4, MOV',
     maxFiles: 'Maxim 10 fișiere',
-    filesSelected: 'fișiere selectate',
     tapForThumbnail: 'Apasă pentru coperta',
     thumbnail: 'Coperta',
     enterPostTitle: 'Introduceți titlul postării...',
@@ -240,8 +237,6 @@ export const translations = {
     uploadError: 'Eroare la încărcare',
     maxFilesWarning: 'Maximum 10 fișiere sunt permise per postare. Restul fișierelor nu vor fi adăugate.',
     fileTooLarge: 'Fișierul {fileName} trebuie să fie mai mic de 500MB',
-    invalidFileType: 'Pentru postări multiple sunt permise doar imagini și video-uri. {fileName} nu este o imagine sau video.',
-    uploadFailed: 'Încărcarea fișierului a eșuat: {error}. Vă rugăm să încercați din nou.'
   },
   ru: {
     home: 'Главная',
@@ -285,11 +280,11 @@ export const translations = {
     events: 'События',
     school: 'Школа',
     
-    searchAndFilters: 'Поиск и Фильтры',
-    filtersAndSearch: 'Фильтры и Поиск',
+    searchAndFilters: 'Поиск и фильтры',
+    filtersAndSearch: 'Фильтры и поиск',
     search: 'Поиск',
     categories: 'Категории',
-    date: 'Дата',
+    data: 'Дата',
     hashtag: 'Хештег',
     sorting: 'Сортировка',
     all: 'Все',
@@ -304,7 +299,7 @@ export const translations = {
     filterByChild: 'Фильтр по ребенку',
     allPosts: 'Все посты',
     
-    categoryManagement: 'Управление Категориями',
+    categoryManagement: 'Управление категориями',
     resetToDefaults: 'Сбросить к стандартным',
     addNewCategory: 'Добавить новую категорию',
     confirmResetCategories: 'Вы уверены, что хотите сбросить к стандартным категориям? Все пользовательские категории будут удалены.',
@@ -399,7 +394,7 @@ export const translations = {
     balanceCoordination: 'Равновесие и координация',
     runningJumping: 'Бег и прыжки',
     handEyeCoordination: 'Координация рук и глаз',
-    memoryRecall: 'Память и припоминание',
+    memoryRecall: 'Память и запоминание',
     problemSolving: 'Решение проблем',
     logicalThinking: 'Логическое мышление',
     attentionFocus: 'Внимание и концентрация',
@@ -409,26 +404,26 @@ export const translations = {
     writingSkills: 'Навыки письма',
     listeningSkills: 'Навыки слушания',
     vocabularyDevelopment: 'Развитие словарного запаса',
-    sharingCooperation: 'Обмен и сотрудничество',
+    sharingCooperation: 'Умение делиться и сотрудничать',
     empathyUnderstanding: 'Эмпатия и понимание',
     emotionRegulation: 'Регуляция эмоций',
-    makingFriends: 'Заведение друзей',
+    makingFriends: 'Умение заводить друзей',
     conflictResolution: 'Решение конфликтов',
     personalHygiene: 'Личная гигиена',
     dressingCare: 'Одевание и уход',
-    independentEating: 'Самостоятельное питание',
+    independentEating: 'Самостоятельный приём пищи',
     timeManagement: 'Управление временем',
     responsibilityChores: 'Ответственность и обязанности',
     drawingPainting: 'Рисование и живопись',
     musicRhythm: 'Музыка и ритм',
     danceMovement: 'Танец и движение',
     imaginativePlay: 'Творческая игра',
-    storytelling: 'Рассказывание сказок',
+    storytelling: 'Рассказывание историй',
     basicComputer: 'Основы работы с компьютером',
     digitalSafety: 'Цифровая безопасность',
     educationalApps: 'Обучающие приложения',
-    technologyAwareness: 'Осведомленность о технологиях',
-    onlineLearning: 'Онлайн обучение',
+    technologyAwareness: 'Знакомство с технологиями',
+    onlineLearning: 'Онлайн-обучение',
     
     seeMore: 'показать больше',
     seeLess: 'показать меньше',
@@ -444,9 +439,9 @@ export const translations = {
     photoGallery: 'Фотогалерея',
     
     pinEditor: 'PIN Редактор',
-    fullAccess: 'Полный Доступ',
-    addChild: 'Добавить Ребенка',
-    addNewChild: 'Добавить Нового Ребенка',
+    fullAccess: 'Полный доступ',
+    addChild: 'Добавить ребёнка',
+    addNewChild: 'Добавить нового ребёнка',
     adding: 'Добавление...',
     fullAccessDescription: 'Полный доступ для загрузки фотографий, управления навыками и редактирования контента',
     addFirstChild: 'Добавьте первого ребенка, чтобы начать использовать функционал для нескольких детей.',
@@ -454,16 +449,14 @@ export const translations = {
     photoDeleteFailed: 'Не удалось удалить фотографию',
     albumSuspended: 'Этот альбом приостановлен. Свяжитесь с администратором для получения дополнительной информации.',
 
-    createPost: 'Создать Пост',
+    createPost: 'Создать пост',
     sharePhotosMemories: 'Поделитесь фотографиями и воспоминаниями',
-    uploadPhotosVideos: 'Загрузить Фото и Видео',
-    postDetails: 'Детали Поста',
+    uploadPhotosVideos: 'Загрузить фото и видео',
+    postDetails: 'Детали поста',
     chooseFiles: 'Выбрать файлы',
     dropFilesHere: 'Перетащите файлы сюда',
     dragAndDropBrowse: 'Перетащите или нажмите для просмотра',
-    fileTypesSupported: 'JPG, PNG, GIF, MP4, MOV',
     maxFiles: 'Максимум 10 файлов',
-    filesSelected: 'файлов выбрано',
     tapForThumbnail: 'Нажмите для обложки',
     thumbnail: 'Обложка',
     enterPostTitle: 'Введите заголовок поста...',
@@ -471,16 +464,14 @@ export const translations = {
     addHashtags: 'Добавить хештеги...',
     addMagicalHashtags: '✨ Добавьте волшебные хештеги...',
     typeSpaceToAdd: 'Введите и нажмите пробел для добавления • Максимум 10 хештегов',
-    associatedChildren: 'Связанные Дети',
+    associatedChildren: 'Связанные дети',
     readyToPublish: 'Готовы к публикации?',
     selectFilesToStart: 'Выберите файлы для начала',
-    publishPost: 'Опубликовать Пост',
+    publishPost: 'Опубликовать пост',
     publishing: 'Публикация...',
     uploadError: 'Ошибка загрузки',
     maxFilesWarning: 'Максимум 10 файлов разрешено на пост. Остальные файлы не будут добавлены.',
-    fileTooLarge: 'Файл {fileName} должен быть меньше 500MB',
-    invalidFileType: 'Для множественных постов разрешены только изображения и видео. {fileName} не является изображением или видео.',
-    uploadFailed: 'Загрузка файла не удалась: {error}. Пожалуйста, попробуйте еще раз.'
+    fileTooLarge: 'Файл {fileName} должен быть меньше 500 МБ',
   },
   en: {
     home: 'Home',
@@ -528,6 +519,7 @@ export const translations = {
     filtersAndSearch: 'Filters and Search',
     search: 'Search',
     categories: 'Categories',
+    data: 'Date',
     hashtag: 'Hashtag',
     sorting: 'Sorting',
     all: 'All',
@@ -699,9 +691,7 @@ export const translations = {
     chooseFiles: 'Choose files',
     dropFilesHere: 'Drop files here',
     dragAndDropBrowse: 'Drag and drop or click to browse',
-    fileTypesSupported: 'JPG, PNG, GIF, MP4, MOV',
     maxFiles: 'Max 10 files',
-    filesSelected: 'files selected',
     tapForThumbnail: 'Tap for thumbnail',
     thumbnail: 'Thumbnail',
     enterPostTitle: 'Enter post title...',
@@ -717,8 +707,6 @@ export const translations = {
     uploadError: 'Upload Error',
     maxFilesWarning: 'Maximum 10 files are allowed per post. Remaining files will not be added.',
     fileTooLarge: 'File {fileName} must be smaller than 500MB',
-    invalidFileType: 'Only images and videos are allowed for multiple posts. {fileName} is not an image or video.',
-    uploadFailed: 'File upload failed: {error}. Please try again.'
   }
 }
 
@@ -729,31 +717,71 @@ const ALL = ['ro', 'ru', 'en'].reduce((acc, lang) => {
 
 export const localeOf = (lang) => ({ ro: 'ro-RO', ru: 'ru-RU', en: 'en-GB' }[lang] || 'ro-RO')
 
+export const SUPPORTED_LANGUAGES = ['ro', 'ru', 'en']
+export const DEFAULT_LANGUAGE = 'ro'
+const LANGUAGE_STORAGE_KEY = 'selectedLanguage'
+const SYSTEM_LANGUAGE_MAP = new Map([['ro', 'ro'], ['mo', 'ro'], ['ru', 'ru'], ['en', 'en']])
+
+export const detectSystemLanguage = (preferences) => {
+  for (const tag of preferences || []) {
+    const primary = String(tag || '').trim().toLowerCase().split(/[-_]/)[0]
+    if (SYSTEM_LANGUAGE_MAP.has(primary)) return SYSTEM_LANGUAGE_MAP.get(primary)
+  }
+  return null
+}
+
+const systemLanguagePreferences = () => {
+  if (typeof navigator === 'undefined') return []
+  if (navigator.languages && navigator.languages.length) return navigator.languages
+  return navigator.language ? [navigator.language] : []
+}
+
+const readStoredLanguage = () => {
+  try {
+    const saved = window.localStorage.getItem(LANGUAGE_STORAGE_KEY)
+    return SUPPORTED_LANGUAGES.includes(saved) ? saved : null
+  } catch {
+    return null
+  }
+}
+
+const resolvePreferredLanguage = () =>
+  readStoredLanguage() || detectSystemLanguage(systemLanguagePreferences()) || DEFAULT_LANGUAGE
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect
+
+const LANGUAGE_PENDING_ATTRIBUTE = 'data-lang-pending'
+
+const isAdminPathname = (pathname) => typeof pathname === 'string' && pathname.startsWith('/admin')
+
 export function LanguageProvider({ children }) {
-  const [language, setLanguage] = useState('ro')
+  const router = useRouter()
+  const [preferredLanguage, setPreferredLanguage] = useState(DEFAULT_LANGUAGE)
+  const language = isAdminPathname(router?.pathname) ? DEFAULT_LANGUAGE : preferredLanguage
 
-  useEffect(() => {
-    try { document.documentElement.lang = language } catch {}
-  }, [language])
-
-  useEffect(() => {
-    const savedLanguage = localStorage.getItem('selectedLanguage')
-    if (savedLanguage && ALL[savedLanguage]) {
-      setLanguage(savedLanguage)
-      return
+  useIsomorphicLayoutEffect(() => {
+    const applyPreferredLanguage = () => setPreferredLanguage(resolvePreferredLanguage())
+    const onStorage = (event) => {
+      if (!event.key || event.key === LANGUAGE_STORAGE_KEY) applyPreferredLanguage()
     }
-    const prefs = (typeof navigator !== 'undefined' && (navigator.languages || [navigator.language])) || []
-    for (const pref of prefs) {
-      const code = String(pref || '').slice(0, 2).toLowerCase()
-      if (ALL[code]) { setLanguage(code); break }
+    applyPreferredLanguage()
+    try { document.documentElement.removeAttribute(LANGUAGE_PENDING_ATTRIBUTE) } catch {}
+    window.addEventListener('languagechange', applyPreferredLanguage)
+    window.addEventListener('storage', onStorage)
+    return () => {
+      window.removeEventListener('languagechange', applyPreferredLanguage)
+      window.removeEventListener('storage', onStorage)
     }
   }, [])
 
+  useIsomorphicLayoutEffect(() => {
+    try { document.documentElement.lang = language } catch {}
+  }, [language])
+
   const changeLanguage = (newLanguage) => {
-    if (ALL[newLanguage]) {
-      setLanguage(newLanguage)
-      localStorage.setItem('selectedLanguage', newLanguage)
-    }
+    if (!SUPPORTED_LANGUAGES.includes(newLanguage)) return
+    setPreferredLanguage(newLanguage)
+    try { window.localStorage.setItem(LANGUAGE_STORAGE_KEY, newLanguage) } catch {}
   }
 
   const t = (key, variables = {}) => {

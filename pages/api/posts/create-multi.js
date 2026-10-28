@@ -2,11 +2,22 @@ import { supabase } from '../../../lib/supabaseClient'
 import { requireEditor } from '../../../lib/authMiddleware'
 import { getPackageLimits } from '../../../lib/packages'
 import { getTier } from '../../../lib/tiers'
-import { isVideoUrl, detectPostType } from '../../../lib/fileTypes'
+import { isVideoUrl, detectPostType, isAllowedStoredMediaUrl, isAllowedStoredImageUrl, isAllowedStoredVideoUrl, isOwnStorageUrl } from '../../../lib/fileTypes'
+import { verifyStoredVideoSeconds } from '../../../lib/videoCompress'
+
+const FILE_TYPE_NOT_ALLOWED = {
+  error: 'Tip de fișier neacceptat. Sunt permise doar fotografii (JPG, PNG, GIF, HEIC/HEIF, WebP, JXL) și video-uri (MP4, MOV, M4V, WebM).',
+  errorKey: 'errFileTypeNotAllowed',
+}
+
+const FILE_NOT_IN_ALBUM = {
+  error: 'Fișierul nu aparține acestui album. Încarcă-l din nou și încearcă iar.',
+  errorKey: 'errFileNotInAlbum',
+}
 
 async function handler(req, res) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' })
+    return res.status(405).json({ error: 'Metoda nu este permisă' })
   }
 
   const { title, description, category, hashtags, selectedChildren, imageUrls: rawImageUrls, posterUrls: rawPosterUrls, fileSizes: rawFileSizes, customDate, coverIndex, isPrivate, videoDurations } = req.body
@@ -44,6 +55,37 @@ async function handler(req, res) {
     return res.status(400).json({ error: 'Maximum 10 fișiere per postare', errorKey: 'errMaxFiles' })
   }
 
+  if (!imageUrls.every((url) => typeof url === 'string' && isAllowedStoredMediaUrl(url))) {
+    return res.status(400).json(FILE_TYPE_NOT_ALLOWED)
+  }
+
+  if (!posterUrls.every((poster) => poster === null || isAllowedStoredImageUrl(poster))) {
+    return res.status(400).json(FILE_TYPE_NOT_ALLOWED)
+  }
+
+  if (![...imageUrls, ...posterUrls.filter(Boolean)].every((url) => isOwnStorageUrl(url, familyId))) {
+    return res.status(400).json(FILE_NOT_IN_ALBUM)
+  }
+
+  const durationsList = Array.isArray(videoDurations) ? videoDurations : []
+  const newVideoIndexes = imageUrls
+    .map((url, i) => (isAllowedStoredVideoUrl(url) || isVideoUrl(url) ? i : -1))
+    .filter((i) => i >= 0)
+
+  const verifiedDurationsPromise = Promise.all(
+    newVideoIndexes.map((i) => verifyStoredVideoSeconds(imageUrls[i], durationsList[i]))
+  )
+
+  const { data: famRow, error: famError } = await supabase
+    .from('families')
+    .select('package')
+    .eq('id', familyId)
+    .maybeSingle()
+  if (famError) {
+    console.error('Package lookup failed (create-multi):', famError)
+  }
+  const familyPackage = famRow?.package || 'free'
+
   try {
     const { data: albumSettings } = await supabase
       .from('album_settings')
@@ -60,37 +102,26 @@ async function handler(req, res) {
     console.error('album_settings lookup failed (create-multi):', settingsErr)
   }
 
-  const hasVideo = imageUrls.some(url => isVideoUrl(url))
   const postFileType = isTextPost ? 'text' : detectPostType(imageUrls)
 
-  if (hasVideo && Array.isArray(videoDurations) && videoDurations.length > 0) {
-    try {
-      const { data: fam } = await supabase
-        .from('families')
-        .select('package')
-        .eq('id', familyId)
-        .single()
-
-      const pkg = fam?.package || 'free'
-      const limit = getPackageLimits(pkg).maxVideoSeconds
-
-      for (let i = 0; i < videoDurations.length; i++) {
-        const url = imageUrls[i]
-        const dur = videoDurations[i]
-        if (!url || !isVideoUrl(url)) continue
-        if (typeof dur !== 'number') continue
-        if (Math.floor(dur) > limit) {
-          return res.status(413).json({
-            error: `Video-urile mai lungi de ${limit} secunde nu sunt disponibile pentru pachetul ${getTier(pkg).label}.`,
-            errorKey: 'errVideoTooLongForPlan',
-            code: 'VIDEO_TOO_LONG',
-            maxVideoSeconds: limit,
-            package: pkg
-          })
-        }
-      }
-    } catch (limitErr) {
-      console.error('Package limit lookup failed (create-multi):', limitErr)
+  if (newVideoIndexes.length > 0) {
+    const verifiedDurations = await verifiedDurationsPromise
+    if (verifiedDurations.some((seconds) => seconds === null)) {
+      return res.status(400).json({
+        error: 'Durata video-ului nu a putut fi verificată. Reîncarcă pagina și încearcă din nou.',
+        errorKey: 'errVideoDurationMissing',
+        code: 'VIDEO_DURATION_MISSING',
+      })
+    }
+    const limit = getPackageLimits(familyPackage).maxVideoSeconds
+    if (verifiedDurations.some((seconds) => Math.floor(seconds) > limit)) {
+      return res.status(413).json({
+        error: `Video-urile mai lungi de ${limit} secunde nu sunt disponibile pentru pachetul ${getTier(familyPackage).label}.`,
+        errorKey: 'errVideoTooLongForPlan',
+        code: 'VIDEO_TOO_LONG',
+        maxVideoSeconds: limit,
+        package: familyPackage
+      })
     }
   }
 
@@ -101,13 +132,7 @@ async function handler(req, res) {
         .map(tag => tag.toLowerCase().replace('#', ''))
         .filter(tag => tag.length > 0) : []
 
-    const { data: famQuality } = await supabase
-      .from('families')
-      .select('package')
-      .eq('id', familyId)
-      .single()
-    const tier = famQuality?.package
-    const quality = getPackageLimits(tier).imageQuality
+    const quality = getPackageLimits(famRow?.package).imageQuality
 
     const basePostData = {
       family_id: familyId,
@@ -185,7 +210,7 @@ async function handler(req, res) {
           throw new Error('New schema not available: ' + postError.message)
         }
         console.error('Error creating multi-photo post:', postError)
-        return res.status(500).json({ error: 'Failed to create post: ' + postError.message })
+        return res.status(500).json({ error: 'Crearea postării a eșuat', errorKey: 'postCreationFailed' })
       }
 
       createdPost = post
@@ -283,9 +308,9 @@ async function handler(req, res) {
       requestBody: req.body
     })
     
-    const errorMessage = error.message || 'Internal server error'
-    res.status(500).json({ 
-      error: `Multi-photo post creation failed: ${errorMessage}`,
+    res.status(500).json({
+      error: 'Crearea postării a eșuat',
+      errorKey: 'postCreationFailed',
       details: error.details,
       hint: error.hint
     })

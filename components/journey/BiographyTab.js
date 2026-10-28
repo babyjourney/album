@@ -12,6 +12,8 @@ export default function BiographyTab({ familyId, childId }) {
   const { t } = useLanguage()
   const canEdit = isEditor()
 
+  const apiErrorText = (data) => (data?.errorKey ? t(data.errorKey) : data?.error) || t('errServerInternal')
+
   useEffect(() => {
     let cancelled = false
     const load = async () => {
@@ -35,9 +37,9 @@ export default function BiographyTab({ familyId, childId }) {
         method: 'POST',
         body: JSON.stringify({ childId: childId || null, body }),
       })
-      if (!res.ok) { const body = await res.json(); throw new Error((body.errorKey ? t(body.errorKey) : body.error) || t('error')) }
+      if (!res.ok) { showError(apiErrorText(await res.json().catch(() => ({})))); return }
       showSuccess(t('biographySaved'))
-    } catch (e) { showError(e.message) } finally { setSaving(false) }
+    } catch { showError(t('errServerInternal')) } finally { setSaving(false) }
   }
 
   return (

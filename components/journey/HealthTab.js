@@ -20,6 +20,8 @@ export default function HealthTab({ familyId, childId }) {
   const { t } = useLanguage()
   const canEdit = isEditor()
 
+  const apiErrorText = (data) => (data?.errorKey ? t(data.errorKey) : data?.error) || t('errServerInternal')
+
   useEffect(() => {
     let cancelled = false
     const load = async () => {
@@ -46,9 +48,9 @@ export default function HealthTab({ familyId, childId }) {
       const res = await authenticatedFetch('/api/journey/health', {
         method: 'POST', body: JSON.stringify(payload),
       })
-      if (!res.ok) { const body = await res.json(); throw new Error((body.errorKey ? t(body.errorKey) : body.error) || t('error')) }
+      if (!res.ok) { showError(apiErrorText(await res.json().catch(() => ({})))); return }
       showSuccess(t('healthSaved'))
-    } catch (e) { showError(e.message) } finally { setSaving(false) }
+    } catch { showError(t('errServerInternal')) } finally { setSaving(false) }
   }
 
   return (
@@ -101,7 +103,7 @@ export default function HealthTab({ familyId, childId }) {
         <FilteredPosts
           familyId={familyId}
           childId={childId}
-          params={{ categoryAny: 'health,sanatate', hashtagsAny: 'health,sanatate,medicine,medicina,medical,doctor,vaccine,vaccin' }}
+          params={{ categoryAny: 'health,sanatate', hashtagsAny: 'health,sanatate,sănătate,medicine,medicina,medicină,medical,doctor,vaccine,vaccin,здоровье,медицина,врач,прививка,вакцина' }}
           emptyText={t('noHealthPostsYet')}
         />
       </section>

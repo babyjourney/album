@@ -21,6 +21,8 @@ body {
   overflow-x: hidden;
 }
 
+html[data-lang-pending] #__next { visibility: hidden; }
+
 body::before {
   content: '';
   position: fixed;
@@ -585,7 +587,9 @@ select.input-glass optgroup {
   border-color: var(--glass-hairline-strong);
   transform: translateY(-1px);
 }
-.category-pill--selected {
+.category-pill--selected,
+.category-pill.category-pill--selected,
+.category-pill.category-pill--selected:hover {
   background: linear-gradient(135deg, #8b5cf6, #6d28d9);
   border-color: rgba(255, 255, 255, 0.20);
   color: #fff;
@@ -593,7 +597,7 @@ select.input-glass optgroup {
     inset 0 1px 0 0 rgba(255, 255, 255, 0.30),
     0 4px 16px -4px rgba(124, 58, 237, 0.50);
 }
-.category-pill--selected:hover { filter: brightness(1.08); }
+.category-pill.category-pill--selected:hover { filter: brightness(1.08); }
 
 .floating-button {
   background: var(--glass-3) !important;

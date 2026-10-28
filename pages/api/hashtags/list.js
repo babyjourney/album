@@ -5,7 +5,7 @@ async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Metoda nu este permisă' })
 
   const familyId = req.auth.isAdmin ? (req.query.familyId) : req.auth.familyId
-  if (!familyId) return res.status(400).json({ error: 'familyId lipsește' })
+  if (!familyId) return res.status(400).json({ error: 'familyId lipsește', errorKey: 'errFamilyIdRequired' })
 
   try {
     const { data, error } = await supabase
@@ -32,7 +32,7 @@ async function handler(req, res) {
     return res.status(200).json({ success: true, hashtags })
   } catch (error) {
     console.error('hashtags list error:', error)
-    return res.status(500).json({ error: 'Încărcarea hashtag-urilor a eșuat' })
+    return res.status(500).json({ error: 'Încărcarea hashtag-urilor a eșuat', errorKey: 'errHashtagsLoadFailed' })
   }
 }
 

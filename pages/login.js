@@ -2,13 +2,15 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Link from 'next/link'
-import { loginWithPin, isAuthenticated, requestLoginOtp } from '../lib/pinAuth'
+import { loginWithPin, isAuthenticated, formatCountdown, formatWaitTime } from '../lib/pinAuth'
 import { useLanguage } from '../contexts/LanguageContext'
+import { isValidPhone } from '../lib/phone'
 import LanguagePicker from '../components/LanguagePicker'
+import PhoneInput from '../components/PhoneInput'
 
 export default function Login() {
   const router = useRouter()
-  const { t } = useLanguage()
+  const { t, language, locale } = useLanguage()
   const [pin, setPin] = useState('')
   const [phoneNumber, setPhoneNumber] = useState('')
   const [email, setEmail] = useState('')
@@ -16,6 +18,8 @@ export default function Login() {
   const [channel, setChannel] = useState('phone')
   const [otpStep, setOtpStep] = useState(false)
   const [otpDeliveryHint, setOtpDeliveryHint] = useState(null)
+  const [otpDeliveryTo, setOtpDeliveryTo] = useState(null)
+  const [otpFallback, setOtpFallback] = useState(false)
   const [resetSuccess, setResetSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -39,35 +43,45 @@ export default function Login() {
           setCooldownTimer(null)
           setError('')
         } else {
-          setCooldownTimer(formatTime(remaining))
+          setCooldownTimer(formatCountdown(remaining, locale))
         }
       }
       tick()
       const id = setInterval(tick, 1000)
       return () => clearInterval(id)
     }
-  }, [rateLimitInfo])
-
-  const formatTime = (ms) => {
-    const h = Math.floor(ms / 3600000)
-    const m = Math.floor((ms % 3600000) / 60000)
-    const s = Math.floor((ms % 60000) / 1000)
-    if (h > 0) return `${h}h ${m}m ${s}s`
-    if (m > 0) return `${m}m ${s}s`
-    return `${s}s`
-  }
+  }, [rateLimitInfo, locale])
 
   const contactPayload = () => (
     channel === 'email'
       ? { email: email.trim() }
-      : { phoneNumber: phoneNumber.trim() }
+      : { phoneNumber }
   )
 
+  const resetOtp = () => {
+    setOtpStep(false)
+    setOtpCode('')
+    setOtpDeliveryTo(null)
+    setOtpFallback(false)
+  }
+
+  const keyedError = (result, fallbackKey) => t(
+    result.errorKey || fallbackKey,
+    result.retryAfterMs ? { time: formatWaitTime(result.retryAfterMs, locale) } : {}
+  )
+
+  const attemptsRemainingText = (n) => {
+    let form = 'other'
+    try { form = new Intl.PluralRules(locale).select(n) } catch {}
+    const key = { one: 'loginAttemptsRemainingOne', few: 'loginAttemptsRemainingFew', many: 'loginAttemptsRemainingMany' }[form] || 'loginAttemptsRemaining'
+    return t(key, { n })
+  }
+
   const resolveError = (result) => {
-    let msg = result.errorKey ? t(result.errorKey) : (result.error || '')
+    let msg = keyedError(result, 'authErrServer')
     if (!result.rateLimited && result.attemptsRemaining != null &&
         result.attemptsRemaining > 0 && result.attemptsRemaining <= 2) {
-      msg = `${msg} ${t('loginAttemptsRemaining', { n: result.attemptsRemaining })}`
+      msg = `${msg} ${attemptsRemainingText(result.attemptsRemaining)}`
     }
     return msg
   }
@@ -78,6 +92,10 @@ export default function Login() {
 
     if (channel === 'phone' && !phoneNumber) {
       setError(t('loginErrorPhoneRequired'))
+      return
+    }
+    if (channel === 'phone' && !isValidPhone(phoneNumber)) {
+      setError(t('authErrPhoneInvalid'))
       return
     }
     if (channel === 'email' && !email) {
@@ -94,23 +112,16 @@ export default function Login() {
     }
 
     setLoading(true)
-
-    if (!otpStep) {
-      const probe = await requestLoginOtp(contactPayload())
-      if (probe.success && probe.otpRequired) {
-        setOtpStep(true)
-        setOtpDeliveryHint(probe.deliveryHint)
-        setLoading(false)
-        return
-      }
-    }
-
     const result = await loginWithPin({
       pin,
       ...contactPayload(),
       otpCode: otpStep ? otpCode : undefined,
+      lang: language,
     })
+    applyLoginResult(result)
+  }
 
+  const applyLoginResult = (result) => {
     if (result.success) {
       setRateLimitInfo(null); setCooldownTimer(null); setError('')
       router.push('/dashboard')
@@ -119,8 +130,15 @@ export default function Login() {
 
     if (result.otpRequired) {
       setOtpStep(true)
-      setOtpDeliveryHint(result.deliveryHint || null)
-      setError(result.code === 'OTP_INVALID' ? resolveError(result) : '')
+      if (result.code === 'OTP_INVALID') {
+        setError(resolveError(result))
+      } else {
+        setOtpCode('')
+        setOtpDeliveryHint(result.deliveryHint || null)
+        setOtpDeliveryTo(result.deliveryTo || null)
+        setOtpFallback(result.fallback === true)
+        setError(result.errorKey === 'loginOtpResendLimited' || result.errorKey === 'loginOtpLockout' ? keyedError(result) : '')
+      }
       setLoading(false)
       return
     }
@@ -129,7 +147,11 @@ export default function Login() {
       setRateLimitInfo(null); setCooldownTimer(null); setError(resolveError(result)); setLoading(false); return
     }
     if (result.rateLimited) {
-      setRateLimitInfo({ level: result.level, blockedUntil: result.blockedUntil, timeRemaining: result.timeRemaining })
+      setRateLimitInfo({
+        level: result.level,
+        blockedUntil: result.retryAfterMs ? Date.now() + result.retryAfterMs : result.blockedUntil,
+        timeRemaining: result.timeRemaining,
+      })
     } else {
       setRateLimitInfo(null); setCooldownTimer(null)
     }
@@ -139,17 +161,24 @@ export default function Login() {
 
   const handleResendOtp = async () => {
     setError('')
-    setLoading(true)
-    const probe = await requestLoginOtp(contactPayload())
-    setLoading(false)
-    if (!probe.success) {
-      setError(probe.errorKey ? t(probe.errorKey) : (probe.error || t('loginErrorResendFailed')))
+    if (!pin) {
+      setError(t('loginErrorPinRequired'))
       return
     }
-    setOtpDeliveryHint(probe.deliveryHint || otpDeliveryHint)
+    setLoading(true)
+    const result = await loginWithPin({ pin, ...contactPayload(), lang: language })
+    if (!result.success && !result.otpRequired && !result.rateLimited && !result.errorKey) {
+      setError(t('loginErrorResendFailed'))
+      setLoading(false)
+      return
+    }
+    applyLoginResult(result)
   }
 
   const isBlocked = rateLimitInfo && cooldownTimer
+  const codeChannel = otpFallback
+    ? (otpDeliveryHint === 'email' ? 'phone' : 'email')
+    : otpDeliveryHint
 
   return (
     <>
@@ -179,10 +208,10 @@ export default function Login() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '24px',
+      padding: '76px 24px 24px',
       position: 'relative',
     }}>
-      <div style={{ position: 'absolute', top: 20, right: 20, zIndex: 2 }}>
+      <div style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 16px)', right: 16, zIndex: 2 }}>
         <LanguagePicker />
       </div>
 
@@ -263,7 +292,7 @@ export default function Login() {
           <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
             <button
               type="button"
-              onClick={() => { setChannel('phone'); setOtpStep(false); setOtpCode('') }}
+              onClick={() => { setChannel('phone'); resetOtp() }}
               className={`category-pill${channel === 'phone' ? ' category-pill--selected sheen' : ''}`}
               style={{ flex: 1 }}
             >
@@ -271,7 +300,7 @@ export default function Login() {
             </button>
             <button
               type="button"
-              onClick={() => { setChannel('email'); setOtpStep(false); setOtpCode('') }}
+              onClick={() => { setChannel('email'); resetOtp() }}
               className={`category-pill${channel === 'email' ? ' category-pill--selected sheen' : ''}`}
               style={{ flex: 1 }}
             >
@@ -284,15 +313,14 @@ export default function Login() {
               <label htmlFor="phone" className="text-eyebrow" style={{ display: 'block', marginBottom: 8 }}>
                 {t('authPhoneLabel')}
               </label>
-              <input
-                id="phone" name="phone" type="tel" autoComplete="tel"
-                value={phoneNumber}
-                onChange={(e) => { setPhoneNumber(e.target.value); setOtpStep(false); setOtpCode('') }}
-                placeholder="061234567"
-                required
-                className="input-glass"
-                style={{ marginBottom: 18 }}
-              />
+              <div style={{ marginBottom: 18 }}>
+                <PhoneInput
+                  id="phone"
+                  value={phoneNumber}
+                  onChange={(next) => { setPhoneNumber(next); resetOtp() }}
+                  required
+                />
+              </div>
             </>
           ) : (
             <>
@@ -302,7 +330,7 @@ export default function Login() {
               <input
                 id="email" name="email" type="email" autoComplete="email"
                 value={email}
-                onChange={(e) => { setEmail(e.target.value); setOtpStep(false); setOtpCode('') }}
+                onChange={(e) => { setEmail(e.target.value); resetOtp() }}
                 placeholder={t('authEmailPlaceholder')}
                 required
                 className="input-glass"
@@ -318,7 +346,7 @@ export default function Login() {
             id="pin" name="password" type="password" inputMode="numeric"
             pattern="[0-9]*" autoComplete="current-password"
             value={pin}
-            onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+            onChange={(e) => { setPin(e.target.value.replace(/\D/g, '')); if (otpStep) resetOtp() }}
             placeholder="• • • •"
             maxLength="8"
             required
@@ -333,13 +361,21 @@ export default function Login() {
           {otpStep && (
             <>
               <label htmlFor="otp" className="text-eyebrow" style={{ display: 'block', marginBottom: 8, marginTop: 6 }}>
-                {t('authVerificationCode')} {otpDeliveryHint ? `(${otpDeliveryHint === 'email' ? t('loginOtpHintEmail') : 'SMS'})` : ''}
+                {t('authVerificationCode')} {codeChannel ? `(${codeChannel === 'email' ? t('loginOtpHintEmail') : t('signupChannelSms')})` : ''}
               </label>
+              {otpDeliveryTo && (
+                <p style={{ fontSize: 12.5, color: 'var(--ink-2)', margin: '-2px 0 8px' }}>
+                  {codeChannel === 'email'
+                    ? t('loginOtpSentEmail', { to: otpDeliveryTo })
+                    : t('loginOtpSentSms', { to: otpDeliveryTo })}
+                </p>
+              )}
               <input
-                id="otp" name="otp" type="text" inputMode="numeric" pattern="[0-9]*" maxLength="6"
+                id="otp" name="otp" type="text" inputMode="numeric" pattern="[0-9]*" maxLength="4"
+                autoComplete="one-time-code"
                 value={otpCode}
                 onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                placeholder="• • • • • •"
+                placeholder="• • • •"
                 required
                 className="input-glass nums"
                 style={{
@@ -383,7 +419,9 @@ export default function Login() {
               backdropFilter: 'blur(12px)',
             }}>
               <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 2 }}>
-                {rateLimitInfo.level === 1 ? t('loginCooldown10Min') : t('loginCooldown24H')}
+                {rateLimitInfo.level === 1
+                  ? t('loginCooldown10Min')
+                  : rateLimitInfo.level === 2 ? t('loginCooldown24H') : t('errRateLimited')}
               </div>
               <div style={{ fontSize: 13, color: 'var(--ink-2)' }}>
                 {t('loginTimeRemaining')} <strong className="nums">{cooldownTimer}</strong>

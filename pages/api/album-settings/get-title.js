@@ -10,7 +10,7 @@ async function handler(req, res) {
   const familyId = req.auth.isAdmin ? rawFamilyId : req.auth.familyId
 
   if (!familyId) {
-    return res.status(400).json({ error: 'ID-ul familiei este obligatoriu' })
+    return res.status(400).json({ error: 'ID-ul familiei este obligatoriu', errorKey: 'errFamilyIdRequired' })
   }
 
   try {
@@ -44,19 +44,16 @@ async function handler(req, res) {
       throw familyError
     }
 
-    let albumTitle = 'Family Album'
-
-    if (!children || children.length === 0) {
-      albumTitle = `Albumul familiei ${family.name}`
-    } else if (children.length === 1) {
-      albumTitle = `Albumul lui ${children[0].name}`
-    } else {
-      albumTitle = `Albumul familiei ${family.name}`
-    }
+    const singleChild = children && children.length === 1
+    const titleKey = singleChild ? 'albumTitleChild' : 'albumTitleFamily'
+    const titleName = singleChild ? children[0].name : family.name
+    const albumTitle = singleChild ? `Albumul lui ${titleName}` : `Albumul familiei ${titleName}`
 
     return res.status(200).json({
       success: true,
       title: albumTitle,
+      titleKey,
+      titleName,
       childrenCount: children ? children.length : 0,
       isMultiChild: settings ? settings.is_multi_child : false,
       familyName: family.name
@@ -64,7 +61,7 @@ async function handler(req, res) {
 
   } catch (error) {
     console.error('Album title generation error:', error)
-    return res.status(500).json({ error: 'Generarea titlului albumului a eșuat' })
+    return res.status(500).json({ error: 'Generarea titlului albumului a eșuat', errorKey: 'errAlbumTitleLoadFailed' })
   }
 }
 

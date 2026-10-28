@@ -27,19 +27,19 @@ export const ToastProvider = ({ children }) => {
     setToasts(prev => prev.filter(toast => toast.id !== id))
   }
 
-  const showSuccess = (message, title = 'Success') => {
+  const showSuccess = (message, title) => {
     return addToast({ type: 'success', title, message })
   }
 
-  const showError = (message, title = 'Error') => {
+  const showError = (message, title) => {
     return addToast({ type: 'error', title, message })
   }
 
-  const showInfo = (message, title = 'Info') => {
+  const showInfo = (message, title) => {
     return addToast({ type: 'info', title, message })
   }
 
-  const showWarning = (message, title = 'Warning') => {
+  const showWarning = (message, title) => {
     return addToast({ type: 'warning', title, message })
   }
 

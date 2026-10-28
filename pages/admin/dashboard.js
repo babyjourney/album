@@ -1,8 +1,61 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
-import { isAdminAuthenticated, clearAdminSession, adminFetch } from '../../lib/adminAuth'
+import { isAdminAuthenticated, clearAdminSession, adminFetch, parseAdminResponse } from '../../lib/adminAuth'
 import { TIER_ORDER, TIERS, getTierBadge, normalizeTier, TIER_FEATURE_SUMMARY } from '../../lib/tiers'
 import { exportFamilyArchive } from '../../lib/exportArchive'
+import { formatPhoneDisplay, normalizePhone } from '../../lib/phone'
+import { translations as baseTranslations } from '../../contexts/LanguageContext'
+import extraTranslations from '../../contexts/translations'
+
+const SETUP_NOTICE_STORAGE_KEY = 'adminSetupNoticeDismissed'
+
+const RO_STRINGS = { ...(baseTranslations.ro || {}), ...(extraTranslations.ro || {}) }
+
+const translateRo = (key, variables = {}) =>
+  Object.keys(variables).reduce(
+    (text, name) => text.split(`{${name}}`).join(String(variables[name])),
+    RO_STRINGS[key] ?? key
+  )
+
+const setupSignature = (status) =>
+  status?.signature ?? (status?.checks || []).filter(c => !c.ok).map(c => c.key).sort().join(',')
+
+const signatureKeys = (signature) => String(signature || '').split(',').filter(Boolean)
+
+const hasUndismissedKeys = (signature, dismissed) => {
+  const seen = new Set(signatureKeys(dismissed))
+  return signatureKeys(signature).some(key => !seen.has(key))
+}
+
+const writeDismissedSetup = (value) => {
+  try {
+    if (value) window.localStorage.setItem(SETUP_NOTICE_STORAGE_KEY, value)
+    else window.localStorage.removeItem(SETUP_NOTICE_STORAGE_KEY)
+  } catch {}
+}
+
+const syncDismissedSetup = (signature) => {
+  let stored = null
+  try {
+    stored = window.localStorage.getItem(SETUP_NOTICE_STORAGE_KEY)
+  } catch {}
+  if (stored === null) return null
+  const current = new Set(signatureKeys(signature))
+  const kept = signatureKeys(stored).filter(key => current.has(key)).join(',')
+  if (kept !== stored) writeDismissedSetup(kept)
+  return kept || null
+}
+
+const formatLockoutUntil = (iso) => {
+  const until = new Date(iso)
+  if (Number.isNaN(until.getTime())) return ''
+  const time = until.toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })
+  const today = new Date()
+  const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
+  if (until.toDateString() === today.toDateString()) return `azi la ${time}`
+  if (until.toDateString() === tomorrow.toDateString()) return `mâine la ${time}`
+  return `${until.toLocaleDateString('ro-RO', { day: 'numeric', month: 'long' })}, la ${time}`
+}
 
 export default function AdminDashboard() {
   const router = useRouter()
@@ -29,6 +82,9 @@ export default function AdminDashboard() {
   const [showTierGuide, setShowTierGuide] = useState(false)
   const [setupStatus, setSetupStatus] = useState(null)
   const [showSetupDetails, setShowSetupDetails] = useState(false)
+  const [setupDismissedSig, setSetupDismissedSig] = useState(null)
+  const [unlockingFamilyId, setUnlockingFamilyId] = useState(null)
+  const [unlockMessage, setUnlockMessage] = useState(null)
 
   useEffect(() => {
     checkAuth()
@@ -40,10 +96,44 @@ export default function AdminDashboard() {
     try {
       const response = await adminFetch('/api/admin/setup-status')
       const data = await response.json()
-      if (response.ok) setSetupStatus(data)
+      if (!response.ok) return
+      setSetupDismissedSig(syncDismissedSetup(setupSignature(data)))
+      setSetupStatus(data)
     } catch (error) {
       console.error('Error fetching setup status:', error)
     }
+  }
+
+  const unlockFamily = async (family) => {
+    setUnlockingFamilyId(family.id)
+    setUnlockMessage(null)
+    try {
+      const response = await adminFetch('/api/admin/families/clear-login-failures', {
+        method: 'POST',
+        body: JSON.stringify({ familyId: family.id })
+      })
+      const result = await parseAdminResponse(response)
+      if (!result.ok) {
+        setUnlockMessage({ ok: false, text: `Nu s-a putut ridica pauza pentru „${family.name}”: ${result.error}` })
+        return
+      }
+      if (result.data?.stored === false) {
+        setUnlockMessage({ ok: false, text: `Nu s-a putut ridica pauza pentru „${family.name}”: baza de date nu a putut fi actualizată acum. Încearcă din nou peste câteva minute.` })
+        return
+      }
+      setUnlockMessage({ ok: true, text: `Pauza pentru „${family.name}” a fost ridicată: familia poate intra acum cu PIN-ul corect.` })
+      await fetchSetupStatus()
+    } catch (error) {
+      setUnlockMessage({ ok: false, text: `Nu s-a putut ridica pauza pentru „${family.name}”: ${error.message}` })
+    } finally {
+      setUnlockingFamilyId(null)
+    }
+  }
+
+  const dismissSetupNotice = () => {
+    const sig = setupSignature(setupStatus)
+    setSetupDismissedSig(sig)
+    writeDismissedSetup(sig)
   }
 
   const checkAuth = () => {
@@ -112,6 +202,8 @@ export default function AdminDashboard() {
         familyName: family.name,
         year,
         fetcher: adminFetch,
+        t: translateRo,
+        locale: 'ro-RO',
         onProgress: (stage, done, total) => setExportProgress({ stage, done, total }),
       })
       console.log(`Export complete: ${result.files} files from ${result.posts} posts`)
@@ -200,9 +292,13 @@ export default function AdminDashboard() {
   }
 
   const getFilteredAndSortedFamilies = () => {
+    const term = searchTerm.trim().toLowerCase()
+    const termDigits = /^[\d\s+().-]+$/.test(term) ? term.replace(/\D/g, '').replace(/^0+/, '') : ''
     let filtered = dashboardData.familiesList.filter(family => {
-      const matchesSearch = family.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           (family.phone_number && family.phone_number.includes(searchTerm))
+      const phoneDigits = (normalizePhone(family.phone_number) || '').replace(/\D/g, '')
+      const matchesSearch = family.name.toLowerCase().includes(term) ||
+                           (family.phone_number && family.phone_number.includes(term)) ||
+                           (termDigits !== '' && phoneDigits.includes(termDigits))
 
       let matchesFilter = true
       switch (filterBy) {
@@ -382,6 +478,13 @@ export default function AdminDashboard() {
     { grad: 'linear-gradient(135deg, rgba(6,182,212,0.35), rgba(6,182,212,0.10))', stroke: 'var(--accent-aqua)' },
   ]
 
+  const pendingSetupChecks = setupStatus ? (setupStatus.checks || []).filter(c => !c.ok) : []
+  const showSetupNotice = pendingSetupChecks.length > 0 && hasUndismissedKeys(setupSignature(setupStatus), setupDismissedSig)
+  const setupLoginBlocked = pendingSetupChecks.some(c => c.key === 'login')
+  const setupLockouts = pendingSetupChecks.find(c => c.key === 'pin_lockout')?.lockouts || []
+  const setupWarning = setupLoginBlocked || setupLockouts.some(f => !f.reachable)
+  const setupAccent = setupWarning ? 'var(--accent-amber)' : 'var(--accent-aqua)'
+
   return (
     <div data-theme="dark" style={{ minHeight: '100vh' }}>
       <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '24px' }}>
@@ -457,48 +560,156 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {setupStatus && setupStatus.pendingCount > 0 && (
-          <div className="card-glass" style={{
-            padding: '16px 20px', marginBottom: '24px',
-            border: '1px solid rgba(245,158,11,0.45)',
-            background: 'rgba(245,158,11,0.08)'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span aria-hidden="true" style={{ fontSize: 20 }}>⚠️</span>
-                <div>
+        {showSetupNotice && (
+          <div className="card-glass" style={{ padding: '16px 20px', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', flex: '1 1 320px', minWidth: 0 }}>
+                <div aria-hidden="true" style={{
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '11px',
+                  flexShrink: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: setupWarning
+                    ? 'linear-gradient(135deg, rgba(245,158,11,0.28), rgba(245,158,11,0.08))'
+                    : 'linear-gradient(135deg, rgba(6,182,212,0.28), rgba(6,182,212,0.08))',
+                  border: '1px solid var(--glass-hairline)'
+                }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={setupAccent} strokeWidth="2" strokeLinecap="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="16" x2="12" y2="11"/>
+                    <line x1="12" y1="8" x2="12.01" y2="8"/>
+                  </svg>
+                </div>
+                <div style={{ minWidth: 0 }}>
                   <p className="text-body" style={{ margin: 0, fontWeight: 600 }}>
-                    Configurare incompletă — {setupStatus.pendingCount} {setupStatus.pendingCount === 1 ? 'pas rămas' : 'pași rămași'}
+                    {setupStatus.headline || 'Câteva setări ale platformei sunt încă în lucru'}
                   </p>
-                  <p className="text-subtle" style={{ margin: 0 }}>
-                    Până nu sunt făcuți, unele funcții rămân dezactivate. Pașii exacți sunt în <code>ACTIONS-REQUIRED.md</code>; verificare din terminal: <code>npm run check:setup</code>.
-                  </p>
+                  {setupStatus.summary && (
+                    <p className="text-subtle" style={{ margin: '2px 0 0' }}>
+                      {setupStatus.summary}
+                    </p>
+                  )}
                 </div>
               </div>
-              <button className="btn-glass" onClick={() => setShowSetupDetails(v => !v)}>
-                {showSetupDetails ? 'Ascunde' : 'Vezi pașii'}
-              </button>
+              <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                <button
+                  className="btn-glass"
+                  style={{ padding: '8px 14px', fontSize: '13px' }}
+                  onClick={() => setShowSetupDetails(v => !v)}
+                  aria-expanded={showSetupDetails}
+                >
+                  {showSetupDetails ? 'Restrânge' : 'Ce înseamnă?'}
+                </button>
+                <button
+                  className="btn-ghost"
+                  style={{ padding: '8px 12px', fontSize: '13px' }}
+                  onClick={dismissSetupNotice}
+                  title="Mesajul reapare doar dacă apare ceva nou"
+                >
+                  Ascunde
+                </button>
+              </div>
             </div>
-            {showSetupDetails && (
-              <ul style={{ margin: '14px 0 0', padding: 0, listStyle: 'none', display: 'grid', gap: 10 }}>
-                {setupStatus.checks.map((c) => (
-                  <li key={c.key} style={{
-                    display: 'grid', gridTemplateColumns: '22px 1fr', gap: 10,
-                    padding: '10px 12px', borderRadius: 12,
-                    background: c.ok ? 'rgba(16,185,129,0.08)' : 'rgba(248,113,113,0.08)'
+
+            {setupLockouts.length > 0 && (
+              <ul style={{ margin: '14px 0 0', padding: 0, listStyle: 'none', display: 'grid', gap: '8px' }}>
+                {setupLockouts.map((f) => (
+                  <li key={f.id} className="glass-soft" style={{
+                    padding: '10px 14px',
+                    borderRadius: '14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '12px',
+                    flexWrap: 'wrap'
                   }}>
-                    <span aria-hidden="true">{c.ok ? '✅' : '❌'}</span>
-                    <div>
-                      <p className="text-body" style={{ margin: 0, fontWeight: 600 }}>{c.label}</p>
-                      <p className="text-subtle" style={{ margin: '2px 0 0' }}>{c.detail}</p>
-                      {!c.ok && (
-                        <p className="text-subtle" style={{ margin: '4px 0 0', color: 'var(--accent-amber, #f59e0b)' }}>→ {c.action}</p>
-                      )}
+                    <div style={{ minWidth: 0, flex: '1 1 220px' }}>
+                      <p className="text-body" style={{ margin: 0, fontWeight: 600, overflowWrap: 'anywhere' }}>
+                        „{f.name}”
+                      </p>
+                      <p className="text-subtle" style={{ margin: '2px 0 0' }}>
+                        Pauză până {formatLockoutUntil(f.until)} · {f.reachable ? 'poate intra cu PIN-ul corect și un cod de verificare' : 'nu poate intra până atunci'}
+                      </p>
                     </div>
+                    <button
+                      className="btn-glass"
+                      style={{ padding: '8px 14px', fontSize: '13px', flexShrink: 0 }}
+                      onClick={() => unlockFamily(f)}
+                      disabled={unlockingFamilyId !== null}
+                      aria-busy={unlockingFamilyId === f.id}
+                      title="Șterge numărătoarea PIN-urilor greșite: familia intră imediat cu PIN-ul corect"
+                    >
+                      {unlockingFamilyId === f.id ? 'Se deblochează…' : 'Deblochează'}
+                    </button>
                   </li>
                 ))}
               </ul>
             )}
+
+            {showSetupDetails && (
+              <div style={{ marginTop: '16px' }}>
+                {setupStatus.intro && (
+                  <p className="text-subtle" style={{ margin: '0 0 10px' }}>
+                    {setupStatus.intro}
+                  </p>
+                )}
+                <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'grid', gap: '10px' }}>
+                  {pendingSetupChecks.map((c) => (
+                    <li key={c.key} className="glass-soft" style={{ padding: '12px 14px', borderRadius: '14px' }}>
+                      <p className="text-body" style={{ margin: 0, fontWeight: 600 }}>
+                        {c.title || c.label}
+                      </p>
+                      {(c.consequences || []).length > 0 && (
+                        <ul className="text-subtle" style={{ margin: '6px 0 0', paddingLeft: '18px', lineHeight: 1.6 }}>
+                          {c.consequences.map((line, i) => (
+                            <li key={i}>{line}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+
+                <details style={{ marginTop: '14px' }}>
+                  <summary className="text-tertiary" style={{ cursor: 'pointer', userSelect: 'none' }}>
+                    Detalii tehnice (pentru dezvoltator)
+                  </summary>
+                  <div className="text-tertiary" style={{ marginTop: '10px', display: 'grid', gap: '10px', fontSize: '12px', lineHeight: 1.55, overflowWrap: 'anywhere' }}>
+                    {pendingSetupChecks.map((c) => (
+                      <div key={c.key}>
+                        <div style={{ color: 'var(--ink-2)', fontWeight: 600 }}>{c.label}</div>
+                        {c.detail && <div>{c.detail}</div>}
+                        {(c.actions || []).map((a, i) => (
+                          <div key={i}>→ {a}</div>
+                        ))}
+                      </div>
+                    ))}
+                    <div>
+                      Pașii completi: <code>ACTIONS-REQUIRED.md</code> · verificare din terminal: <code>npm run check:setup</code>
+                    </div>
+                  </div>
+                </details>
+              </div>
+            )}
+          </div>
+        )}
+
+        {unlockMessage && (
+          <div className="glass-soft" role="status" style={{ padding: '10px 16px', borderRadius: '14px', marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+            <p className="text-subtle" style={{ margin: 0, color: unlockMessage.ok ? 'var(--accent-mint)' : 'var(--accent-amber)' }}>
+              {unlockMessage.text}
+            </p>
+            <button
+              className="btn-ghost"
+              style={{ padding: '6px 10px', fontSize: '13px', flexShrink: 0 }}
+              onClick={() => setUnlockMessage(null)}
+              aria-label="Închide mesajul"
+            >
+              ✕
+            </button>
           </div>
         )}
 
@@ -966,8 +1177,8 @@ export default function AdminDashboard() {
                           </div>
                         </div>
                       </td>
-                      <td className="text-body nums" style={{ padding: '14px 12px' }}>
-                        {family.phone_number || 'Nu este setat'}
+                      <td className="text-body nums" style={{ padding: '14px 12px', whiteSpace: 'nowrap' }}>
+                        {family.phone_number ? formatPhoneDisplay(family.phone_number) : 'Nu este setat'}
                       </td>
                       <td className="text-body nums" style={{ padding: '14px 12px' }}>
                         {family.children_count}

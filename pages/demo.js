@@ -2,12 +2,13 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { useState } from 'react'
 import { useLanguage } from '../contexts/LanguageContext'
+import LanguagePicker from '../components/LanguagePicker'
 
 const SAMPLE_POSTS = [
   {
     id: 1,
     titleKey: 'demoPost1Title',
-    dateKey: 'demoPost1Date',
+    date: '2025-07-12',
     categoryKey: 'demoCategoryTravel',
     emoji: '🏖️',
     descriptionKey: 'demoPost1Desc',
@@ -16,7 +17,7 @@ const SAMPLE_POSTS = [
   {
     id: 2,
     titleKey: 'demoPost2Title',
-    dateKey: 'demoPost2Date',
+    date: '2025-06-03',
     categoryKey: 'demoCategoryMilestones',
     emoji: '👣',
     descriptionKey: 'demoPost2Desc',
@@ -25,7 +26,7 @@ const SAMPLE_POSTS = [
   {
     id: 3,
     titleKey: 'demoPost3Title',
-    dateKey: 'demoPost3Date',
+    date: '2025-05-21',
     categoryKey: 'demoCategoryCelebrations',
     emoji: '🎂',
     descriptionKey: 'demoPost3Desc',
@@ -34,7 +35,7 @@ const SAMPLE_POSTS = [
   {
     id: 4,
     titleKey: 'demoPost4Title',
-    dateKey: 'demoPost4Date',
+    date: '2024-10-18',
     categoryKey: 'demoCategoryWalks',
     emoji: '🍂',
     descriptionKey: 'demoPost4Desc',
@@ -43,7 +44,7 @@ const SAMPLE_POSTS = [
   {
     id: 5,
     titleKey: 'demoPost5Title',
-    dateKey: 'demoPost5Date',
+    date: '2024-04-07',
     categoryKey: 'demoCategoryMilestones',
     emoji: '💬',
     descriptionKey: 'demoPost5Desc',
@@ -52,7 +53,7 @@ const SAMPLE_POSTS = [
   {
     id: 6,
     titleKey: 'demoPost6Title',
-    dateKey: 'demoPost6Date',
+    date: '2025-09-01',
     categoryKey: 'demoCategoryMilestones',
     emoji: '🎒',
     descriptionKey: 'demoPost6Desc',
@@ -61,8 +62,9 @@ const SAMPLE_POSTS = [
 ]
 
 export default function Demo() {
-  const { t } = useLanguage()
+  const { t, locale } = useLanguage()
   const [activeCategory, setActiveCategory] = useState('all')
+  const formatDate = (iso) => new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(iso))
 
   const categories = ['all', ...Array.from(new Set(SAMPLE_POSTS.map(p => p.categoryKey)))]
   const visiblePosts = activeCategory === 'all'
@@ -72,7 +74,7 @@ export default function Demo() {
   return (
     <>
       <Head>
-        <title>Demo · BabyJourney — Album privat de familie din Chișinău</title>
+        <title>{t('demoPageTitle')}</title>
         <meta name="description" content="Vezi cum arată albumul BabyJourney înainte să-l încerci. Un tur al feed-ului, categoriilor și momentelor copilăriei — albumul privat de familie #1 din Moldova." />
         <meta name="keywords" content="album familie, BabyJourney, jurnal bebe, demo album, amintiri copii, Chișinău, Moldova" />
         <meta property="og:type" content="website" />
@@ -89,6 +91,9 @@ export default function Demo() {
       </Head>
 
       <div style={{ minHeight: '100vh', position: 'relative' }}>
+        <div style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 16px)', right: 16, zIndex: 2 }}>
+          <LanguagePicker />
+        </div>
         <div aria-hidden style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0 }}>
           <div style={{
             position: 'absolute', top: '-10%', left: '-8%',
@@ -109,7 +114,7 @@ export default function Demo() {
           zIndex: 1,
           maxWidth: 1180,
           margin: '0 auto',
-          padding: '48px 24px 80px',
+          padding: '76px 24px 80px',
         }}>
           <header style={{ textAlign: 'center', marginBottom: 48 }}>
             <span className="glass-pill" style={{ padding: '6px 14px', fontSize: 12, color: 'var(--accent-iris)', fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase' }}>
@@ -196,7 +201,7 @@ export default function Demo() {
                 <div style={{ padding: '18px 20px 20px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 8 }}>
                     <span className="text-eyebrow" style={{ color: 'var(--accent-iris)' }}>{t(post.categoryKey)}</span>
-                    <span className="text-tertiary nums">{t(post.dateKey)}</span>
+                    <time dateTime={post.date} className="text-tertiary nums">{formatDate(post.date)}</time>
                   </div>
                   <h3 className="text-section-title" style={{ fontSize: 18, marginBottom: 8 }}>{t(post.titleKey)}</h3>
                   <p className="text-body" style={{ color: 'var(--ink-2)', fontSize: 14.5, lineHeight: 1.55, margin: 0 }}>

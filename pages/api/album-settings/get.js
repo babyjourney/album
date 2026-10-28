@@ -10,7 +10,7 @@ async function handler(req, res) {
   const familyId = req.auth.isAdmin ? rawFamilyId : req.auth.familyId
 
   if (!familyId) {
-    return res.status(400).json({ error: 'ID-ul familiei este obligatoriu' })
+    return res.status(400).json({ error: 'ID-ul familiei este obligatoriu', errorKey: 'errFamilyIdRequired' })
   }
 
   try {
@@ -51,7 +51,7 @@ async function handler(req, res) {
 
   } catch (error) {
     console.error('Album settings fetch error:', error)
-    return res.status(500).json({ error: 'Încărcarea setărilor albumului a eșuat' })
+    return res.status(500).json({ error: 'Încărcarea setărilor albumului a eșuat', errorKey: 'errAlbumSettingsLoadFailed' })
   }
 }
 

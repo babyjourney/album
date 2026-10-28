@@ -6,6 +6,13 @@ import FilteredPosts from './FilteredPosts'
 
 const COLORS = ['#7c3aed', '#2563eb', '#059669', '#d97706', '#db2777', '#0891b2']
 
+const formatDay = (iso, locale) => {
+  const [y, m, d] = String(iso || '').split('-').map(Number)
+  return y && m && d
+    ? new Date(y, m - 1, d).toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' })
+    : iso || ''
+}
+
 const EMPTY_FORM = {
   title: '',
   description: '',
@@ -27,8 +34,10 @@ export default function EducationTab({ familyId, childId }) {
   const [showForm, setShowForm] = useState(false)
 
   const { showSuccess, showError } = useToast()
-  const { t } = useLanguage()
+  const { t, locale } = useLanguage()
   const canEdit = isEditor()
+
+  const apiErrorText = (data) => (data?.errorKey ? t(data.errorKey) : data?.error) || t('errServerInternal')
 
   useEffect(() => {
     let cancelled = false
@@ -69,9 +78,9 @@ export default function EducationTab({ familyId, childId }) {
         method: 'POST',
         body: JSON.stringify({ childId: childId || null, body }),
       })
-      if (!res.ok) { const body = await res.json(); throw new Error((body.errorKey ? t(body.errorKey) : body.error) || t('error')) }
+      if (!res.ok) { showError(apiErrorText(await res.json().catch(() => ({})))); return }
       showSuccess(t('educationSaved'))
-    } catch (e) { showError(e.message) } finally { setSaving(false) }
+    } catch { showError(t('errServerInternal')) } finally { setSaving(false) }
   }
 
   const addChapter = async () => {
@@ -82,22 +91,22 @@ export default function EducationTab({ familyId, childId }) {
         method: 'POST',
         body: JSON.stringify({ childId: childId || null, ...form }),
       })
-      const body = await res.json()
-      if (!res.ok) throw new Error((body.errorKey ? t(body.errorKey) : body.error) || t('error'))
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) { showError(apiErrorText(body)); return }
       setForm(EMPTY_FORM)
       setShowForm(false)
       if (body.warning) showError(t(body.warning))
       else showSuccess(t('chapterAdded'))
       loadChapters()
-    } catch (e) { showError(e.message) } finally { setAdding(false) }
+    } catch { showError(t('errServerInternal')) } finally { setAdding(false) }
   }
 
   const removeChapter = async (id) => {
     try {
       const res = await authenticatedFetch(`/api/journey/chapters?id=${id}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error(t('error'))
+      if (!res.ok) { showError(apiErrorText(await res.json().catch(() => ({})))); return }
       setChapters((c) => c.filter((x) => x.id !== id))
-    } catch (e) { showError(e.message) }
+    } catch { showError(t('errServerInternal')) }
   }
 
   const paramsForChapter = (c) => {
@@ -251,7 +260,7 @@ export default function EducationTab({ familyId, childId }) {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 700, color: 'var(--ink-1)' }}>{c.title}</div>
                     <div className="text-subtle nums" style={{ fontSize: 12 }}>
-                      {c.start_date || '—'}{c.end_date ? ` → ${c.end_date}` : ''}
+                      {c.start_date ? formatDay(c.start_date, locale) : '—'}{c.end_date ? ` → ${formatDay(c.end_date, locale)}` : ''}
                     </div>
                     {c.description && (
                       <p style={{
@@ -305,7 +314,7 @@ export default function EducationTab({ familyId, childId }) {
         <FilteredPosts
           familyId={familyId}
           childId={childId}
-          params={{ categoryAny: 'education,learning', hashtagsAny: 'diploma,certificate,certificat,proiect,project,scoala,school,education' }}
+          params={{ categoryAny: 'education,learning', hashtagsAny: 'diploma,certificate,certificat,proiect,project,scoala,școala,școală,school,education,educatie,educație,диплом,сертификат,проект,школа,образование' }}
           emptyText={t('noDiplomasYet')}
         />
       </section>

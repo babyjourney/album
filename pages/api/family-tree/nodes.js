@@ -34,9 +34,11 @@ async function handler(req, res) {
             const min = FEATURE_MIN_TIER.extendedFamilyTree
             return res.status(403).json({
               error: `Arborele de bază este limitat la ${cap} persoane. Treci la planul ${TIERS[min]?.label} pentru arbore extins.`,
+              errorKey: 'errFeatureLocked',
               code: 'FEATURE_LOCKED',
               feature: 'extendedFamilyTree',
               requiredTier: min,
+              cap,
             })
           }
         }

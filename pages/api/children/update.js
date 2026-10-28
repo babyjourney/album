@@ -7,19 +7,19 @@ async function handler(req, res) {
   }
 
   const { id, name, birthDate, profilePictureUrl, displayOrder } = req.body || {}
-  if (!id) return res.status(400).json({ error: 'ID-ul copilului este obligatoriu' })
+  if (!id) return res.status(400).json({ error: 'ID-ul copilului este obligatoriu', errorKey: 'errIdRequired' })
 
   try {
     const { data: child, error: fetchErr } = await supabase
       .from('children').select('id, family_id').eq('id', id).single()
-    if (fetchErr || !child) return res.status(404).json({ error: 'Copilul nu a fost găsit' })
+    if (fetchErr || !child) return res.status(404).json({ error: 'Copilul nu a fost găsit', errorKey: 'errChildNotFound' })
     if (!req.auth.isAdmin && child.family_id !== req.auth.familyId) {
-      return res.status(403).json({ error: 'Nu aveți permisiunea să modificați acest copil' })
+      return res.status(403).json({ error: 'Nu aveți permisiunea să modificați acest copil', errorKey: 'errChildNotInFamily' })
     }
 
     const patch = { updated_at: new Date().toISOString() }
     if (name !== undefined) {
-      if (!name || !String(name).trim()) return res.status(400).json({ error: 'Numele nu poate fi gol' })
+      if (!name || !String(name).trim()) return res.status(400).json({ error: 'Numele nu poate fi gol', errorKey: 'errNameRequired' })
       patch.name = String(name).trim()
     }
     if (birthDate !== undefined) patch.birth_date = birthDate || null
@@ -33,7 +33,7 @@ async function handler(req, res) {
     return res.status(200).json({ success: true, child: data })
   } catch (error) {
     console.error('Child update error:', error)
-    return res.status(500).json({ error: `Actualizarea copilului a eșuat: ${error.message}` })
+    return res.status(500).json({ error: `Actualizarea copilului a eșuat: ${error.message}`, errorKey: 'errServerInternal' })
   }
 }
 

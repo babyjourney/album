@@ -1,28 +1,33 @@
 import { supabase } from '../../../lib/supabaseClient'
 import { requireEditor } from '../../../lib/authMiddleware'
 import { requireFeature } from '../../../lib/requireFeature'
+import { canonicalCategoryLabel } from '../../../lib/defaultCategories'
 
 async function handler(req, res) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' })
+    return res.status(405).json({ error: 'Metoda nu este permisă' })
   }
 
-  const { value, label, emoji } = req.body
+  const { value, label, emoji } = req.body || {}
   const familyId = req.auth.familyId
+  const cleanValue = typeof value === 'string' ? value.trim() : ''
+  const rawLabel = typeof label === 'string' ? label.trim() : ''
+  const cleanLabel = canonicalCategoryLabel(cleanValue, rawLabel)
 
-  if (!value || !label) {
-    return res.status(400).json({ error: 'Value and label are required' })
+  if (!cleanValue || !rawLabel) {
+    return res.status(400).json({ error: 'Valoarea și numele categoriei sunt obligatorii', errorKey: 'errCategoryFieldsRequired' })
   }
 
   try {
-    const { data: testData, error: testError } = await supabase
+    const { error: testError } = await supabase
       .from('family_categories')
       .select('id')
       .limit(1)
 
     if (testError && (testError.message.includes('does not exist') || testError.code === '42P01')) {
-      return res.status(400).json({ 
-        error: 'Categories system needs migration. Please run migration first.',
+      return res.status(400).json({
+        error: 'Sistemul de categorii necesită migrare. Contactează administratorul.',
+        errorKey: 'categoriesMigrationNeeded',
         needsMigration: true
       })
     }
@@ -31,19 +36,19 @@ async function handler(req, res) {
       .from('family_categories')
       .select('id')
       .eq('family_id', familyId)
-      .eq('category_value', value)
+      .eq('category_value', cleanValue)
       .single()
 
     if (existing) {
-      return res.status(400).json({ error: 'Category with this value already exists' })
+      return res.status(400).json({ error: 'Există deja o categorie cu această valoare', errorKey: 'errCategoryExists' })
     }
 
     const { data: newCategory, error } = await supabase
       .from('family_categories')
       .insert({
         family_id: familyId,
-        category_value: value,
-        category_label: label,
+        category_value: cleanValue,
+        category_label: cleanLabel,
         category_emoji: emoji || '📝'
       })
       .select()
@@ -63,7 +68,7 @@ async function handler(req, res) {
     })
   } catch (error) {
     console.error('Error creating category:', error)
-    res.status(500).json({ error: 'Failed to create category' })
+    res.status(500).json({ error: 'Crearea categoriei a eșuat', errorKey: 'errCategoryCreateFailed' })
   }
 }
 

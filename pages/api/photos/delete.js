@@ -1,5 +1,6 @@
 import { supabase } from '../../../lib/supabaseClient'
 import { requireEditor, verifyFamilyOwnership } from '../../../lib/authMiddleware'
+import { ownStoragePath, filterUnreferencedStoragePaths, STORAGE_BUCKET } from '../../../lib/fileTypes'
 
 async function handler(req, res) {
   if (req.method !== 'DELETE') {
@@ -24,6 +25,7 @@ async function handler(req, res) {
     }
 
     let ownedUrls = []
+    let rowLoaded = false
     try {
       let row = null
       for (const cols of ['file_url, file_urls, poster_urls', 'file_url, file_urls', 'file_url']) {
@@ -47,6 +49,7 @@ async function handler(req, res) {
         ...asArray(row?.file_urls),
         ...asArray(row?.poster_urls),
       ].filter(Boolean)
+      rowLoaded = !!row
     } catch (lookupErr) {
       console.warn('delete: could not read owned files:', lookupErr?.message)
     }
@@ -61,17 +64,20 @@ async function handler(req, res) {
       throw dbError
     }
 
-    const urlsToRemove = ownedUrls.length ? ownedUrls : (fileUrl ? [fileUrl] : [])
-    if (urlsToRemove.length) {
-      try {
-        const paths = [...new Set(
-          urlsToRemove.map((url) => url.split('/').slice(-2).join('/'))
-        )]
-
-        await supabase.storage
-          .from('album_uploads')
-          .remove(paths)
-      } catch (storageError) {
+    const urlsToRemove = rowLoaded ? ownedUrls : (fileUrl ? [fileUrl] : [])
+    const { paths, error: referenceError } = await filterUnreferencedStoragePaths(
+      supabase,
+      req.auth.familyId,
+      urlsToRemove.map((url) => ownStoragePath(url, req.auth.familyId)).filter(Boolean)
+    )
+    if (referenceError) {
+      console.warn('delete: kept files in storage, could not check other references:', referenceError.message || referenceError)
+    }
+    if (paths.length) {
+      const { error: storageError } = await supabase.storage
+        .from(STORAGE_BUCKET)
+        .remove(paths)
+      if (storageError) {
         console.warn('Failed to delete files from storage:', storageError)
       }
     }
